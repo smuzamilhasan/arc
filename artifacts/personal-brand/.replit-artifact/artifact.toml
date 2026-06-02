@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Personal Brand"
+version = "1.0.0"
+id = "artifacts/personal-brand"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23384
+
+[services.development]
+run = "pnpm --filter @workspace/personal-brand run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/personal-brand", "run", "build" ]
+publicDir = "artifacts/personal-brand/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23384"
+BASE_PATH = "/"

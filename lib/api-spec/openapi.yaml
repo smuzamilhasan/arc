@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Personal Brand API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: brand
+    description: Brand profile operations
+  - name: posts
+    description: Content post operations
+  - name: ideas
+    description: Content idea operations
+  - name: dashboard
+    description: Dashboard summary operations
 paths:
   /healthz:
     get:
@@ -24,6 +32,222 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /brand-profile:
+    get:
+      operationId: getBrandProfile
+      tags: [brand]
+      summary: Get brand profile
+      responses:
+        "200":
+          description: Brand profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandProfile"
+        "404":
+          description: Not found
+    put:
+      operationId: upsertBrandProfile
+      tags: [brand]
+      summary: Create or update brand profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandProfileInput"
+      responses:
+        "200":
+          description: Updated brand profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandProfile"
+
+  /posts:
+    get:
+      operationId: listPosts
+      tags: [posts]
+      summary: List all posts
+      parameters:
+        - name: platform
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+    post:
+      operationId: createPost
+      tags: [posts]
+      summary: Create a post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostInput"
+      responses:
+        "201":
+          description: Created post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  /posts/{id}:
+    get:
+      operationId: getPost
+      tags: [posts]
+      summary: Get a post by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          description: Not found
+    patch:
+      operationId: updatePost
+      tags: [posts]
+      summary: Update a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostUpdate"
+      responses:
+        "200":
+          description: Updated post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          description: Not found
+    delete:
+      operationId: deletePost
+      tags: [posts]
+      summary: Delete a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /ideas:
+    get:
+      operationId: listIdeas
+      tags: [ideas]
+      summary: List content ideas
+      responses:
+        "200":
+          description: List of ideas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Idea"
+    post:
+      operationId: createIdea
+      tags: [ideas]
+      summary: Create a content idea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdeaInput"
+      responses:
+        "201":
+          description: Created idea
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Idea"
+
+  /ideas/{id}:
+    delete:
+      operationId: deleteIdea
+      tags: [ideas]
+      summary: Delete a content idea
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+    patch:
+      operationId: updateIdea
+      tags: [ideas]
+      summary: Update a content idea
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdeaUpdate"
+      responses:
+        "200":
+          description: Updated idea
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Idea"
+
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +258,202 @@ components:
       required:
         - status
 
+    BrandProfile:
+      type: object
+      required: [id, name, tagline, mission, values, targetAudience, toneOfVoice, bio, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        tagline:
+          type: string
+        mission:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+        targetAudience:
+          type: string
+        toneOfVoice:
+          type: string
+        bio:
+          type: string
+        website:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        twitterUrl:
+          type: ["string", "null"]
+        instagramUrl:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+
+    BrandProfileInput:
+      type: object
+      required: [name, tagline, mission, values, targetAudience, toneOfVoice, bio]
+      properties:
+        name:
+          type: string
+        tagline:
+          type: string
+        mission:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+        targetAudience:
+          type: string
+        toneOfVoice:
+          type: string
+        bio:
+          type: string
+        website:
+          type: string
+        linkedinUrl:
+          type: string
+        twitterUrl:
+          type: string
+        instagramUrl:
+          type: string
+
+    Post:
+      type: object
+      required: [id, title, content, platform, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        platform:
+          type: string
+          enum: [linkedin, twitter, instagram, blog, other]
+        status:
+          type: string
+          enum: [draft, scheduled, published]
+        scheduledAt:
+          type: ["string", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    PostInput:
+      type: object
+      required: [title, content, platform, status]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        platform:
+          type: string
+          enum: [linkedin, twitter, instagram, blog, other]
+        status:
+          type: string
+          enum: [draft, scheduled, published]
+        scheduledAt:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    PostUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        platform:
+          type: string
+          enum: [linkedin, twitter, instagram, blog, other]
+        status:
+          type: string
+          enum: [draft, scheduled, published]
+        scheduledAt:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    Idea:
+      type: object
+      required: [id, title, notes, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        notes:
+          type: string
+        platform:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    IdeaInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        notes:
+          type: string
+        platform:
+          type: string
+
+    IdeaUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        notes:
+          type: string
+        platform:
+          type: string
+
+    DashboardSummary:
+      type: object
+      required: [totalPosts, draftCount, scheduledCount, publishedCount, ideaCount, postsByPlatform, recentPosts]
+      properties:
+        totalPosts:
+          type: integer
+        draftCount:
+          type: integer
+        scheduledCount:
+          type: integer
+        publishedCount:
+          type: integer
+        ideaCount:
+          type: integer
+        brandProfileComplete:
+          type: boolean
+        postsByPlatform:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformCount"
+        recentPosts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+
+    PlatformCount:
+      type: object
+      required: [platform, count]
+      properties:
+        platform:
+          type: string
+        count:
+          type: integer

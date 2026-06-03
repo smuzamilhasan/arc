@@ -80,6 +80,16 @@ paths:
         "204":
           description: Reset complete
 
+  /account:
+    delete:
+      operationId: deleteAccount
+      tags: [client]
+      summary: Permanently delete the user's account and all associated data
+      description: Deletes the client profile along with its audit results, narrative, posts, and ideas, then removes the user's authentication account. This cannot be undone.
+      responses:
+        "204":
+          description: Account deleted
+
   /audit/latest:
     get:
       operationId: getLatestAudit

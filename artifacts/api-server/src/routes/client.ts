@@ -9,8 +9,23 @@ import {
 } from "@workspace/db";
 import { UpsertClientBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
+import { clerkClient } from "@clerk/express";
 
 const router = Router();
+
+async function deleteClientData(clientId: number) {
+  await db.transaction(async (tx) => {
+    await tx.delete(postsTable).where(eq(postsTable.clientId, clientId));
+    await tx.delete(ideasTable).where(eq(ideasTable.clientId, clientId));
+    await tx
+      .delete(narrativeProfilesTable)
+      .where(eq(narrativeProfilesTable.clientId, clientId));
+    await tx
+      .delete(auditResultsTable)
+      .where(eq(auditResultsTable.clientId, clientId));
+    await tx.delete(clientProfileTable).where(eq(clientProfileTable.id, clientId));
+  });
+}
 
 function serializeClient(c: typeof clientProfileTable.$inferSelect) {
   const { userId: _userId, ...rest } = c;
@@ -105,13 +120,17 @@ router.post("/client/reset", async (req, res) => {
     res.status(204).end();
     return;
   }
-  await db.transaction(async (tx) => {
-    await tx.delete(postsTable).where(eq(postsTable.clientId, client.id));
-    await tx.delete(ideasTable).where(eq(ideasTable.clientId, client.id));
-    await tx.delete(narrativeProfilesTable).where(eq(narrativeProfilesTable.clientId, client.id));
-    await tx.delete(auditResultsTable).where(eq(auditResultsTable.clientId, client.id));
-    await tx.delete(clientProfileTable).where(eq(clientProfileTable.id, client.id));
-  });
+  await deleteClientData(client.id);
+  res.status(204).end();
+});
+
+router.delete("/account", async (req, res) => {
+  const userId = req.userId!;
+  const client = await getClientForUser(userId);
+  if (client) {
+    await deleteClientData(client.id);
+  }
+  await clerkClient.users.deleteUser(userId);
   res.status(204).end();
 });
 

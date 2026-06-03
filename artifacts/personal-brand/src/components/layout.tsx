@@ -9,7 +9,8 @@ import {
   CornerDownRight,
   RotateCcw,
   LogOut,
-  Loader2
+  Loader2,
+  Settings
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -119,6 +120,12 @@ function UserMenu() {
           Signed in
         </p>
       </div>
+      <Link href="/account">
+        <div className="flex w-full items-center gap-3 px-4 py-2.5 rounded-none text-sm font-medium text-muted-foreground border-l-2 border-transparent transition-all duration-300 cursor-pointer hover:text-foreground hover:bg-secondary/30 hover:border-secondary-foreground/20">
+          <Settings className="w-4 h-4 stroke-[1.5]" />
+          Account settings
+        </div>
+      </Link>
       <button
         onClick={() => signOut({ redirectUrl: basePath || "/" })}
         className="flex w-full items-center gap-3 px-4 py-2.5 rounded-none text-sm font-medium text-muted-foreground border-l-2 border-transparent transition-all duration-300 hover:text-foreground hover:bg-secondary/30 hover:border-secondary-foreground/20"

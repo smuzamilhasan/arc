@@ -78,6 +78,17 @@ function draftFromNarrative(n: NarrativeProfile): NarrativeDraft {
   };
 }
 
+const DISCARD_CONFIRM_MESSAGE =
+  "You have unsaved changes to your narrative. Discard them?";
+
+function draftHasChanges(
+  draft: NarrativeDraft | null,
+  narrative: NarrativeProfile | undefined,
+): boolean {
+  if (!draft || !narrative) return false;
+  return JSON.stringify(draft) !== JSON.stringify(draftFromNarrative(narrative));
+}
+
 export default function Narrative() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -101,6 +112,65 @@ export default function Narrative() {
 
   const generateNarrative = useGenerateNarrative();
   const updateNarrative = useUpdateNarrative();
+
+  const hasUnsavedChanges = draftHasChanges(draft, narrative);
+
+  // Warn before the browser tab is closed/refreshed mid-edit.
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasUnsavedChanges]);
+
+  // Warn before in-app navigation (sidebar links) discards unsaved edits.
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handler = (e: MouseEvent) => {
+      if (e.defaultPrevented) return;
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const anchor = (e.target as HTMLElement | null)?.closest("a[href]");
+      if (!anchor) return;
+      const target = anchor.getAttribute("target");
+      if (target && target !== "_self") return;
+      if (window.confirm(DISCARD_CONFIRM_MESSAGE)) {
+        setDraft(null);
+      } else {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    document.addEventListener("click", handler, true);
+    return () => document.removeEventListener("click", handler, true);
+  }, [hasUnsavedChanges]);
+
+  // Warn before browser Back/Forward (popstate) discards unsaved edits.
+  // A sentinel history entry lets us intercept the first back press, prompt,
+  // and either re-trap (stay) or step back twice (leave).
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    let active = true;
+    window.history.pushState(null, "", window.location.href);
+    const onPopState = () => {
+      if (!active) return;
+      if (window.confirm(DISCARD_CONFIRM_MESSAGE)) {
+        active = false;
+        window.removeEventListener("popstate", onPopState);
+        setDraft(null);
+        window.history.back();
+      } else {
+        window.history.pushState(null, "", window.location.href);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      active = false;
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, [hasUnsavedChanges]);
 
   const canAutoGenerate =
     !narrative && !retake && !autoGenFailed && hasCoachMaterial(client);
@@ -181,6 +251,8 @@ export default function Narrative() {
   };
 
   const startRetake = () => {
+    if (hasUnsavedChanges && !window.confirm(DISCARD_CONFIRM_MESSAGE)) return;
+    setDraft(null);
     setAnswers(Array(QUESTIONS.length).fill(""));
     setStep(0);
     setRetake(true);
@@ -190,7 +262,10 @@ export default function Narrative() {
     if (narrative) setDraft(draftFromNarrative(narrative));
   };
 
-  const cancelEdit = () => setDraft(null);
+  const cancelEdit = () => {
+    if (hasUnsavedChanges && !window.confirm(DISCARD_CONFIRM_MESSAGE)) return;
+    setDraft(null);
+  };
 
   const saveEdit = () => {
     if (!draft) return;

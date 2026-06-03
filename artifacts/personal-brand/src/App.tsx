@@ -211,7 +211,7 @@ function ClerkProviderWithRoutes() {
                 <Onboard />
               </RequireAuth>
             </Route>
-            <Route path="/:rest*">
+            <Route path="/*">
               <RequireAuth>
                 <Layout>
                   <Switch>

@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { User, Compass, Lightbulb, BookOpen, Award } from "lucide-react";
+import { User, Compass, Lightbulb, BookOpen, Award, Flame } from "lucide-react";
 import type {
   ClientProfile,
   ClientProfileInput,
@@ -98,9 +98,6 @@ export const PILLARS: Pillar[] = [
     icon: Lightbulb,
     hasDraft: true,
     countFields: ["thesis", "coreBeliefs", "signatureFrameworks"],
-    supportingLabel: "Narrative depth",
-    supportingHint:
-      "These come from your narrative interview. They enrich what arc generates but aren't part of the count above.",
     fields: [
       {
         name: "thesis",
@@ -122,6 +119,17 @@ export const PILLARS: Pillar[] = [
           "Any named methods, mental models, or step-by-step approaches you've developed.",
         multiline: true,
       },
+    ],
+  },
+  {
+    id: "conviction",
+    title: "Conviction & Drive",
+    blurb: "The beliefs and frustrations that fuel why you speak up.",
+    intro:
+      "What you'd argue for, what you'd change, and what genuinely energizes you. This is the emotional engine behind your point of view, and it gives arc the conviction to make your content sound like you.",
+    icon: Flame,
+    countFields: ["beliefs", "frustrations", "desiredChange", "passions"],
+    fields: [
       {
         name: "beliefs",
         label: "What do you believe that others in your field don't?",

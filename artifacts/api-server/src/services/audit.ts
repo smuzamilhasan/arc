@@ -89,13 +89,36 @@ async function runSeo(client: ClientProfile): Promise<{ findings: SeoFindings; r
   const deduped = Array.from(new Map(results.map((r) => [r.url, r])).values()).slice(0, 12);
   const ownedPresence = deduped.some((r) => r.type === "owned") || owned.length > 0;
 
+  const summary = await summarizeSeo(subject, text, deduped).catch(() => text.slice(0, 1200));
+
   const findings: SeoFindings = {
     resultCount: deduped.length,
     results: deduped,
     ownedPresence,
-    summary: text.slice(0, 1200),
+    summary,
   };
   return { findings, raw: text };
+}
+
+async function summarizeSeo(subject: string, raw: string, results: SeoFinding[]): Promise<string> {
+  const fallback = raw.slice(0, 1200);
+  const resultList = results.length
+    ? results.map((r) => `- [${r.type}] ${r.title} (${r.url})`).join("\n")
+    : "(no notable results found)";
+  const trimmedRaw = raw.slice(0, 4000).trim();
+  if (!trimmedRaw && !results.length) {
+    return "No meaningful search-result presence was found for this person.";
+  }
+
+  const prompt = `You are a personal brand strategist analyzing someone's Google search-result presence. Using ONLY the search data provided below, write a clean, professional 2-4 sentence analysis of how this person shows up in search. Cover the strength of their presence, what kinds of sources appear (owned sites, social, press, directories), and any notable gaps. Do not invent sources, links, or facts that are not present in the data. Write in polished prose with no bullet points, no URLs, and no markdown.\n\nPerson: ${subject}\n\nStructured search results:\n${resultList}\n\nRaw search notes:\n${trimmedRaw || "(none)"}`;
+
+  const resp = await openai.chat.completions.create({
+    model: "gpt-5.4",
+    max_completion_tokens: 8192,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const summary = (resp.choices[0]?.message?.content ?? "").trim();
+  return summary || fallback || "No meaningful search-result presence was found for this person.";
 }
 
 async function askGeoModel(model: (typeof GEO_MODELS)[number]["model"], subject: string): Promise<string> {

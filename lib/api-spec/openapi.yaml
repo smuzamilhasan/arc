@@ -70,6 +70,16 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClientProfile"
 
+  /client/reset:
+    post:
+      operationId: resetClient
+      tags: [client]
+      summary: Delete the client profile and all derived data (start over)
+      description: Permanently removes the client profile along with its audit results, narrative, posts, and ideas, returning the app to a brand-new state.
+      responses:
+        "204":
+          description: Reset complete
+
   /audit/latest:
     get:
       operationId: getLatestAudit

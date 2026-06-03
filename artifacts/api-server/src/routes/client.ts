@@ -1,5 +1,12 @@
 import { Router } from "express";
-import { db, clientProfileTable } from "@workspace/db";
+import {
+  db,
+  clientProfileTable,
+  auditResultsTable,
+  narrativeProfilesTable,
+  postsTable,
+  ideasTable,
+} from "@workspace/db";
 import { UpsertClientBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
 
@@ -86,6 +93,17 @@ router.put("/client", async (req, res) => {
     [client] = await db.insert(clientProfileTable).values(values).returning();
   }
   res.json(serializeClient(client));
+});
+
+router.post("/client/reset", async (req, res) => {
+  await db.transaction(async (tx) => {
+    await tx.delete(postsTable);
+    await tx.delete(ideasTable);
+    await tx.delete(narrativeProfilesTable);
+    await tx.delete(auditResultsTable);
+    await tx.delete(clientProfileTable);
+  });
+  res.status(204).end();
 });
 
 export { getCurrentClient, serializeClient };

@@ -277,6 +277,77 @@ export const useUpsertClient = <TError = ErrorType<unknown>,
       return useMutation(getUpsertClientMutationOptions(options));
     }
 
+export const getResetClientUrl = () => {
+
+
+
+
+  return `/api/client/reset`
+}
+
+/**
+ * Permanently removes the client profile along with its audit results, narrative, posts, and ideas, returning the app to a brand-new state.
+ * @summary Delete the client profile and all derived data (start over)
+ */
+export const resetClient = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getResetClientUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResetClientMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetClient>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetClient>>, TError,void, TContext> => {
+
+const mutationKey = ['resetClient'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetClient>>, void> = () => {
+
+
+          return  resetClient(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetClientMutationResult = NonNullable<Awaited<ReturnType<typeof resetClient>>>
+
+    export type ResetClientMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete the client profile and all derived data (start over)
+ */
+export const useResetClient = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetClient>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetClient>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getResetClientMutationOptions(options));
+    }
+
 export const getGetLatestAuditUrl = () => {
 
 

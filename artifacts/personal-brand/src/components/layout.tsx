@@ -6,15 +6,96 @@ import {
   BookOpen, 
   FileText,
   Lightbulb,
-  CornerDownRight
+  CornerDownRight,
+  RotateCcw,
+  Loader2
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useResetClient } from "@workspace/api-client-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface LayoutProps {
   children: React.ReactNode;
+}
+
+function StartOver() {
+  const [, setLocation] = useLocation();
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { mutate, isPending } = useResetClient();
+
+  const handleReset = () => {
+    mutate(undefined, {
+      onSuccess: async () => {
+        await queryClient.clear();
+        setOpen(false);
+        setLocation("/onboard");
+      },
+      onError: () => {
+        toast({
+          title: "Could not reset",
+          description: "Something went wrong while starting over. Please try again.",
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <button className="flex w-full items-center gap-3 px-4 py-2.5 rounded-none text-sm font-medium text-muted-foreground border-l-2 border-transparent transition-all duration-300 hover:text-destructive hover:bg-destructive/5 hover:border-destructive/40">
+          <RotateCcw className="w-4 h-4 stroke-[1.5]" />
+          Start over
+        </button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-serif text-2xl">Start over from scratch?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This permanently erases your profile, presence audit, narrative, posts, and ideas.
+            You will be returned to onboarding to begin again. This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              handleReset();
+            }}
+            disabled={isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Resetting
+              </>
+            ) : (
+              "Erase everything"
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 }
 
 const navItems = [
@@ -64,6 +145,9 @@ export function Layout({ children }: LayoutProps) {
         </div>
         <div className="px-4">
           <NavLinks />
+          <div className="mt-6 pt-4 border-t border-border/50">
+            <StartOver />
+          </div>
         </div>
       </aside>
 
@@ -90,6 +174,9 @@ export function Layout({ children }: LayoutProps) {
             </div>
             <div className="px-4">
               <NavLinks />
+            </div>
+            <div className="px-4 mt-6 pt-4 border-t border-border/50">
+              <StartOver />
             </div>
           </SheetContent>
         </Sheet>

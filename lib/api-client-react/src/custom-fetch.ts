@@ -360,7 +360,15 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  // Send cookies so the browser attaches the Clerk session cookie (cookie-based
+  // web auth). Pairs with the server's cors({ credentials: true }). Callers may
+  // override via options.credentials.
+  const response = await fetch(input, {
+    credentials: "include",
+    ...init,
+    method,
+    headers,
+  });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

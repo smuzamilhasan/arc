@@ -10,3 +10,8 @@ For authorization identity in the Express `requireAuth` middleware, use **only**
 **Why:** `auth.userId` is Clerk's canonical user id. Giving a session-claims field precedence (`sessionClaims.userId || auth.userId`) means a custom token template, claim collision, or misconfiguration can silently make every per-user query run under the wrong identity — a cross-user IDOR / broken-access-control bug. This was flagged as blocking in code review for the per-user isolation work.
 
 **How to apply:** Any time you scope DB rows by the signed-in user (clientProfile.userId, and clientId derived from it for posts/ideas/etc.), the userId must come straight from `auth.userId`. Web app is cookie-based; mobile/Expo is token-based — both still resolve identity through `getAuth`, not raw claims.
+
+## Auth transport (web vs mobile)
+Web is cookie-based: never add `setAuthTokenGetter` / `Authorization: Bearer` for the browser (the shared `customFetch` docstring says so, and the clerk-auth skill forbids it). The browser sends the Clerk session cookie. `customFetch` sets `credentials: "include"` to pair with the server's `cors({ credentials: true })` so cookies flow even if web and API ever end up cross-origin. `setAuthTokenGetter` is **only** for Expo/React Native, which has no cookie jar.
+
+**Why:** A code review may "reject" web cookie auth for lacking `setAuthTokenGetter`, assuming a generic cross-origin SPA. That's wrong here — Replit's shared proxy serves web (`/`) and API (`/api`) same-origin, and the skill is authoritative that web uses cookies.

@@ -24,6 +24,8 @@ tags:
     description: Dashboard summary operations
   - name: onboarding
     description: Onboarding intake operations
+  - name: admin
+    description: Admin operations (view all users and their data)
 paths:
   /healthz:
     get:
@@ -377,6 +379,59 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
+
+  /admin/access:
+    get:
+      operationId: getAdminAccess
+      tags: [admin]
+      summary: Whether the current user has admin access
+      responses:
+        "200":
+          description: Admin access flag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccess"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all users with a summary of their data (admin only)
+      responses:
+        "200":
+          description: All users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUserSummary"
+        "403":
+          description: Forbidden
+
+  /admin/users/{clientId}:
+    get:
+      operationId: getAdminUser
+      tags: [admin]
+      summary: Get a single user's full profile, narrative, audit, posts, and ideas (admin only)
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserDetail"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
 
 components:
   schemas:
@@ -915,3 +970,70 @@ components:
           type: string
         count:
           type: integer
+
+    AdminAccess:
+      type: object
+      required: [isAdmin]
+      properties:
+        isAdmin:
+          type: boolean
+
+    AdminUserSummary:
+      type: object
+      required: [clientId, userId, name, onboardingComplete, auditComplete, narrativeComplete, postCount, ideaCount, createdAt, updatedAt]
+      properties:
+        clientId:
+          type: integer
+        userId:
+          type: string
+        email:
+          type: ["string", "null"]
+        name:
+          type: string
+        onboardingComplete:
+          type: boolean
+        seoScore:
+          type: ["integer", "null"]
+        geoScore:
+          type: ["integer", "null"]
+        auditComplete:
+          type: boolean
+        narrativeComplete:
+          type: boolean
+        postCount:
+          type: integer
+        ideaCount:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    AdminUserDetail:
+      type: object
+      required: [clientId, userId, profile, posts, ideas]
+      properties:
+        clientId:
+          type: integer
+        userId:
+          type: string
+        email:
+          type: ["string", "null"]
+        profile:
+          $ref: "#/components/schemas/ClientProfile"
+        audit:
+          oneOf:
+            - $ref: "#/components/schemas/AuditResult"
+            - type: "null"
+        narrative:
+          oneOf:
+            - $ref: "#/components/schemas/NarrativeProfile"
+            - type: "null"
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        ideas:
+          type: array
+          items:
+            $ref: "#/components/schemas/Idea"

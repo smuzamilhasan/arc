@@ -29,6 +29,7 @@ import Narrative from "@/pages/narrative";
 import Content from "@/pages/content";
 import Ideas from "@/pages/ideas";
 import Account from "@/pages/account";
+import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 const clerkPubKey = publishableKeyFromHost(
@@ -218,6 +219,7 @@ function ClerkProviderWithRoutes() {
                     <Route path="/content" component={Content} />
                     <Route path="/ideas" component={Ideas} />
                     <Route path="/account" component={Account} />
+                    <Route path="/admin" component={Admin} />
                     <Route component={NotFound} />
                   </Switch>
                 </Layout>

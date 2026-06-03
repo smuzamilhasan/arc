@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './adminAccess';
+export * from './adminUserDetail';
+export * from './adminUserSummary';
 export * from './auditResult';
 export * from './clientProfile';
 export * from './clientProfileInput';

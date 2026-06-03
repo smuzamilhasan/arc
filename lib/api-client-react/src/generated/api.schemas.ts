@@ -365,6 +365,41 @@ export interface DashboardSummary {
   recentPosts: Post[];
 }
 
+export interface AdminAccess {
+  isAdmin: boolean;
+}
+
+export interface AdminUserSummary {
+  clientId: number;
+  userId: string;
+  /** @nullable */
+  email?: string | null;
+  name: string;
+  onboardingComplete: boolean;
+  /** @nullable */
+  seoScore?: number | null;
+  /** @nullable */
+  geoScore?: number | null;
+  auditComplete: boolean;
+  narrativeComplete: boolean;
+  postCount: number;
+  ideaCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminUserDetail {
+  clientId: number;
+  userId: string;
+  /** @nullable */
+  email?: string | null;
+  profile: ClientProfile;
+  audit?: AuditResult | null;
+  narrative?: NarrativeProfile | null;
+  posts: Post[];
+  ideas: Idea[];
+}
+
 export type ListPostsParams = {
 platform?: string;
 status?: string;

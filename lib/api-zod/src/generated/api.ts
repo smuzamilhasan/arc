@@ -453,3 +453,154 @@ export const GetDashboardResponse = zod.object({
 })
 
 
+/**
+ * @summary Whether the current user has admin access
+ */
+export const GetAdminAccessResponse = zod.object({
+  "isAdmin": zod.boolean()
+})
+
+
+/**
+ * @summary List all users with a summary of their data (admin only)
+ */
+export const ListAdminUsersResponseItem = zod.object({
+  "clientId": zod.number(),
+  "userId": zod.string(),
+  "email": zod.string().nullish(),
+  "name": zod.string(),
+  "onboardingComplete": zod.boolean(),
+  "seoScore": zod.number().nullish(),
+  "geoScore": zod.number().nullish(),
+  "auditComplete": zod.boolean(),
+  "narrativeComplete": zod.boolean(),
+  "postCount": zod.number(),
+  "ideaCount": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListAdminUsersResponse = zod.array(ListAdminUsersResponseItem)
+
+
+/**
+ * @summary Get a single user's full profile, narrative, audit, posts, and ideas (admin only)
+ */
+export const GetAdminUserParams = zod.object({
+  "clientId": zod.coerce.number()
+})
+
+export const GetAdminUserResponse = zod.object({
+  "clientId": zod.number(),
+  "userId": zod.string(),
+  "email": zod.string().nullish(),
+  "profile": zod.object({
+  "id": zod.number(),
+  "fullName": zod.string(),
+  "location": zod.string(),
+  "headline": zod.string(),
+  "currentRole": zod.string(),
+  "company": zod.string(),
+  "industry": zod.string(),
+  "yearsExperience": zod.number(),
+  "achievements": zod.array(zod.string()),
+  "goals": zod.string(),
+  "bio": zod.string(),
+  "dateOfBirth": zod.string().nullish(),
+  "placeOfBirth": zod.string(),
+  "earlyLife": zod.string(),
+  "schooling": zod.string(),
+  "university": zod.string(),
+  "professionalJourney": zod.string(),
+  "signatureAchievements": zod.string(),
+  "awards": zod.string(),
+  "quantifiableResults": zod.string(),
+  "audienceImpact": zod.string(),
+  "passions": zod.string(),
+  "beliefs": zod.string(),
+  "frustrations": zod.string(),
+  "desiredChange": zod.string(),
+  "extractedInfo": zod.string(),
+  "website": zod.string().nullish(),
+  "newsletter": zod.string().nullish(),
+  "linkedinUrl": zod.string().nullish(),
+  "twitterUrl": zod.string().nullish(),
+  "instagramUrl": zod.string().nullish(),
+  "youtubeUrl": zod.string().nullish(),
+  "onboardingComplete": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),
+  "audit": zod.union([zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "seoScore": zod.number(),
+  "geoScore": zod.number(),
+  "seoFindings": zod.union([zod.object({
+  "resultCount": zod.number(),
+  "results": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string(),
+  "type": zod.enum(['owned', 'social', 'press', 'directory', 'other']),
+  "snippet": zod.string()
+})),
+  "ownedPresence": zod.boolean(),
+  "summary": zod.string()
+}),zod.null()]).optional(),
+  "geoFindings": zod.union([zod.object({
+  "models": zod.array(zod.object({
+  "model": zod.string(),
+  "label": zod.string(),
+  "mentioned": zod.boolean(),
+  "accuracy": zod.enum(['accurate', 'partial', 'none', 'incorrect']),
+  "response": zod.string(),
+  "notes": zod.string()
+})),
+  "summary": zod.string()
+}),zod.null()]).optional(),
+  "recommendations": zod.array(zod.string()),
+  "status": zod.string(),
+  "createdAt": zod.string()
+}),zod.null()]).optional(),
+  "narrative": zod.union([zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "industryAnswers": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})),
+  "coreNarrative": zod.string(),
+  "pointOfView": zod.string(),
+  "themes": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string()
+})),
+  "recommendedPlatforms": zod.array(zod.object({
+  "platform": zod.string(),
+  "reason": zod.string(),
+  "priority": zod.enum(['high', 'medium', 'low'])
+})),
+  "contentHooks": zod.array(zod.string()),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),zod.null()]).optional(),
+  "posts": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "content": zod.string(),
+  "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
+  "status": zod.enum(['draft', 'scheduled', 'published']),
+  "scheduledAt": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "ideas": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "notes": zod.string(),
+  "platform": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+

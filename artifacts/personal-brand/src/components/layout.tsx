@@ -10,9 +10,11 @@ import {
   RotateCcw,
   LogOut,
   Loader2,
-  Settings
+  Settings,
+  Shield
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
+import { useGetAdminAccess } from "@workspace/api-client-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -148,10 +150,15 @@ const navItems = [
 export function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { data: access } = useGetAdminAccess();
+
+  const items = access?.isAdmin
+    ? [...navItems, { href: "/admin", icon: Shield, label: "Admin" }]
+    : navItems;
 
   const NavLinks = () => (
     <div className="flex flex-col gap-1">
-      {navItems.map((item) => (
+      {items.map((item) => (
         <Link key={item.href} href={item.href}>
           <div
             className={cn(

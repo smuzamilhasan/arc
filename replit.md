@@ -11,6 +11,7 @@ arc (short for "story arc") is a single-client personal brand strategy tool: it 
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only). If drizzle hits an interactive rename/conflict prompt (no TTY), drop the conflicting old table manually first, then re-run push.
 - Required env: `DATABASE_URL`. AI runs through Replit-managed integrations (OpenAI, Anthropic, Gemini) — no API keys needed.
+- `ADMIN_EMAILS` (comma-separated, shared env): emails granted admin access (cross-user view). Checked server-side against the signed-in user's Clerk email; restart the api-server after changing it.
 
 ## Stack
 
@@ -26,13 +27,13 @@ arc (short for "story arc") is a single-client personal brand strategy tool: it 
 
 - API contract (source of truth for codegen): `lib/api-spec/openapi.yaml`
 - DB schema: `lib/db/src/schema/` (clientProfile, auditResults, narrativeProfiles, posts, ideas) — barrel at `index.ts`. clientProfile holds deep intake: personal history (dateOfBirth, placeOfBirth, earlyLife, schooling, university, professionalJourney), substance blobs (signatureAchievements, awards, quantifiableResults, audienceImpact), coach material (passions, beliefs, frustrations, desiredChange), and gathered+edited public info (extractedInfo).
-- API routes: `artifacts/api-server/src/routes/` (client, audit, narrative, posts, ideas, dashboard, onboarding)
+- API routes: `artifacts/api-server/src/routes/` (client, audit, narrative, posts, ideas, dashboard, onboarding, admin)
 - Audit + narrative + profile AI logic: `artifacts/api-server/src/services/` (audit.ts, narrative.ts, profile.ts, json.ts)
 - Frontend pages: `artifacts/personal-brand/src/pages/`; theme tokens in `src/index.css`
 
 ## Architecture decisions
 
-- Single-client: routes operate on the most-recent client_profile row; no auth/multi-tenancy.
+- Single-client-per-user: routes scope by the signed-in user's client_profile (Clerk userId). The one exception is admin, a read-only cross-user view: `requireAdmin` middleware (`artifacts/api-server/src/middlewares/requireAdmin.ts`) checks the user's Clerk email against `ADMIN_EMAILS`. Admin routes (`/admin/users`, `/admin/users/:clientId`) are 401 signed-out, 403 non-admin; `/admin/access` is auth-only and returns `{ isAdmin }` so the web layout can show the Admin nav link and the `/admin` page can redirect non-admins.
 - SEO audit uses Gemini with Google Search grounding (real web results, server-side); GEO audit asks gpt-5.4, claude-sonnet-4-6, and gemini (no grounding) "what do you know about [name]?" then a gpt-5.4 classifier judges whether each model truly knows the person.
 - `/audit/run` is a Server-Sent Events stream (progress events then a final result) — it is NOT consumed via a generated hook; the frontend uses fetch + ReadableStream.
 - Onboarding is a deep, executive-coach-style 6-step intake (`pages/onboard.tsx`): beginnings -> work -> footprint -> substance -> fire -> goals. `POST /onboarding/extract` (operationId extractPublicInfo) gathers public info via Gemini grounding for the client to review/correct; `POST /onboarding/generate-bio` (generateBio) distills the substance blobs into an editable headline+bio via gpt-5.4. Both are normal JSON endpoints consumed via generated hooks. The coach material + history are stored on client_profile and enrich the narrative synthesis prompt.

@@ -21,6 +21,9 @@ import {
   Search,
   Sparkles,
   ExternalLink,
+  ArrowUpRight,
+  Lightbulb,
+  X,
 } from "lucide-react";
 import {
   getPillar,
@@ -28,6 +31,7 @@ import {
   clientToInput,
   coreFields,
   supportingFields,
+  nextPillarAfter,
   type Pillar,
   type PillarField,
 } from "@/lib/blueprint";
@@ -43,11 +47,25 @@ function FieldInput({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const [showExample, setShowExample] = useState(false);
   return (
     <div className="space-y-2">
-      <Label htmlFor={field.name} className="text-foreground/80 font-medium">
-        {field.label}
-      </Label>
+      <div className="flex items-center justify-between gap-3">
+        <Label htmlFor={field.name} className="text-foreground/80 font-medium">
+          {field.label}
+        </Label>
+        {field.example && (
+          <button
+            type="button"
+            onClick={() => setShowExample((v) => !v)}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors shrink-0"
+            aria-expanded={showExample}
+          >
+            <Lightbulb className="w-3.5 h-3.5" />
+            {showExample ? "Hide example" : "See an example"}
+          </button>
+        )}
+      </div>
       {field.multiline ? (
         <Textarea
           id={field.name}
@@ -64,6 +82,14 @@ function FieldInput({
           placeholder={field.placeholder}
           className="h-12 bg-background border-border/50"
         />
+      )}
+      {field.example && showExample && (
+        <div className="rounded-md border border-border/50 bg-secondary/30 p-3">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1.5">
+            Example
+          </p>
+          <p className="text-sm text-foreground/70 italic leading-relaxed">{field.example}</p>
+        </div>
       )}
     </div>
   );
@@ -83,6 +109,7 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [initial, setInitial] = useState<Record<string, string>>({});
   const [sources, setSources] = useState<Source[]>([]);
+  const [nudge, setNudge] = useState<Pillar | null>(null);
 
   const core = useMemo(() => coreFields(pillar), [pillar]);
   const supporting = useMemo(() => supportingFields(pillar), [pillar]);
@@ -94,6 +121,11 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
     setValues(next);
     setInitial(next);
   }, [client, pillar]);
+
+  // Dismiss any lingering nudge when switching pillars.
+  useEffect(() => {
+    setNudge(null);
+  }, [pillar]);
 
   const dirty = useMemo(
     () => pillar.fields.some((f) => (values[f.name] ?? "") !== (initial[f.name] ?? "")),
@@ -112,6 +144,10 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetClientQueryKey() });
           setInitial({ ...values });
+          // Compute the next pillar to nudge toward from the just-saved state,
+          // so the suggestion reflects what the user actually filled in.
+          const merged = { ...client, ...values } as typeof client;
+          setNudge(nextPillarAfter(merged, pillar.id));
           toast({ title: "Saved", description: `${pillar.title} updated.` });
         },
         onError: () => {
@@ -422,6 +458,39 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
             )}
             Draft
           </Button>
+        </div>
+      )}
+
+      {nudge && !dirty && (
+        <div className="rounded-lg border border-primary/30 bg-accent p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-primary/10 p-2 shrink-0">
+                <nudge.icon className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-primary font-medium">
+                  Saved. Keep the momentum going
+                </p>
+                <p className="font-serif text-lg text-foreground mt-0.5">{nudge.title}</p>
+                <p className="text-sm text-muted-foreground mt-1">{nudge.blurb}</p>
+                <Link href={`/blueprint/${nudge.id}`}>
+                  <span className="group mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary cursor-pointer hover:text-primary/80">
+                    Continue to {nudge.title}
+                    <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </span>
+                </Link>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNudge(null)}
+              aria-label="Dismiss"
+              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 

@@ -10,6 +10,9 @@ export type PillarField = {
   label: string;
   placeholder: string;
   multiline?: boolean;
+  // A concrete sample answer that shows the user what "good" looks like. Shown
+  // on demand behind a "See an example" toggle, never auto-inserted.
+  example?: string;
 };
 
 export type Pillar = {
@@ -47,45 +50,57 @@ export const PILLARS: Pillar[] = [
         placeholder:
           "The specific niche or problem you want to own. e.g. \"helping early-stage founders tell investor-ready stories\".",
         multiline: true,
+        example:
+          "I help early-stage B2B founders turn a messy product story into an investor-ready narrative that actually closes the round.",
       },
       {
         name: "primaryAudience",
         label: "Primary audience",
         placeholder: "The people you most want to reach and earn trust with.",
         multiline: true,
+        example:
+          "First-time founders raising a seed or Series A who know their product cold but freeze the moment they have to pitch it.",
       },
       {
         name: "secondaryAudience",
         label: "Secondary audience",
         placeholder: "Others who benefit or who you'd reach over time.",
         multiline: true,
+        example:
+          "Heads of marketing and early operators at those startups, who end up owning the company story day to day.",
       },
       {
         name: "geographyCulture",
         label: "Geography & culture",
         placeholder: "Regions, markets, or communities you speak to.",
+        example: "Primarily US and European tech hubs; deeply rooted in startup and venture culture.",
       },
       {
         name: "brandValues",
         label: "Brand values",
         placeholder: "What you consistently stand for.",
         multiline: true,
+        example: "Clarity over jargon, candor over hype, and protecting the founder's own voice.",
       },
       {
         name: "nonNegotiables",
         label: "Non-negotiables (what you refuse to do)",
         placeholder: "The lines you won't cross, the takes you won't fake.",
         multiline: true,
+        example:
+          "I won't write hype I don't believe, chase engagement bait, or promise overnight virality.",
       },
       {
         name: "personalityTone",
         label: "Personality & tone",
         placeholder: "How you sound. e.g. direct, warm, irreverent, precise.",
+        example: "Direct and warm — plain-spoken, a little irreverent, never corporate.",
       },
       {
         name: "desiredFeeling",
         label: "How do you want people to feel?",
         placeholder: "The impression you want to leave after someone reads you.",
+        example: "Relieved and capable — like the fog cleared and they finally know what to say.",
       },
     ],
   },
@@ -105,12 +120,16 @@ export const PILLARS: Pillar[] = [
         placeholder:
           "The one argument you keep returning to. The thing you believe your field gets wrong or under-rates.",
         multiline: true,
+        example:
+          "Most founders don't have a visibility problem, they have a clarity problem. The market rewards the sharpest story, not the loudest one.",
       },
       {
         name: "coreBeliefs",
         label: "A few core beliefs you repeat",
         placeholder: "The convictions that show up across everything you say.",
         multiline: true,
+        example:
+          "Specific beats clever. If a stranger can't repeat your pitch, it isn't finished. Distribution is part of the product, not an afterthought.",
       },
       {
         name: "signatureFrameworks",
@@ -118,6 +137,8 @@ export const PILLARS: Pillar[] = [
         placeholder:
           "Any named methods, mental models, or step-by-step approaches you've developed.",
         multiline: true,
+        example:
+          "The 'One Sentence, One Slide, One Story' method I use to compress any pitch down to its essential arc.",
       },
     ],
   },
@@ -135,24 +156,32 @@ export const PILLARS: Pillar[] = [
         label: "What do you believe that others in your field don't?",
         placeholder: "A contrarian take you'd defend.",
         multiline: true,
+        example:
+          "Thought leadership isn't about posting more. Most of it is noise that makes every founder sound identical.",
       },
       {
         name: "frustrations",
         label: "What frustrates you about how things are done today?",
         placeholder: "The status quo you'd love to see change.",
         multiline: true,
+        example:
+          "Watching brilliant founders copy generic LinkedIn templates and erase the very thing that made them interesting.",
       },
       {
         name: "desiredChange",
         label: "If your voice carried, what would you change?",
         placeholder: "The mark you want your ideas to leave on your industry.",
         multiline: true,
+        example:
+          "I want founders to build audiences on substance and a real point of view, not on engagement bait.",
       },
       {
         name: "passions",
         label: "What genuinely energizes you?",
         placeholder: "The topics or problems you could talk about for hours.",
         multiline: true,
+        example:
+          "Taking a tangled idea and finding the one clean sentence that makes everyone in the room nod.",
       },
     ],
   },
@@ -173,22 +202,29 @@ export const PILLARS: Pillar[] = [
         label: "Early life",
         placeholder: "Where you grew up, and the moments or people that shaped you early on.",
         multiline: true,
+        example:
+          "Grew up in a small mill town where my parents ran a corner shop. I learned how to sell before I could spell.",
       },
       {
         name: "schooling",
         label: "Schooling",
         placeholder: "Schools, formative subjects, early turning points.",
+        example:
+          "State school, strongest in English and debate — that's where I fell for the craft of a good argument.",
       },
       {
         name: "university",
         label: "University / further study",
         placeholder: "Where you studied and what.",
+        example: "BA in Communications, specializing in rhetoric and media.",
       },
       {
         name: "professionalJourney",
         label: "Professional journey",
         placeholder: "The path that brought you to what you do now, including the pivots.",
         multiline: true,
+        example:
+          "Started in agency PR, went in-house at two startups (one acquired), then went independent in 2020 to coach founders directly.",
       },
       {
         name: "placeOfBirth",
@@ -219,24 +255,31 @@ export const PILLARS: Pillar[] = [
         label: "What are you most proud of building or achieving?",
         placeholder: "The work, projects, or moments you'd point to.",
         multiline: true,
+        example:
+          "Coached 40+ founders, rewrote pitches that helped raise a combined $120M, and built a 25k-subscriber newsletter from scratch.",
       },
       {
         name: "awards",
         label: "Awards, recognition, or notable mentions",
         placeholder: "Press, awards, board seats, talks, anything that signals credibility.",
         multiline: true,
+        example: "TEDx speaker; quoted in TechCrunch and the FT; advisor to two accelerators.",
       },
       {
         name: "quantifiableResults",
         label: "Numbers that tell the story",
         placeholder: "Revenue grown, users reached, funds raised, teams led, percentages moved.",
         multiline: true,
+        example:
+          "Clients average a 3x lift in inbound after repositioning; one went from 200 to 18k followers in a year.",
       },
       {
         name: "audienceImpact",
         label: "Who do you help, and what changes for them?",
         placeholder: "The people you serve and the difference your work makes for them.",
         multiline: true,
+        example:
+          "Founders walk away able to pitch in one sentence, which shortens their fundraise and sharpens their hiring.",
       },
     ],
   },
@@ -262,12 +305,15 @@ export const PILLARS: Pillar[] = [
         name: "headline",
         label: "Professional headline",
         placeholder: "A single punchy line that says who you are and the value you create.",
+        example: "I turn founder expertise into investor-ready stories.",
       },
       {
         name: "bio",
         label: "Short bio",
         placeholder: "A confident 2-4 sentence bio for a speaker page or LinkedIn.",
         multiline: true,
+        example:
+          "Jane Doe is a brand strategist who helps early-stage founders find the words for what they've built. Over the last six years she's coached 40+ founders and shaped pitches behind $120M in funding. She writes a weekly newsletter on founder storytelling read by 25,000 operators.",
       },
       {
         name: "goals",
@@ -275,6 +321,8 @@ export const PILLARS: Pillar[] = [
         placeholder:
           "e.g. be recognized as a thought leader, attract talent, secure speaking engagements.",
         multiline: true,
+        example:
+          "Be known as the go-to voice on founder storytelling, land four keynotes a year, and grow my newsletter to 50k.",
       },
       { name: "website", label: "Website", placeholder: "https://" },
       { name: "linkedinUrl", label: "LinkedIn", placeholder: "https://linkedin.com/in/..." },
@@ -339,6 +387,20 @@ export function overallCompletion(client: ClientProfile | undefined): PillarProg
 // Next-best pillar to work on: the first incomplete pillar in strategic order.
 export function nextPillar(client: ClientProfile | undefined): Pillar | null {
   for (const pillar of PILLARS) {
+    if (pillarCompletion(pillar, client).pct < 100) return pillar;
+  }
+  return null;
+}
+
+// The next pillar to nudge toward after finishing one: the first incomplete
+// pillar in strategic order that is NOT the one just saved. Returns null when
+// every other pillar is already complete.
+export function nextPillarAfter(
+  client: ClientProfile | undefined,
+  currentId: string,
+): Pillar | null {
+  for (const pillar of PILLARS) {
+    if (pillar.id === currentId) continue;
     if (pillarCompletion(pillar, client).pct < 100) return pillar;
   }
   return null;

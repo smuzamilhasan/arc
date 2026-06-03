@@ -12,6 +12,7 @@ import {
   overallCompletion,
   nextPillar,
 } from "@/lib/blueprint";
+import { BlueprintModeToggle } from "@/components/blueprint-mode-toggle";
 
 export default function Blueprint() {
   const { data: client, isLoading } = useGetClient({
@@ -39,17 +40,20 @@ export default function Blueprint() {
 
   return (
     <div className="space-y-12 pb-10">
-      <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-primary font-medium mb-3">
-          Brand Blueprint
-        </p>
-        <h1 className="font-serif text-4xl md:text-5xl text-foreground leading-tight">
-          Your strategy, built piece by piece.
-        </h1>
-        <p className="text-muted-foreground text-lg mt-3 max-w-2xl">
-          Each pillar deepens what arc knows about you. Fill them in any order, in
-          your own time. The more complete, the sharper your narrative and content.
-        </p>
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-primary font-medium mb-3">
+            Brand Blueprint
+          </p>
+          <h1 className="font-serif text-4xl md:text-5xl text-foreground leading-tight">
+            Your strategy, built piece by piece.
+          </h1>
+          <p className="text-muted-foreground text-lg mt-3 max-w-2xl">
+            Each pillar deepens what arc knows about you. Fill them in any order, in
+            your own time. The more complete, the sharper your narrative and content.
+          </p>
+        </div>
+        <BlueprintModeToggle active="edit" />
       </header>
 
       <section className="rounded-xl border border-border bg-card p-6">

@@ -22,6 +22,22 @@ export interface ClientProfile {
   goals: string;
   bio: string;
   /** @nullable */
+  dateOfBirth?: string | null;
+  placeOfBirth: string;
+  earlyLife: string;
+  schooling: string;
+  university: string;
+  professionalJourney: string;
+  signatureAchievements: string;
+  awards: string;
+  quantifiableResults: string;
+  audienceImpact: string;
+  passions: string;
+  beliefs: string;
+  frustrations: string;
+  desiredChange: string;
+  extractedInfo: string;
+  /** @nullable */
   website?: string | null;
   /** @nullable */
   newsletter?: string | null;
@@ -49,6 +65,21 @@ export interface ClientProfileInput {
   achievements?: string[];
   goals?: string;
   bio?: string;
+  dateOfBirth?: string;
+  placeOfBirth?: string;
+  earlyLife?: string;
+  schooling?: string;
+  university?: string;
+  professionalJourney?: string;
+  signatureAchievements?: string;
+  awards?: string;
+  quantifiableResults?: string;
+  audienceImpact?: string;
+  passions?: string;
+  beliefs?: string;
+  frustrations?: string;
+  desiredChange?: string;
+  extractedInfo?: string;
   website?: string;
   newsletter?: string;
   linkedinUrl?: string;
@@ -56,6 +87,43 @@ export interface ClientProfileInput {
   instagramUrl?: string;
   youtubeUrl?: string;
   onboardingComplete?: boolean;
+}
+
+export interface ExtractInfoInput {
+  fullName: string;
+  linkedinUrl?: string;
+  website?: string;
+  twitterUrl?: string;
+  company?: string;
+}
+
+export interface ExtractedSource {
+  title: string;
+  url: string;
+}
+
+export interface ExtractInfoResult {
+  summary: string;
+  highlights: string[];
+  sources: ExtractedSource[];
+}
+
+export interface GenerateBioInput {
+  fullName: string;
+  currentRole?: string;
+  company?: string;
+  industry?: string;
+  signatureAchievements?: string;
+  awards?: string;
+  quantifiableResults?: string;
+  audienceImpact?: string;
+  professionalJourney?: string;
+  extractedInfo?: string;
+}
+
+export interface GenerateBioResult {
+  headline: string;
+  bio: string;
 }
 
 export type SeoFindingType = typeof SeoFindingType[keyof typeof SeoFindingType];

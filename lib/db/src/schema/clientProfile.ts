@@ -14,6 +14,30 @@ export const clientProfileTable = pgTable("client_profile", {
   achievements: text("achievements").array().notNull().default([]),
   goals: text("goals").notNull().default(""),
   bio: text("bio").notNull().default(""),
+
+  // Personal history
+  dateOfBirth: text("date_of_birth"),
+  placeOfBirth: text("place_of_birth").notNull().default(""),
+  earlyLife: text("early_life").notNull().default(""),
+  schooling: text("schooling").notNull().default(""),
+  university: text("university").notNull().default(""),
+  professionalJourney: text("professional_journey").notNull().default(""),
+
+  // Open-ended intake material used to generate the headline + bio
+  signatureAchievements: text("signature_achievements").notNull().default(""),
+  awards: text("awards").notNull().default(""),
+  quantifiableResults: text("quantifiable_results").notNull().default(""),
+  audienceImpact: text("audience_impact").notNull().default(""),
+
+  // Conversational, coach-style material that feeds the narrative synthesis
+  passions: text("passions").notNull().default(""),
+  beliefs: text("beliefs").notNull().default(""),
+  frustrations: text("frustrations").notNull().default(""),
+  desiredChange: text("desired_change").notNull().default(""),
+
+  // Publicly available info gathered from their links, reviewed/edited by the client
+  extractedInfo: text("extracted_info").notNull().default(""),
+
   website: text("website"),
   newsletter: text("newsletter"),
   linkedinUrl: text("linkedin_url"),

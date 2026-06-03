@@ -24,9 +24,9 @@ arc (short for "story arc") is a single-client personal brand strategy tool: it 
 ## Where things live
 
 - API contract (source of truth for codegen): `lib/api-spec/openapi.yaml`
-- DB schema: `lib/db/src/schema/` (clientProfile, auditResults, narrativeProfiles, posts, ideas) — barrel at `index.ts`
-- API routes: `artifacts/api-server/src/routes/` (client, audit, narrative, posts, ideas, dashboard)
-- Audit + narrative AI logic: `artifacts/api-server/src/services/` (audit.ts, narrative.ts, json.ts)
+- DB schema: `lib/db/src/schema/` (clientProfile, auditResults, narrativeProfiles, posts, ideas) — barrel at `index.ts`. clientProfile holds deep intake: personal history (dateOfBirth, placeOfBirth, earlyLife, schooling, university, professionalJourney), substance blobs (signatureAchievements, awards, quantifiableResults, audienceImpact), coach material (passions, beliefs, frustrations, desiredChange), and gathered+edited public info (extractedInfo).
+- API routes: `artifacts/api-server/src/routes/` (client, audit, narrative, posts, ideas, dashboard, onboarding)
+- Audit + narrative + profile AI logic: `artifacts/api-server/src/services/` (audit.ts, narrative.ts, profile.ts, json.ts)
 - Frontend pages: `artifacts/personal-brand/src/pages/`; theme tokens in `src/index.css`
 
 ## Architecture decisions
@@ -34,6 +34,7 @@ arc (short for "story arc") is a single-client personal brand strategy tool: it 
 - Single-client: routes operate on the most-recent client_profile row; no auth/multi-tenancy.
 - SEO audit uses Gemini with Google Search grounding (real web results, server-side); GEO audit asks gpt-5.4, claude-sonnet-4-6, and gemini (no grounding) "what do you know about [name]?" then a gpt-5.4 classifier judges whether each model truly knows the person.
 - `/audit/run` is a Server-Sent Events stream (progress events then a final result) — it is NOT consumed via a generated hook; the frontend uses fetch + ReadableStream.
+- Onboarding is a deep, executive-coach-style 6-step intake (`pages/onboard.tsx`): beginnings -> work -> footprint -> substance -> fire -> goals. `POST /onboarding/extract` (operationId extractPublicInfo) gathers public info via Gemini grounding for the client to review/correct; `POST /onboarding/generate-bio` (generateBio) distills the substance blobs into an editable headline+bio via gpt-5.4. Both are normal JSON endpoints consumed via generated hooks. The coach material + history are stored on client_profile and enrich the narrative synthesis prompt.
 - Integration SDK `@google/genai` is externalized by the api-server esbuild bundle, so it is declared as a direct dependency of api-server so Node can resolve it at runtime.
 
 ## Product

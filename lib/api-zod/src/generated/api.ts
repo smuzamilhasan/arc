@@ -31,6 +31,21 @@ export const GetClientResponse = zod.object({
   "achievements": zod.array(zod.string()),
   "goals": zod.string(),
   "bio": zod.string(),
+  "dateOfBirth": zod.string().nullish(),
+  "placeOfBirth": zod.string(),
+  "earlyLife": zod.string(),
+  "schooling": zod.string(),
+  "university": zod.string(),
+  "professionalJourney": zod.string(),
+  "signatureAchievements": zod.string(),
+  "awards": zod.string(),
+  "quantifiableResults": zod.string(),
+  "audienceImpact": zod.string(),
+  "passions": zod.string(),
+  "beliefs": zod.string(),
+  "frustrations": zod.string(),
+  "desiredChange": zod.string(),
+  "extractedInfo": zod.string(),
   "website": zod.string().nullish(),
   "newsletter": zod.string().nullish(),
   "linkedinUrl": zod.string().nullish(),
@@ -57,6 +72,21 @@ export const UpsertClientBody = zod.object({
   "achievements": zod.array(zod.string()).optional(),
   "goals": zod.string().optional(),
   "bio": zod.string().optional(),
+  "dateOfBirth": zod.string().optional(),
+  "placeOfBirth": zod.string().optional(),
+  "earlyLife": zod.string().optional(),
+  "schooling": zod.string().optional(),
+  "university": zod.string().optional(),
+  "professionalJourney": zod.string().optional(),
+  "signatureAchievements": zod.string().optional(),
+  "awards": zod.string().optional(),
+  "quantifiableResults": zod.string().optional(),
+  "audienceImpact": zod.string().optional(),
+  "passions": zod.string().optional(),
+  "beliefs": zod.string().optional(),
+  "frustrations": zod.string().optional(),
+  "desiredChange": zod.string().optional(),
+  "extractedInfo": zod.string().optional(),
   "website": zod.string().optional(),
   "newsletter": zod.string().optional(),
   "linkedinUrl": zod.string().optional(),
@@ -78,6 +108,21 @@ export const UpsertClientResponse = zod.object({
   "achievements": zod.array(zod.string()),
   "goals": zod.string(),
   "bio": zod.string(),
+  "dateOfBirth": zod.string().nullish(),
+  "placeOfBirth": zod.string(),
+  "earlyLife": zod.string(),
+  "schooling": zod.string(),
+  "university": zod.string(),
+  "professionalJourney": zod.string(),
+  "signatureAchievements": zod.string(),
+  "awards": zod.string(),
+  "quantifiableResults": zod.string(),
+  "audienceImpact": zod.string(),
+  "passions": zod.string(),
+  "beliefs": zod.string(),
+  "frustrations": zod.string(),
+  "desiredChange": zod.string(),
+  "extractedInfo": zod.string(),
   "website": zod.string().nullish(),
   "newsletter": zod.string().nullish(),
   "linkedinUrl": zod.string().nullish(),
@@ -184,6 +229,49 @@ export const GenerateNarrativeResponse = zod.object({
   "contentHooks": zod.array(zod.string()),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Gather publicly available info about the person from their name and links
+ */
+export const ExtractPublicInfoBody = zod.object({
+  "fullName": zod.string(),
+  "linkedinUrl": zod.string().optional(),
+  "website": zod.string().optional(),
+  "twitterUrl": zod.string().optional(),
+  "company": zod.string().optional()
+})
+
+export const ExtractPublicInfoResponse = zod.object({
+  "summary": zod.string(),
+  "highlights": zod.array(zod.string()),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string()
+}))
+})
+
+
+/**
+ * @summary Generate a professional headline and short bio from intake material
+ */
+export const GenerateBioBody = zod.object({
+  "fullName": zod.string(),
+  "currentRole": zod.string().optional(),
+  "company": zod.string().optional(),
+  "industry": zod.string().optional(),
+  "signatureAchievements": zod.string().optional(),
+  "awards": zod.string().optional(),
+  "quantifiableResults": zod.string().optional(),
+  "audienceImpact": zod.string().optional(),
+  "professionalJourney": zod.string().optional(),
+  "extractedInfo": zod.string().optional()
+})
+
+export const GenerateBioResponse = zod.object({
+  "headline": zod.string(),
+  "bio": zod.string()
 })
 
 

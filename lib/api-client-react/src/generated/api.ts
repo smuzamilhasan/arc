@@ -24,6 +24,10 @@ import type {
   ClientProfile,
   ClientProfileInput,
   DashboardSummary,
+  ExtractInfoInput,
+  ExtractInfoResult,
+  GenerateBioInput,
+  GenerateBioResult,
   HealthStatus,
   Idea,
   IdeaInput,
@@ -567,6 +571,148 @@ export const useGenerateNarrative = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getGenerateNarrativeMutationOptions(options));
+    }
+
+export const getExtractPublicInfoUrl = () => {
+
+
+
+
+  return `/api/onboarding/extract`
+}
+
+/**
+ * @summary Gather publicly available info about the person from their name and links
+ */
+export const extractPublicInfo = async (extractInfoInput: ExtractInfoInput, options?: RequestInit): Promise<ExtractInfoResult> => {
+
+  return customFetch<ExtractInfoResult>(getExtractPublicInfoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      extractInfoInput,)
+  }
+);}
+
+
+
+
+export const getExtractPublicInfoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof extractPublicInfo>>, TError,{data: BodyType<ExtractInfoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof extractPublicInfo>>, TError,{data: BodyType<ExtractInfoInput>}, TContext> => {
+
+const mutationKey = ['extractPublicInfo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof extractPublicInfo>>, {data: BodyType<ExtractInfoInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  extractPublicInfo(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExtractPublicInfoMutationResult = NonNullable<Awaited<ReturnType<typeof extractPublicInfo>>>
+    export type ExtractPublicInfoMutationBody = BodyType<ExtractInfoInput>
+    export type ExtractPublicInfoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Gather publicly available info about the person from their name and links
+ */
+export const useExtractPublicInfo = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof extractPublicInfo>>, TError,{data: BodyType<ExtractInfoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof extractPublicInfo>>,
+        TError,
+        {data: BodyType<ExtractInfoInput>},
+        TContext
+      > => {
+      return useMutation(getExtractPublicInfoMutationOptions(options));
+    }
+
+export const getGenerateBioUrl = () => {
+
+
+
+
+  return `/api/onboarding/generate-bio`
+}
+
+/**
+ * @summary Generate a professional headline and short bio from intake material
+ */
+export const generateBio = async (generateBioInput: GenerateBioInput, options?: RequestInit): Promise<GenerateBioResult> => {
+
+  return customFetch<GenerateBioResult>(getGenerateBioUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      generateBioInput,)
+  }
+);}
+
+
+
+
+export const getGenerateBioMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateBio>>, TError,{data: BodyType<GenerateBioInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateBio>>, TError,{data: BodyType<GenerateBioInput>}, TContext> => {
+
+const mutationKey = ['generateBio'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateBio>>, {data: BodyType<GenerateBioInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateBio(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateBioMutationResult = NonNullable<Awaited<ReturnType<typeof generateBio>>>
+    export type GenerateBioMutationBody = BodyType<GenerateBioInput>
+    export type GenerateBioMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate a professional headline and short bio from intake material
+ */
+export const useGenerateBio = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateBio>>, TError,{data: BodyType<GenerateBioInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateBio>>,
+        TError,
+        {data: BodyType<GenerateBioInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateBioMutationOptions(options));
     }
 
 export const getListPostsUrl = (params?: ListPostsParams,) => {

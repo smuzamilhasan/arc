@@ -19,6 +19,22 @@ export interface ClientProfile {
   goals: string;
   bio: string;
   /** @nullable */
+  dateOfBirth?: string | null;
+  placeOfBirth: string;
+  earlyLife: string;
+  schooling: string;
+  university: string;
+  professionalJourney: string;
+  signatureAchievements: string;
+  awards: string;
+  quantifiableResults: string;
+  audienceImpact: string;
+  passions: string;
+  beliefs: string;
+  frustrations: string;
+  desiredChange: string;
+  extractedInfo: string;
+  /** @nullable */
   website?: string | null;
   /** @nullable */
   newsletter?: string | null;

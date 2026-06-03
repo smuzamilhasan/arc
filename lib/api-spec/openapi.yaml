@@ -22,6 +22,8 @@ tags:
     description: Content idea operations
   - name: dashboard
     description: Dashboard summary operations
+  - name: onboarding
+    description: Onboarding intake operations
 paths:
   /healthz:
     get:
@@ -130,6 +132,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NarrativeProfile"
+
+  /onboarding/extract:
+    post:
+      operationId: extractPublicInfo
+      tags: [onboarding]
+      summary: Gather publicly available info about the person from their name and links
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExtractInfoInput"
+      responses:
+        "200":
+          description: Extracted public info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExtractInfoResult"
+
+  /onboarding/generate-bio:
+    post:
+      operationId: generateBio
+      tags: [onboarding]
+      summary: Generate a professional headline and short bio from intake material
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateBioInput"
+      responses:
+        "200":
+          description: Generated headline and bio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateBioResult"
 
   /posts:
     get:
@@ -326,7 +366,7 @@ components:
 
     ClientProfile:
       type: object
-      required: [id, fullName, location, headline, currentRole, company, industry, yearsExperience, achievements, goals, bio, onboardingComplete, createdAt, updatedAt]
+      required: [id, fullName, location, headline, currentRole, company, industry, yearsExperience, achievements, goals, bio, placeOfBirth, earlyLife, schooling, university, professionalJourney, signatureAchievements, awards, quantifiableResults, audienceImpact, passions, beliefs, frustrations, desiredChange, extractedInfo, onboardingComplete, createdAt, updatedAt]
       properties:
         id:
           type: integer
@@ -351,6 +391,36 @@ components:
         goals:
           type: string
         bio:
+          type: string
+        dateOfBirth:
+          type: ["string", "null"]
+        placeOfBirth:
+          type: string
+        earlyLife:
+          type: string
+        schooling:
+          type: string
+        university:
+          type: string
+        professionalJourney:
+          type: string
+        signatureAchievements:
+          type: string
+        awards:
+          type: string
+        quantifiableResults:
+          type: string
+        audienceImpact:
+          type: string
+        passions:
+          type: string
+        beliefs:
+          type: string
+        frustrations:
+          type: string
+        desiredChange:
+          type: string
+        extractedInfo:
           type: string
         website:
           type: ["string", "null"]
@@ -397,6 +467,36 @@ components:
           type: string
         bio:
           type: string
+        dateOfBirth:
+          type: string
+        placeOfBirth:
+          type: string
+        earlyLife:
+          type: string
+        schooling:
+          type: string
+        university:
+          type: string
+        professionalJourney:
+          type: string
+        signatureAchievements:
+          type: string
+        awards:
+          type: string
+        quantifiableResults:
+          type: string
+        audienceImpact:
+          type: string
+        passions:
+          type: string
+        beliefs:
+          type: string
+        frustrations:
+          type: string
+        desiredChange:
+          type: string
+        extractedInfo:
+          type: string
         website:
           type: string
         newsletter:
@@ -411,6 +511,79 @@ components:
           type: string
         onboardingComplete:
           type: boolean
+
+    ExtractInfoInput:
+      type: object
+      required: [fullName]
+      properties:
+        fullName:
+          type: string
+        linkedinUrl:
+          type: string
+        website:
+          type: string
+        twitterUrl:
+          type: string
+        company:
+          type: string
+
+    ExtractedSource:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+
+    ExtractInfoResult:
+      type: object
+      required: [summary, highlights, sources]
+      properties:
+        summary:
+          type: string
+        highlights:
+          type: array
+          items:
+            type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExtractedSource"
+
+    GenerateBioInput:
+      type: object
+      required: [fullName]
+      properties:
+        fullName:
+          type: string
+        currentRole:
+          type: string
+        company:
+          type: string
+        industry:
+          type: string
+        signatureAchievements:
+          type: string
+        awards:
+          type: string
+        quantifiableResults:
+          type: string
+        audienceImpact:
+          type: string
+        professionalJourney:
+          type: string
+        extractedInfo:
+          type: string
+
+    GenerateBioResult:
+      type: object
+      required: [headline, bio]
+      properties:
+        headline:
+          type: string
+        bio:
+          type: string
 
     SeoFinding:
       type: object

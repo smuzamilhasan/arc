@@ -5,12 +5,14 @@ import {
 } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Lock } from "lucide-react";
 import {
-  PILLARS,
+  ORDERED_PILLARS,
   pillarCompletion,
   overallCompletion,
   nextPillar,
+  unlockedPillarIds,
+  unlockHint,
 } from "@/lib/blueprint";
 import { BlueprintModeToggle } from "@/components/blueprint-mode-toggle";
 
@@ -37,6 +39,7 @@ export default function Blueprint() {
 
   const overall = overallCompletion(client);
   const next = nextPillar(client);
+  const unlocked = unlockedPillarIds(client);
 
   return (
     <div className="space-y-12 pb-10">
@@ -49,8 +52,8 @@ export default function Blueprint() {
             Your strategy, built piece by piece.
           </h1>
           <p className="text-muted-foreground text-lg mt-3 max-w-2xl">
-            Each pillar deepens what arc knows about you. Fill them in any order, in
-            your own time. The more complete, the sharper your narrative and content.
+            Each pillar deepens what arc knows about you. They unlock in order as you
+            go, one stage at a time. The more complete, the sharper your narrative and content.
           </p>
         </div>
         <BlueprintModeToggle active="edit" />
@@ -93,9 +96,37 @@ export default function Blueprint() {
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {PILLARS.map((pillar) => {
+        {ORDERED_PILLARS.map((pillar) => {
           const progress = pillarCompletion(pillar, client);
           const complete = progress.pct === 100;
+          const isUnlocked = unlocked.has(pillar.id);
+
+          if (!isUnlocked) {
+            return (
+              <Card
+                key={pillar.id}
+                aria-disabled="true"
+                className="h-full border-border border-dashed bg-secondary/20 cursor-not-allowed select-none"
+              >
+                <CardContent className="pt-6 flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="rounded-lg bg-secondary/40 p-2.5">
+                      <pillar.icon className="w-5 h-5 text-muted-foreground/60 stroke-[1.5]" />
+                    </div>
+                    <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <Lock className="w-3.5 h-3.5" /> Locked
+                    </span>
+                  </div>
+                  <h3 className="font-serif text-xl text-muted-foreground">{pillar.title}</h3>
+                  <p className="text-sm text-muted-foreground/70 mt-1 flex-1">{pillar.blurb}</p>
+                  <p className="mt-4 text-xs font-medium text-muted-foreground/80">
+                    {unlockHint(pillar.id)}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          }
+
           return (
             <Link key={pillar.id} href={`/blueprint/${pillar.id}`}>
               <Card className="group h-full border-border bg-card cursor-pointer transition-all hover:border-primary/40 hover:-translate-y-0.5">

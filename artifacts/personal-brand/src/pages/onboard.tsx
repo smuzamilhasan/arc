@@ -39,25 +39,26 @@ const onboardSchema = z.object({
   currentRole: z.string().min(2, "Current role is required"),
   company: z.string().min(1, "Company is required"),
   industry: z.string().min(2, "Industry is required"),
-  positioning: z.string().optional(),
-  primaryAudience: z.string().optional(),
-  personalityTone: z.string().optional(),
-  thesis: z.string().optional(),
-  beliefs: z.string().optional(),
+  headline: z.string().min(2, "A short headline is required"),
+  bio: z.string().min(2, "A short bio is required"),
+  goals: z.string().optional(),
+  website: z.string().optional(),
+  linkedinUrl: z.string().optional(),
+  twitterUrl: z.string().optional(),
 });
 
 type OnboardFormValues = z.infer<typeof onboardSchema>;
 
 const STEP_FIELDS: Record<number, (keyof OnboardFormValues)[]> = {
   1: ["fullName", "currentRole", "company", "industry"],
-  2: ["positioning", "primaryAudience", "personalityTone"],
-  3: ["thesis", "beliefs"],
+  2: ["headline", "bio"],
+  3: ["goals", "website", "linkedinUrl", "twitterUrl"],
 };
 
 const STEP_META: Record<number, { title: string; description: string }> = {
   1: { title: "The Basics", description: "Who you are today." },
-  2: { title: "Your Positioning", description: "The space you want to own." },
-  3: { title: "Your Worldview", description: "The ideas that are yours." },
+  2: { title: "Headline & Bio", description: "How you introduce yourself." },
+  3: { title: "Your Footprint", description: "Your goals and where people find you." },
 };
 
 function clampStep(step: number | undefined): number {
@@ -91,11 +92,12 @@ export default function Onboard() {
       currentRole: "",
       company: "",
       industry: "",
-      positioning: "",
-      primaryAudience: "",
-      personalityTone: "",
-      thesis: "",
-      beliefs: "",
+      headline: "",
+      bio: "",
+      goals: "",
+      website: "",
+      linkedinUrl: "",
+      twitterUrl: "",
     },
   });
 
@@ -114,11 +116,12 @@ export default function Onboard() {
       currentRole: existingClient.currentRole ?? "",
       company: existingClient.company ?? "",
       industry: existingClient.industry ?? "",
-      positioning: existingClient.positioning ?? "",
-      primaryAudience: existingClient.primaryAudience ?? "",
-      personalityTone: existingClient.personalityTone ?? "",
-      thesis: existingClient.thesis ?? "",
-      beliefs: existingClient.beliefs ?? "",
+      headline: existingClient.headline ?? "",
+      bio: existingClient.bio ?? "",
+      goals: existingClient.goals ?? "",
+      website: existingClient.website ?? "",
+      linkedinUrl: existingClient.linkedinUrl ?? "",
+      twitterUrl: existingClient.twitterUrl ?? "",
     });
     setStep(clampStep(existingClient.onboardingStep));
     setHydrated(true);
@@ -297,54 +300,35 @@ export default function Onboard() {
                   <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
                     <FormField
                       control={form.control}
-                      name="positioning"
+                      name="headline"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-foreground/80 font-medium">
-                            Who are you the go-to person for?
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="The specific niche or problem you want to own."
-                              className="min-h-[100px] resize-none bg-background border-border/50 p-4"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="primaryAudience"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground/80 font-medium">
-                            Who is your primary audience?
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="The people you most want to reach and earn trust with."
-                              className="min-h-[90px] resize-none bg-background border-border/50 p-4"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="personalityTone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground/80 font-medium">
-                            How do you want to sound?
+                            Professional headline
                           </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="e.g. direct, warm, irreverent, precise"
+                              placeholder="A single punchy line that says who you are and the value you create."
                               className="h-12 bg-background border-border/50"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="bio"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground/80 font-medium">
+                            Short bio
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="A confident 2-4 sentence bio for a speaker page or LinkedIn."
+                              className="min-h-[120px] resize-none bg-background border-border/50 p-4"
                               {...field}
                             />
                           </FormControl>
@@ -359,15 +343,15 @@ export default function Onboard() {
                   <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
                     <FormField
                       control={form.control}
-                      name="thesis"
+                      name="goals"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-foreground/80 font-medium">
-                            What's your central thesis?
+                            What do you want to achieve with your brand?
                           </FormLabel>
                           <FormControl>
                             <Textarea
-                              placeholder="The one argument you keep returning to. What your field gets wrong or under-rates."
+                              placeholder="e.g. be recognized as a thought leader, attract talent, secure speaking engagements."
                               className="min-h-[100px] resize-none bg-background border-border/50 p-4"
                               {...field}
                             />
@@ -378,16 +362,14 @@ export default function Onboard() {
                     />
                     <FormField
                       control={form.control}
-                      name="beliefs"
+                      name="website"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground/80 font-medium">
-                            What do you believe that others in your field don't?
-                          </FormLabel>
+                          <FormLabel className="text-foreground/80 font-medium">Website</FormLabel>
                           <FormControl>
-                            <Textarea
-                              placeholder="A conviction or contrarian take you'd defend."
-                              className="min-h-[90px] resize-none bg-background border-border/50 p-4"
+                            <Input
+                              placeholder="https://"
+                              className="h-12 bg-background border-border/50"
                               {...field}
                             />
                           </FormControl>
@@ -395,8 +377,44 @@ export default function Onboard() {
                         </FormItem>
                       )}
                     />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="linkedinUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground/80 font-medium">LinkedIn</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="https://linkedin.com/in/..."
+                                className="h-12 bg-background border-border/50"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="twitterUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground/80 font-medium">X / Twitter</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="https://x.com/..."
+                                className="h-12 bg-background border-border/50"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     <p className="text-sm text-muted-foreground font-light">
-                      That's enough to begin. Next, build out your Brand Blueprint and run your first audit.
+                      That's enough to begin. Next, build out your Brand Blueprint pillar by pillar and run your first audit.
                     </p>
                   </div>
                 )}

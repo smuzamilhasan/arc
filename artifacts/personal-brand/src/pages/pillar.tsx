@@ -32,6 +32,7 @@ import {
   coreFields,
   supportingFields,
   nextPillarAfter,
+  isPillarUnlocked,
   type Pillar,
   type PillarField,
 } from "@/lib/blueprint";
@@ -98,9 +99,18 @@ function FieldInput({
 function PillarEditor({ pillar }: { pillar: Pillar }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const { data: client, isLoading } = useGetClient({
     query: { queryKey: getGetClientQueryKey(), retry: false },
   });
+
+  // Guard the editor route: a locked panel opened directly by URL sends the
+  // client back to the Blueprint. Unlocked and already-filled panels open
+  // normally. Wait for the profile to load before deciding.
+  const locked = !isLoading && !isPillarUnlocked(pillar.id, client);
+  useEffect(() => {
+    if (locked) setLocation("/blueprint", { replace: true });
+  }, [locked, setLocation]);
   const upsertClient = useUpsertClient();
   const extract = useExtractPublicInfo();
   const generateBio = useGenerateBio();
@@ -299,7 +309,7 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
     );
   };
 
-  if (isLoading) {
+  if (isLoading || locked) {
     return (
       <div className="space-y-8 max-w-2xl">
         <Skeleton className="h-10 w-72" />

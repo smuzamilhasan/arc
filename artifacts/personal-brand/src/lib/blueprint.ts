@@ -384,23 +384,112 @@ export function overallCompletion(client: ClientProfile | undefined): PillarProg
   return { filled, total, pct: total === 0 ? 0 : Math.round((filled / total) * 100) };
 }
 
-// Next-best pillar to work on: the first incomplete pillar in strategic order.
+// The gated progression. Clients build their Blueprint in this deliberate
+// order: each stage is a group of pillar ids that unlock together once the
+// previous stage's core fields are all complete. Basics & Footprint is captured
+// during onboarding, so it is always the first (and always-open) stage.
+export const BLUEPRINT_STAGES: string[][] = [
+  ["basics"],
+  ["story"],
+  ["credibility"],
+  ["identity", "worldview", "conviction"],
+];
+
+// Pillars flattened into the gated order above, for ordered rendering and
+// for walking the "next best step" sequence.
+export const ORDERED_PILLARS: Pillar[] = BLUEPRINT_STAGES.flat()
+  .map((id) => getPillar(id))
+  .filter((p): p is Pillar => Boolean(p));
+
+// A pillar has any saved data when at least one of its fields (core or
+// supporting) is filled in. Such a pillar always stays editable even if its
+// stage hasn't been reached yet, so existing clients never lose access.
+export function pillarHasData(
+  pillar: Pillar,
+  client: ClientProfile | undefined,
+): boolean {
+  return pillar.fields.some((f) => fieldValue(client, f.name).trim());
+}
+
+// A pillar's core (counted) fields are all filled in.
+export function pillarCoreComplete(
+  pillar: Pillar,
+  client: ClientProfile | undefined,
+): boolean {
+  return pillar.countFields.every((f) => fieldValue(client, f).trim());
+}
+
+// A stage is complete when every pillar within it has all of its core fields
+// filled in. This is what opens the gate to the next stage.
+function stageComplete(
+  stageIds: string[],
+  client: ClientProfile | undefined,
+): boolean {
+  return stageIds.every((id) => {
+    const p = getPillar(id);
+    return p ? pillarCoreComplete(p, client) : true;
+  });
+}
+
+// The set of currently unlocked pillar ids. A pillar is unlocked when the
+// immediately preceding stage's core fields are all complete, OR the pillar
+// already contains saved data ("locked except what is already filled").
+export function unlockedPillarIds(
+  client: ClientProfile | undefined,
+): Set<string> {
+  const unlocked = new Set<string>();
+  for (let i = 0; i < BLUEPRINT_STAGES.length; i++) {
+    const stage = BLUEPRINT_STAGES[i];
+    const gateOpen = i === 0 || stageComplete(BLUEPRINT_STAGES[i - 1], client);
+    for (const id of stage) {
+      const pillar = getPillar(id);
+      if (!pillar) continue;
+      if (gateOpen || pillarHasData(pillar, client)) unlocked.add(id);
+    }
+  }
+  return unlocked;
+}
+
+export function isPillarUnlocked(
+  pillarId: string,
+  client: ClientProfile | undefined,
+): boolean {
+  return unlockedPillarIds(client).has(pillarId);
+}
+
+// A short hint of what unlocks a locked pillar: the previous stage's title(s).
+export function unlockHint(pillarId: string): string {
+  const stageIndex = BLUEPRINT_STAGES.findIndex((s) => s.includes(pillarId));
+  if (stageIndex <= 0) return "";
+  const prevTitles = BLUEPRINT_STAGES[stageIndex - 1]
+    .map((id) => getPillar(id)?.title)
+    .filter((t): t is string => Boolean(t));
+  if (prevTitles.length === 0) return "";
+  return `Complete ${prevTitles.join(" & ")} to unlock`;
+}
+
+// Next-best pillar to work on: the first incomplete, unlocked pillar in the
+// gated order. Locked pillars are skipped.
 export function nextPillar(client: ClientProfile | undefined): Pillar | null {
-  for (const pillar of PILLARS) {
+  const unlocked = unlockedPillarIds(client);
+  for (const pillar of ORDERED_PILLARS) {
+    if (!unlocked.has(pillar.id)) continue;
     if (pillarCompletion(pillar, client).pct < 100) return pillar;
   }
   return null;
 }
 
-// The next pillar to nudge toward after finishing one: the first incomplete
-// pillar in strategic order that is NOT the one just saved. Returns null when
-// every other pillar is already complete.
+// The next pillar to nudge toward after finishing one: the first incomplete,
+// unlocked pillar in gated order that is NOT the one just saved. Returns null
+// when every other reachable pillar is already complete.
 export function nextPillarAfter(
   client: ClientProfile | undefined,
   currentId: string,
 ): Pillar | null {
-  for (const pillar of PILLARS) {
+  const unlocked = unlockedPillarIds(client);
+  for (const pillar of ORDERED_PILLARS) {
     if (pillar.id === currentId) continue;
+    if (!unlocked.has(pillar.id)) continue;
     if (pillarCompletion(pillar, client).pct < 100) return pillar;
   }
   return null;

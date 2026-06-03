@@ -268,6 +268,49 @@ export interface IndustryAnswer {
   answer: string;
 }
 
+export interface PlatformPick {
+  platform: string;
+  reason: string;
+}
+
+export interface OnlineChannel {
+  recommendation: string;
+  platforms: string[];
+}
+
+export interface WebsitePlan {
+  recommendation: string;
+  elements: string[];
+}
+
+export interface OnlinePresence {
+  primary: PlatformPick[];
+  mirror: string[];
+  longForm: OnlineChannel;
+  shortForm: OnlineChannel;
+  website: WebsitePlan;
+  newsletter: string;
+}
+
+export interface OfflinePresence {
+  intro: string;
+  speaking: string;
+  workshops: string;
+  associations: string;
+  teaching: string;
+}
+
+export interface PlatformStrategy {
+  id: number;
+  clientId: number;
+  summary: string;
+  online: OnlinePresence;
+  offline: OfflinePresence;
+  closing: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface NarrativeProfile {
   id: number;
   clientId: number;

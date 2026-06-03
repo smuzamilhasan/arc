@@ -21,6 +21,7 @@ import {
   ideasTable,
   narrativeProfilesTable,
   auditResultsTable,
+  platformStrategiesTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -46,6 +47,9 @@ async function cleanupUser(userId: string) {
   await db
     .delete(auditResultsTable)
     .where(eq(auditResultsTable.clientId, client.id));
+  await db
+    .delete(platformStrategiesTable)
+    .where(eq(platformStrategiesTable.clientId, client.id));
   await db.delete(clientProfileTable).where(eq(clientProfileTable.id, client.id));
 }
 
@@ -130,6 +134,8 @@ describe("authentication", () => {
     ["get", "/api/narrative"],
     ["put", "/api/narrative"],
     ["post", "/api/narrative/generate"],
+    ["get", "/api/platforms"],
+    ["post", "/api/platforms/generate"],
     ["post", "/api/onboarding/extract"],
     ["post", "/api/onboarding/generate-bio"],
   ];
@@ -398,6 +404,34 @@ describe("blueprint full-row overwrite merge", () => {
     const resGet = await request(app).get("/api/client").set(as(USER_C)).expect(200);
     expect(resGet.body.headline).toBe("Carol's legacy headline");
     expect(resGet.body.positioning).toBe("the go-to person for Y");
+  });
+});
+
+describe("platforms blueprint gate", () => {
+  // The Platforms panel unlocks only when the blueprint is 100% complete. The
+  // server must enforce this independently of the UI lock: a user with an
+  // incomplete blueprint gets 403 on generate, never an AI call.
+  const USER_P = `test-iso-p-${suffix}`;
+
+  beforeAll(async () => {
+    await cleanupUser(USER_P);
+    await request(app)
+      .put("/api/client")
+      .set(as(USER_P))
+      .send({ fullName: "Pat Park", headline: "P headline" })
+      .expect(200);
+  });
+
+  afterAll(async () => {
+    await cleanupUser(USER_P);
+  });
+
+  it("blocks generation with 403 until the blueprint is complete", async () => {
+    await request(app).post("/api/platforms/generate").set(as(USER_P)).expect(403);
+  });
+
+  it("has no platform strategy yet (404)", async () => {
+    await request(app).get("/api/platforms").set(as(USER_P)).expect(404);
   });
 });
 

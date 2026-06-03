@@ -7,6 +7,8 @@ import {
   FileText,
   Lightbulb,
   Compass,
+  Radio,
+  Lock,
   CornerDownRight,
   RotateCcw,
   LogOut,
@@ -15,7 +17,8 @@ import {
   Shield
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
-import { useGetAdminAccess } from "@workspace/api-client-react";
+import { useGetAdminAccess, useGetClient, getGetClientQueryKey } from "@workspace/api-client-react";
+import { overallCompletion } from "@/lib/blueprint";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -140,11 +143,19 @@ function UserMenu() {
   );
 }
 
-const navItems = [
+type NavItem = {
+  href: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+  requiresBlueprint?: boolean;
+};
+
+const navItems: NavItem[] = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
   { href: "/blueprint", icon: Compass, label: "Blueprint" },
   { href: "/audit", icon: Search, label: "Audit" },
   { href: "/narrative", icon: BookOpen, label: "Narrative" },
+  { href: "/platforms", icon: Radio, label: "Platforms", requiresBlueprint: true },
   { href: "/content", icon: FileText, label: "Content" },
   { href: "/ideas", icon: Lightbulb, label: "Ideas" },
 ];
@@ -153,29 +164,54 @@ export function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: access } = useGetAdminAccess();
+  const { data: client } = useGetClient({
+    query: { queryKey: getGetClientQueryKey(), retry: false },
+  });
 
-  const items = access?.isAdmin
+  const blueprintComplete = overallCompletion(client).pct === 100;
+
+  const items: NavItem[] = access?.isAdmin
     ? [...navItems, { href: "/admin", icon: Shield, label: "Admin" }]
     : navItems;
 
   const NavLinks = () => (
     <div className="flex flex-col gap-1">
-      {items.map((item) => (
-        <Link key={item.href} href={item.href}>
-          <div
-            className={cn(
-              "flex items-center gap-3 px-4 py-2.5 rounded-none transition-all duration-300 cursor-pointer text-sm font-medium",
-              location === item.href
-                ? "text-primary border-l-2 border-primary bg-primary/5"
-                : "text-muted-foreground border-l-2 border-transparent hover:text-foreground hover:bg-secondary/30 hover:border-secondary-foreground/20"
-            )}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <item.icon className="w-4 h-4 stroke-[1.5]" />
-            {item.label}
-          </div>
-        </Link>
-      ))}
+      {items.map((item) => {
+        const locked = item.requiresBlueprint && !blueprintComplete;
+
+        if (locked) {
+          return (
+            <div
+              key={item.href}
+              title="Complete your Blueprint to unlock"
+              className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-none border-l-2 border-transparent text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
+            >
+              <span className="flex items-center gap-3">
+                <item.icon className="w-4 h-4 stroke-[1.5]" />
+                {item.label}
+              </span>
+              <Lock className="w-3.5 h-3.5 stroke-[1.5]" />
+            </div>
+          );
+        }
+
+        return (
+          <Link key={item.href} href={item.href}>
+            <div
+              className={cn(
+                "flex items-center gap-3 px-4 py-2.5 rounded-none transition-all duration-300 cursor-pointer text-sm font-medium",
+                location === item.href
+                  ? "text-primary border-l-2 border-primary bg-primary/5"
+                  : "text-muted-foreground border-l-2 border-transparent hover:text-foreground hover:bg-secondary/30 hover:border-secondary-foreground/20"
+              )}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <item.icon className="w-4 h-4 stroke-[1.5]" />
+              {item.label}
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 

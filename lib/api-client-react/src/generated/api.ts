@@ -41,6 +41,7 @@ import type {
   NarrativeGenerateInput,
   NarrativeProfile,
   NarrativeUpdateInput,
+  PlatformStrategy,
   Post,
   PostInput,
   PostUpdate
@@ -790,6 +791,153 @@ export const useGenerateNarrative = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getGenerateNarrativeMutationOptions(options));
+    }
+
+export const getGetPlatformsUrl = () => {
+
+
+
+
+  return `/api/platforms`
+}
+
+/**
+ * @summary Get the platform strategy
+ */
+export const getPlatforms = async ( options?: RequestInit): Promise<PlatformStrategy> => {
+
+  return customFetch<PlatformStrategy>(getGetPlatformsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlatformsQueryKey = () => {
+    return [
+    `/api/platforms`
+    ] as const;
+    }
+
+
+export const getGetPlatformsQueryOptions = <TData = Awaited<ReturnType<typeof getPlatforms>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatforms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlatformsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlatforms>>> = ({ signal }) => getPlatforms({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlatforms>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlatformsQueryResult = NonNullable<Awaited<ReturnType<typeof getPlatforms>>>
+export type GetPlatformsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the platform strategy
+ */
+
+export function useGetPlatforms<TData = Awaited<ReturnType<typeof getPlatforms>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatforms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlatformsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGeneratePlatformsUrl = () => {
+
+
+
+
+  return `/api/platforms/generate`
+}
+
+/**
+ * @summary Generate a platform strategy from the completed blueprint
+ */
+export const generatePlatforms = async ( options?: RequestInit): Promise<PlatformStrategy> => {
+
+  return customFetch<PlatformStrategy>(getGeneratePlatformsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGeneratePlatformsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePlatforms>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generatePlatforms>>, TError,void, TContext> => {
+
+const mutationKey = ['generatePlatforms'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generatePlatforms>>, void> = () => {
+
+
+          return  generatePlatforms(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GeneratePlatformsMutationResult = NonNullable<Awaited<ReturnType<typeof generatePlatforms>>>
+
+    export type GeneratePlatformsMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate a platform strategy from the completed blueprint
+ */
+export const useGeneratePlatforms = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePlatforms>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generatePlatforms>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGeneratePlatformsMutationOptions(options));
     }
 
 export const getExtractPublicInfoUrl = () => {

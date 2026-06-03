@@ -421,7 +421,7 @@ export function pillarCoreComplete(
 
 // A stage is complete when every pillar within it has all of its core fields
 // filled in. This is what opens the gate to the next stage.
-function stageComplete(
+export function stageComplete(
   stageIds: string[],
   client: ClientProfile | undefined,
 ): boolean {

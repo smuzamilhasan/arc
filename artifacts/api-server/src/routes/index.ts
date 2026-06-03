@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
-import brandRouter from "./brand";
+import clientRouter from "./client";
+import auditRouter from "./audit";
+import narrativeRouter from "./narrative";
 import postsRouter from "./posts";
 import ideasRouter from "./ideas";
 import dashboardRouter from "./dashboard";
@@ -8,7 +10,9 @@ import dashboardRouter from "./dashboard";
 const router: IRouter = Router();
 
 router.use(healthRouter);
-router.use(brandRouter);
+router.use(clientRouter);
+router.use(auditRouter);
+router.use(narrativeRouter);
 router.use(postsRouter);
 router.use(ideasRouter);
 router.use(dashboardRouter);

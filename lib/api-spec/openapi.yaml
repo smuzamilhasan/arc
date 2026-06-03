@@ -3,15 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: Personal Brand API
+  description: arc — Personal Brand Strategy API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
-  - name: brand
-    description: Brand profile operations
+  - name: client
+    description: Client profile operations
+  - name: audit
+    description: Digital presence audit operations
+  - name: narrative
+    description: Narrative development operations
   - name: posts
     description: Content post operations
   - name: ideas
@@ -24,7 +28,6 @@ paths:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -33,37 +36,100 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
-  /brand-profile:
+  /client:
     get:
-      operationId: getBrandProfile
-      tags: [brand]
-      summary: Get brand profile
+      operationId: getClient
+      tags: [client]
+      summary: Get client profile
       responses:
         "200":
-          description: Brand profile
+          description: Client profile
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BrandProfile"
+                $ref: "#/components/schemas/ClientProfile"
         "404":
           description: Not found
     put:
-      operationId: upsertBrandProfile
-      tags: [brand]
-      summary: Create or update brand profile
+      operationId: upsertClient
+      tags: [client]
+      summary: Create or update client profile
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/BrandProfileInput"
+              $ref: "#/components/schemas/ClientProfileInput"
       responses:
         "200":
-          description: Updated brand profile
+          description: Updated client profile
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BrandProfile"
+                $ref: "#/components/schemas/ClientProfile"
+
+  /audit/latest:
+    get:
+      operationId: getLatestAudit
+      tags: [audit]
+      summary: Get the most recent audit result
+      responses:
+        "200":
+          description: Latest audit result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditResult"
+        "404":
+          description: No audit yet
+
+  /audit/run:
+    post:
+      operationId: runAudit
+      tags: [audit]
+      summary: Run a digital presence audit (SSE stream)
+      description: Streams progress events via Server-Sent Events, then persists and returns the result. Consume with fetch + ReadableStream, not generated hooks.
+      responses:
+        "200":
+          description: SSE stream of audit progress
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /narrative:
+    get:
+      operationId: getNarrative
+      tags: [narrative]
+      summary: Get the narrative profile
+      responses:
+        "200":
+          description: Narrative profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NarrativeProfile"
+        "404":
+          description: Not found
+
+  /narrative/generate:
+    post:
+      operationId: generateNarrative
+      tags: [narrative]
+      summary: Generate a narrative from industry questionnaire answers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NarrativeGenerateInput"
+      responses:
+        "200":
+          description: Generated narrative profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NarrativeProfile"
 
   /posts:
     get:
@@ -258,29 +324,37 @@ components:
       required:
         - status
 
-    BrandProfile:
+    ClientProfile:
       type: object
-      required: [id, name, tagline, mission, values, targetAudience, toneOfVoice, bio, updatedAt]
+      required: [id, fullName, location, headline, currentRole, company, industry, yearsExperience, achievements, goals, bio, onboardingComplete, createdAt, updatedAt]
       properties:
         id:
           type: integer
-        name:
+        fullName:
           type: string
-        tagline:
+        location:
           type: string
-        mission:
+        headline:
           type: string
-        values:
+        currentRole:
+          type: string
+        company:
+          type: string
+        industry:
+          type: string
+        yearsExperience:
+          type: integer
+        achievements:
           type: array
           items:
             type: string
-        targetAudience:
-          type: string
-        toneOfVoice:
+        goals:
           type: string
         bio:
           type: string
         website:
+          type: ["string", "null"]
+        newsletter:
           type: ["string", "null"]
         linkedinUrl:
           type: ["string", "null"]
@@ -288,30 +362,44 @@ components:
           type: ["string", "null"]
         instagramUrl:
           type: ["string", "null"]
+        youtubeUrl:
+          type: ["string", "null"]
+        onboardingComplete:
+          type: boolean
+        createdAt:
+          type: string
         updatedAt:
           type: string
 
-    BrandProfileInput:
+    ClientProfileInput:
       type: object
-      required: [name, tagline, mission, values, targetAudience, toneOfVoice, bio]
+      required: [fullName]
       properties:
-        name:
+        fullName:
           type: string
-        tagline:
+        location:
           type: string
-        mission:
+        headline:
           type: string
-        values:
+        currentRole:
+          type: string
+        company:
+          type: string
+        industry:
+          type: string
+        yearsExperience:
+          type: integer
+        achievements:
           type: array
           items:
             type: string
-        targetAudience:
-          type: string
-        toneOfVoice:
+        goals:
           type: string
         bio:
           type: string
         website:
+          type: string
+        newsletter:
           type: string
         linkedinUrl:
           type: string
@@ -319,6 +407,169 @@ components:
           type: string
         instagramUrl:
           type: string
+        youtubeUrl:
+          type: string
+        onboardingComplete:
+          type: boolean
+
+    SeoFinding:
+      type: object
+      required: [title, url, type, snippet]
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+        type:
+          type: string
+          enum: [owned, social, press, directory, other]
+        snippet:
+          type: string
+
+    SeoFindings:
+      type: object
+      required: [resultCount, results, ownedPresence, summary]
+      properties:
+        resultCount:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/SeoFinding"
+        ownedPresence:
+          type: boolean
+        summary:
+          type: string
+
+    GeoModelResult:
+      type: object
+      required: [model, label, mentioned, accuracy, response, notes]
+      properties:
+        model:
+          type: string
+        label:
+          type: string
+        mentioned:
+          type: boolean
+        accuracy:
+          type: string
+          enum: [accurate, partial, none, incorrect]
+        response:
+          type: string
+        notes:
+          type: string
+
+    GeoFindings:
+      type: object
+      required: [models, summary]
+      properties:
+        models:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeoModelResult"
+        summary:
+          type: string
+
+    AuditResult:
+      type: object
+      required: [id, clientId, seoScore, geoScore, recommendations, status, createdAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        seoScore:
+          type: integer
+        geoScore:
+          type: integer
+        seoFindings:
+          oneOf:
+            - $ref: "#/components/schemas/SeoFindings"
+            - type: "null"
+        geoFindings:
+          oneOf:
+            - $ref: "#/components/schemas/GeoFindings"
+            - type: "null"
+        recommendations:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+
+    NarrativeTheme:
+      type: object
+      required: [title, description]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+
+    PlatformRecommendation:
+      type: object
+      required: [platform, reason, priority]
+      properties:
+        platform:
+          type: string
+        reason:
+          type: string
+        priority:
+          type: string
+          enum: [high, medium, low]
+
+    IndustryAnswer:
+      type: object
+      required: [question, answer]
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+
+    NarrativeProfile:
+      type: object
+      required: [id, clientId, industryAnswers, coreNarrative, pointOfView, themes, recommendedPlatforms, contentHooks, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        industryAnswers:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndustryAnswer"
+        coreNarrative:
+          type: string
+        pointOfView:
+          type: string
+        themes:
+          type: array
+          items:
+            $ref: "#/components/schemas/NarrativeTheme"
+        recommendedPlatforms:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformRecommendation"
+        contentHooks:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    NarrativeGenerateInput:
+      type: object
+      required: [answers]
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndustryAnswer"
 
     Post:
       type: object
@@ -426,8 +677,20 @@ components:
 
     DashboardSummary:
       type: object
-      required: [totalPosts, draftCount, scheduledCount, publishedCount, ideaCount, postsByPlatform, recentPosts]
+      required: [clientName, onboardingComplete, auditComplete, narrativeComplete, totalPosts, draftCount, scheduledCount, publishedCount, ideaCount, postsByPlatform, recentPosts]
       properties:
+        clientName:
+          type: ["string", "null"]
+        onboardingComplete:
+          type: boolean
+        auditComplete:
+          type: boolean
+        narrativeComplete:
+          type: boolean
+        seoScore:
+          type: ["integer", "null"]
+        geoScore:
+          type: ["integer", "null"]
         totalPosts:
           type: integer
         draftCount:
@@ -438,8 +701,6 @@ components:
           type: integer
         ideaCount:
           type: integer
-        brandProfileComplete:
-          type: boolean
         postsByPlatform:
           type: array
           items:

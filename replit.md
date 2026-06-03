@@ -1,44 +1,53 @@
-# [Project name]
+# arc
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+arc (short for "story arc") is a single-client personal brand strategy tool: it onboards one individual, audits how they show up across Google search (SEO) and AI models (GEO), synthesizes a positioning narrative, and drives a content strategy.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only). If drizzle hits an interactive rename/conflict prompt (no TTY), drop the conflicting old table manually first, then re-run push.
+- Required env: `DATABASE_URL`. AI runs through Replit-managed integrations (OpenAI, Anthropic, Gemini) — no API keys needed.
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
+- API: Express 5 (artifacts/api-server)
+- Web: React + Vite + wouter + TanStack Query (artifacts/personal-brand, served at `/`, title "arc")
+- DB: PostgreSQL + Drizzle ORM (lib/db)
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- AI: Replit AI integrations — `@workspace/integrations-openai-ai-server` (gpt-5.4), `@workspace/integrations-anthropic-ai` (claude-sonnet-4-6), `@workspace/integrations-gemini-ai` (gemini-3-flash-preview)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- API contract (source of truth for codegen): `lib/api-spec/openapi.yaml`
+- DB schema: `lib/db/src/schema/` (clientProfile, auditResults, narrativeProfiles, posts, ideas) — barrel at `index.ts`
+- API routes: `artifacts/api-server/src/routes/` (client, audit, narrative, posts, ideas, dashboard)
+- Audit + narrative AI logic: `artifacts/api-server/src/services/` (audit.ts, narrative.ts, json.ts)
+- Frontend pages: `artifacts/personal-brand/src/pages/`; theme tokens in `src/index.css`
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Single-client: routes operate on the most-recent client_profile row; no auth/multi-tenancy.
+- SEO audit uses Gemini with Google Search grounding (real web results, server-side); GEO audit asks gpt-5.4, claude-sonnet-4-6, and gemini (no grounding) "what do you know about [name]?" then a gpt-5.4 classifier judges whether each model truly knows the person.
+- `/audit/run` is a Server-Sent Events stream (progress events then a final result) — it is NOT consumed via a generated hook; the frontend uses fetch + ReadableStream.
+- Integration SDK `@google/genai` is externalized by the api-server esbuild bundle, so it is declared as a direct dependency of api-server so Node can resolve it at runtime.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Flow: onboarding questionnaire -> automated digital presence audit (SEO + GEO scores 0-100 with findings + recommendations) -> narrative point-of-view interview synthesized into positioning/themes/platforms -> content posts and ideas.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- No emojis in the UI.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Gemini grounding chunk URIs are vertex redirect URLs; the real source domain is in the chunk `title`, so classify SEO results by `title`, not the URL host.
+- After changing AI integration imports, restart the api-server workflow (it builds with esbuild + start, not a hot-reload watcher).
 
 ## Pointers
 

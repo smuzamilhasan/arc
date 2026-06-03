@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Personal Brand"
+title = "arc"
 version = "1.0.0"
 id = "artifacts/personal-brand"
 router = "path"

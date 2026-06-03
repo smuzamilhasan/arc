@@ -1,27 +1,82 @@
-import { useGetDashboard } from "@workspace/api-client-react";
-import { getGetDashboardQueryKey } from "@workspace/api-client-react";
+import { Link } from "wouter";
+import { useGetDashboard, getGetDashboardQueryKey, useGetClient, getGetClientQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BookOpen, Calendar, CheckCircle2, CircleDashed, FileText, Lightbulb } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Search,
+  BookOpen,
+  FileText,
+  Lightbulb,
+  CheckCircle2,
+  CircleDashed,
+  ArrowUpRight,
+  Sparkles,
+} from "lucide-react";
 import { format } from "date-fns";
+
+function ScoreDial({ label, score, hint }: { label: string; score: number | null | undefined; hint: string }) {
+  const has = typeof score === "number";
+  const value = has ? score! : 0;
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (value / 100) * circumference;
+
+  return (
+    <div className="flex items-center gap-5">
+      <div className="relative w-32 h-32 shrink-0">
+        <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r={radius} fill="none" stroke="hsl(var(--secondary))" strokeWidth="8" />
+          <circle
+            cx="60"
+            cy="60"
+            r={radius}
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={has ? offset : circumference}
+            className="transition-all duration-1000 ease-out"
+            style={{ transitionDelay: "200ms" }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-serif text-4xl leading-none text-foreground">{has ? value : "--"}</span>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">/ 100</span>
+        </div>
+      </div>
+      <div>
+        <h3 className="font-serif text-2xl text-foreground">{label}</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed max-w-[16rem] mt-1">{hint}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { data: dashboard, isLoading } = useGetDashboard({
-    query: { queryKey: getGetDashboardQueryKey() }
+    query: { queryKey: getGetDashboardQueryKey() },
+  });
+  const { data: client } = useGetClient({
+    query: { queryKey: getGetClientQueryKey(), retry: false },
   });
 
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <div>
-          <Skeleton className="h-10 w-64 mb-2" />
+      <div className="space-y-10">
+        <div className="space-y-3">
+          <Skeleton className="h-12 w-80" />
           <Skeleton className="h-5 w-96" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Skeleton className="h-44" />
+          <Skeleton className="h-44" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
         </div>
       </div>
     );
@@ -29,102 +84,145 @@ export default function Dashboard() {
 
   if (!dashboard) return null;
 
+  const stages = [
+    { label: "Onboarding", done: dashboard.onboardingComplete, href: "/onboard", desc: "Tell arc who you are" },
+    { label: "Presence Audit", done: dashboard.auditComplete, href: "/audit", desc: "See how the world finds you" },
+    { label: "Narrative", done: dashboard.narrativeComplete, href: "/narrative", desc: "Shape your point of view" },
+    { label: "Content", done: dashboard.totalPosts > 0, href: "/content", desc: "Put the story to work" },
+  ];
+
+  const firstName = client?.fullName?.split(" ")[0];
+
   return (
-    <div className="space-y-10 pb-10">
+    <div className="space-y-12 pb-10">
       <header>
-        <h1 className="text-3xl md:text-4xl font-serif font-bold tracking-tight mb-2 text-primary">Command Center</h1>
-        <p className="text-muted-foreground text-lg">Here's the current state of your personal brand.</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-primary font-medium mb-3">Overview</p>
+        <h1 className="font-serif text-4xl md:text-5xl text-foreground leading-tight">
+          {firstName ? `Welcome back, ${firstName}.` : "Your story so far."}
+        </h1>
+        <p className="text-muted-foreground text-lg mt-3 max-w-2xl">
+          {client?.headline || "A clear view of where your personal brand stands today, and what comes next."}
+        </p>
       </header>
 
-      {/* Brand Health Alert */}
-      {!dashboard.brandProfileComplete && (
-        <div className="bg-secondary/50 border border-secondary-border rounded-xl p-5 flex items-start gap-4">
-          <div className="bg-background rounded-full p-2 shrink-0">
-            <CircleDashed className="w-5 h-5 text-primary" />
+      {/* Presence scores */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="border-border bg-card">
+          <CardContent className="pt-6">
+            <ScoreDial
+              label="SEO"
+              score={dashboard.seoScore}
+              hint="How clearly you show up across Google search results."
+            />
+          </CardContent>
+        </Card>
+        <Card className="border-border bg-card">
+          <CardContent className="pt-6">
+            <ScoreDial
+              label="GEO"
+              score={dashboard.geoScore}
+              hint="Whether AI models actually know who you are."
+            />
+          </CardContent>
+        </Card>
+      </section>
+
+      {!dashboard.auditComplete && (
+        <Link href="/audit">
+          <div className="group flex items-center justify-between gap-4 rounded-xl border border-primary/30 bg-accent p-5 cursor-pointer transition-colors hover:border-primary/60">
+            <div className="flex items-start gap-4">
+              <div className="rounded-full bg-primary/10 p-2.5 shrink-0">
+                <Sparkles className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-serif text-xl text-foreground">Run your first presence audit</h3>
+                <p className="text-sm text-muted-foreground mt-0.5 max-w-2xl">
+                  arc will search the web and interview leading AI models to measure exactly how visible you are.
+                </p>
+              </div>
+            </div>
+            <ArrowUpRight className="w-5 h-5 text-primary shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </div>
-          <div>
-            <h3 className="font-semibold font-serif text-lg mb-1">Your brand profile is incomplete</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
-              A defined identity makes content creation easier. Head over to the Brand Profile section to articulate your mission, tone, and audience.
-            </p>
-          </div>
-        </div>
+        </Link>
       )}
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-sm border-border bg-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Posts</CardTitle>
-            <BookOpen className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-serif font-bold text-foreground">{dashboard.totalPosts}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="shadow-sm border-border bg-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Drafts</CardTitle>
-            <FileText className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-serif font-bold text-foreground">{dashboard.draftCount}</div>
-          </CardContent>
-        </Card>
+      {/* Journey */}
+      <section>
+        <h2 className="font-serif text-2xl text-foreground mb-5">Your arc</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stages.map((stage) => (
+            <Link key={stage.label} href={stage.href}>
+              <div className="group h-full rounded-xl border border-border bg-card p-5 cursor-pointer transition-all hover:border-primary/40 hover:-translate-y-0.5">
+                <div className="flex items-center justify-between mb-3">
+                  {stage.done ? (
+                    <CheckCircle2 className="w-5 h-5 text-primary" />
+                  ) : (
+                    <CircleDashed className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <ArrowUpRight className="w-4 h-4 text-muted-foreground/0 transition-all group-hover:text-muted-foreground" />
+                </div>
+                <h3 className="font-serif text-xl text-foreground">{stage.label}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{stage.desc}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
-        <Card className="shadow-sm border-border bg-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Scheduled</CardTitle>
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-serif font-bold text-foreground">{dashboard.scheduledCount}</div>
-          </CardContent>
-        </Card>
+      {/* Content metrics */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Total Posts", value: dashboard.totalPosts, icon: BookOpen },
+          { label: "Drafts", value: dashboard.draftCount, icon: FileText },
+          { label: "Scheduled", value: dashboard.scheduledCount, icon: Search },
+          { label: "Ideas", value: dashboard.ideaCount, icon: Lightbulb },
+        ].map((m) => (
+          <Card key={m.label} className="border-border bg-card">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                {m.label}
+              </CardTitle>
+              <m.icon className="w-4 h-4 text-muted-foreground stroke-[1.5]" />
+            </CardHeader>
+            <CardContent>
+              <div className="font-serif text-4xl text-foreground">{m.value}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
 
-        <Card className="shadow-sm border-border bg-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Ideas</CardTitle>
-            <Lightbulb className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-serif font-bold text-foreground">{dashboard.ideaCount}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 shadow-sm border-border">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 border-border bg-card">
           <CardHeader>
-            <CardTitle className="font-serif">Recent Content</CardTitle>
+            <CardTitle className="font-serif text-2xl">Recent content</CardTitle>
             <CardDescription>Your latest drafts and published posts.</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboard.recentPosts.length === 0 ? (
               <div className="text-center py-10 px-4">
-                <div className="bg-secondary/30 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="bg-secondary/40 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
                   <FileText className="w-6 h-6 text-muted-foreground" />
                 </div>
-                <h3 className="font-medium mb-1">No posts yet</h3>
-                <p className="text-sm text-muted-foreground">Create your first piece of content to start building.</p>
+                <h3 className="font-serif text-lg mb-1">Nothing here yet</h3>
+                <p className="text-sm text-muted-foreground">
+                  Once your narrative is set, your first posts will appear here.
+                </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {dashboard.recentPosts.map(post => (
-                  <div key={post.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border bg-background hover:border-primary/30 transition-colors group">
-                    <div className="space-y-1 mb-3 sm:mb-0">
+              <div className="space-y-3">
+                {dashboard.recentPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border bg-background hover:border-primary/30 transition-colors"
+                  >
+                    <div className="space-y-1 mb-2 sm:mb-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold font-serif text-lg">{post.title}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          post.status === 'published' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                          post.status === 'scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
-                          'bg-secondary text-secondary-foreground'
-                        }`}>
+                        <span className="font-serif text-lg">{post.title}</span>
+                        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-medium bg-secondary text-secondary-foreground">
                           {post.status}
                         </span>
                       </div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-3">
+                      <div className="text-sm text-muted-foreground flex items-center gap-2">
                         <span className="capitalize">{post.platform}</span>
                         <span className="w-1 h-1 rounded-full bg-border" />
                         <span>Updated {format(new Date(post.updatedAt), "MMM d")}</span>
@@ -137,29 +235,27 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-border">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="font-serif">By Platform</CardTitle>
+            <CardTitle className="font-serif text-2xl">By platform</CardTitle>
             <CardDescription>Where your content lives.</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboard.postsByPlatform.length === 0 ? (
-              <div className="text-center py-8 text-sm text-muted-foreground">
-                No platform data yet.
-              </div>
+              <div className="text-center py-8 text-sm text-muted-foreground">No platform data yet.</div>
             ) : (
               <div className="space-y-4">
-                {dashboard.postsByPlatform.map(stat => (
+                {dashboard.postsByPlatform.map((stat) => (
                   <div key={stat.platform} className="flex items-center justify-between">
                     <span className="capitalize font-medium text-muted-foreground">{stat.platform}</span>
-                    <span className="font-serif font-bold text-lg">{stat.count}</span>
+                    <span className="font-serif text-xl">{stat.count}</span>
                   </div>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
-      </div>
+      </section>
     </div>
   );
 }

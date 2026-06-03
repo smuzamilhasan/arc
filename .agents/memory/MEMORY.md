@@ -1,0 +1,3 @@
+- [Gemini grounding for server-side web search](gemini-grounding.md) — Gemini googleSearch tool works through the Replit integration proxy; real domain is in chunk title, not URI.
+- [api-server esbuild externals](api-server-esbuild-externals.md) — @google/* is externalized by the bundle; gemini SDK must be a direct api-server dependency to resolve at runtime.
+- [drizzle-kit push TTY conflict](drizzle-push-tty.md) — push prompts (rename vs create) need a TTY; --force does not help; drop the old table first.

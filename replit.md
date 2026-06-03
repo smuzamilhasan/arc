@@ -6,6 +6,7 @@ arc (short for "story arc") is a single-client personal brand strategy tool: it 
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server
 - `pnpm run typecheck` — full typecheck across all packages
+- `pnpm --filter @workspace/api-server run test` — run API integration tests (per-user data isolation). Needs `DATABASE_URL`; mocks Clerk auth via an `x-test-user-id` header.
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only). If drizzle hits an interactive rename/conflict prompt (no TTY), drop the conflicting old table manually first, then re-run push.

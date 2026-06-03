@@ -133,7 +133,7 @@ router.patch("/posts/:id", async (req, res) => {
 router.delete("/posts/:id", async (req, res) => {
   const client = await getClientForUser(req.userId!);
   if (!client) {
-    res.status(204).send();
+    res.status(404).json({ error: "Post not found" });
     return;
   }
   const parsed = DeletePostParams.safeParse({ id: Number(req.params.id) });
@@ -141,9 +141,14 @@ router.delete("/posts/:id", async (req, res) => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  await db
+  const deleted = await db
     .delete(postsTable)
-    .where(and(eq(postsTable.id, parsed.data.id), eq(postsTable.clientId, client.id)));
+    .where(and(eq(postsTable.id, parsed.data.id), eq(postsTable.clientId, client.id)))
+    .returning();
+  if (deleted.length === 0) {
+    res.status(404).json({ error: "Post not found" });
+    return;
+  }
   res.status(204).send();
 });
 

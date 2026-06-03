@@ -1,2 +1,3 @@
 - [Adding a client_profile field](client-field-add-flow.md) — schema+openapi+codegen isn't enough; the PUT /client `values` map must list the new field or it's silently dropped.
 - [Clerk principal resolution](clerk-principal-resolution.md) — derive the auth user id from `getAuth(req).userId` only, never `sessionClaims.userId`, or per-user scoping can run as the wrong user.
+- [api-server testing setup](api-server-testing.md) — vitest tests mock `@clerk/express` (userId via `x-test-user-id` header); AI client modules throw at import unless `AI_INTEGRATIONS_*` env vars are set (placeholders in test/setup.ts).

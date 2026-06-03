@@ -1186,7 +1186,7 @@ export const deletePost = async (id: number, options?: RequestInit): Promise<voi
 
 
 
-export const getDeletePostMutationOptions = <TError = ErrorType<unknown>,
+export const getDeletePostMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{id: number}, TContext> => {
 
@@ -1215,12 +1215,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeletePostMutationResult = NonNullable<Awaited<ReturnType<typeof deletePost>>>
 
-    export type DeletePostMutationError = ErrorType<unknown>
+    export type DeletePostMutationError = ErrorType<void>
 
     /**
  * @summary Delete a post
  */
-export const useDeletePost = <TError = ErrorType<unknown>,
+export const useDeletePost = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof deletePost>>,
@@ -1404,7 +1404,7 @@ export const deleteIdea = async (id: number, options?: RequestInit): Promise<voi
 
 
 
-export const getDeleteIdeaMutationOptions = <TError = ErrorType<unknown>,
+export const getDeleteIdeaMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteIdea>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteIdea>>, TError,{id: number}, TContext> => {
 
@@ -1433,12 +1433,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteIdeaMutationResult = NonNullable<Awaited<ReturnType<typeof deleteIdea>>>
 
-    export type DeleteIdeaMutationError = ErrorType<unknown>
+    export type DeleteIdeaMutationError = ErrorType<void>
 
     /**
  * @summary Delete a content idea
  */
-export const useDeleteIdea = <TError = ErrorType<unknown>,
+export const useDeleteIdea = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteIdea>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof deleteIdea>>,

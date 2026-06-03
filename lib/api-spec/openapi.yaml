@@ -290,6 +290,8 @@ paths:
       responses:
         "204":
           description: Deleted
+        "404":
+          description: Not found
 
   /ideas:
     get:
@@ -337,6 +339,8 @@ paths:
       responses:
         "204":
           description: Deleted
+        "404":
+          description: Not found
     patch:
       operationId: updateIdea
       tags: [ideas]

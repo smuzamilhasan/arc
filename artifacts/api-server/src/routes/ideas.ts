@@ -55,7 +55,7 @@ router.post("/ideas", async (req, res) => {
 router.delete("/ideas/:id", async (req, res) => {
   const client = await getClientForUser(req.userId!);
   if (!client) {
-    res.status(204).send();
+    res.status(404).json({ error: "Idea not found" });
     return;
   }
   const parsed = DeleteIdeaParams.safeParse({ id: Number(req.params.id) });
@@ -63,9 +63,14 @@ router.delete("/ideas/:id", async (req, res) => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  await db
+  const deleted = await db
     .delete(ideasTable)
-    .where(and(eq(ideasTable.id, parsed.data.id), eq(ideasTable.clientId, client.id)));
+    .where(and(eq(ideasTable.id, parsed.data.id), eq(ideasTable.clientId, client.id)))
+    .returning();
+  if (deleted.length === 0) {
+    res.status(404).json({ error: "Idea not found" });
+    return;
+  }
   res.status(204).send();
 });
 

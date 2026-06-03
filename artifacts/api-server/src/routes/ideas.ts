@@ -1,23 +1,39 @@
 import { Router } from "express";
 import { db, ideasTable } from "@workspace/db";
 import { CreateIdeaBody, DeleteIdeaParams, UpdateIdeaParams, UpdateIdeaBody } from "@workspace/api-zod";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
+import { getClientForUser } from "./client";
 
 const router = Router();
 
 function serializeIdea(i: typeof ideasTable.$inferSelect) {
+  const { clientId: _clientId, ...rest } = i;
   return {
-    ...i,
+    ...rest,
     createdAt: i.createdAt.toISOString(),
   };
 }
 
 router.get("/ideas", async (req, res) => {
-  const ideas = await db.select().from(ideasTable).orderBy(desc(ideasTable.createdAt));
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.json([]);
+    return;
+  }
+  const ideas = await db
+    .select()
+    .from(ideasTable)
+    .where(eq(ideasTable.clientId, client.id))
+    .orderBy(desc(ideasTable.createdAt));
   res.json(ideas.map(serializeIdea));
 });
 
 router.post("/ideas", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
   const parsed = CreateIdeaBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });
@@ -27,6 +43,7 @@ router.post("/ideas", async (req, res) => {
   const [idea] = await db
     .insert(ideasTable)
     .values({
+      clientId: client.id,
       title: data.title,
       notes: data.notes ?? "",
       platform: data.platform ?? null,
@@ -36,16 +53,28 @@ router.post("/ideas", async (req, res) => {
 });
 
 router.delete("/ideas/:id", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(204).send();
+    return;
+  }
   const parsed = DeleteIdeaParams.safeParse({ id: Number(req.params.id) });
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  await db.delete(ideasTable).where(eq(ideasTable.id, parsed.data.id));
+  await db
+    .delete(ideasTable)
+    .where(and(eq(ideasTable.id, parsed.data.id), eq(ideasTable.clientId, client.id)));
   res.status(204).send();
 });
 
 router.patch("/ideas/:id", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "Idea not found" });
+    return;
+  }
   const paramParsed = UpdateIdeaParams.safeParse({ id: Number(req.params.id) });
   if (!paramParsed.success) {
     res.status(400).json({ error: "Invalid id" });
@@ -65,7 +94,7 @@ router.patch("/ideas/:id", async (req, res) => {
   const [idea] = await db
     .update(ideasTable)
     .set(updates)
-    .where(eq(ideasTable.id, paramParsed.data.id))
+    .where(and(eq(ideasTable.id, paramParsed.data.id), eq(ideasTable.clientId, client.id)))
     .returning();
   if (!idea) {
     res.status(404).json({ error: "Idea not found" });

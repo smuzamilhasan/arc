@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 export const clientProfileTable = pgTable("client_profile", {
   id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().unique(),
   fullName: text("full_name").notNull(),
   location: text("location").notNull().default(""),
   headline: text("headline").notNull().default(""),
@@ -51,6 +52,7 @@ export const clientProfileTable = pgTable("client_profile", {
 
 export const insertClientProfileSchema = createInsertSchema(clientProfileTable).omit({
   id: true,
+  userId: true,
   createdAt: true,
   updatedAt: true,
 });

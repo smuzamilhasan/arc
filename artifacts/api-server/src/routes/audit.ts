@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, auditResultsTable } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
-import { getCurrentClient } from "./client";
+import { getClientForUser } from "./client";
 import { runAudit, type AuditProgress } from "../services/audit";
 
 const router = Router();
@@ -11,7 +11,7 @@ function serializeAudit(a: typeof auditResultsTable.$inferSelect) {
 }
 
 router.get("/audit/latest", async (req, res) => {
-  const client = await getCurrentClient();
+  const client = await getClientForUser(req.userId!);
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -30,7 +30,7 @@ router.get("/audit/latest", async (req, res) => {
 });
 
 router.post("/audit/run", async (req, res) => {
-  const client = await getCurrentClient();
+  const client = await getClientForUser(req.userId!);
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;

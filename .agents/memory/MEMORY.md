@@ -1,1 +1,2 @@
 - [Adding a client_profile field](client-field-add-flow.md) — schema+openapi+codegen isn't enough; the PUT /client `values` map must list the new field or it's silently dropped.
+- [Clerk principal resolution](clerk-principal-resolution.md) — derive the auth user id from `getAuth(req).userId` only, never `sessionClaims.userId`, or per-user scoping can run as the wrong user.

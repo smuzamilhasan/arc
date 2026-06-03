@@ -1,0 +1,5 @@
+<svg width="120" height="48" viewBox="0 0 120 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="0" y="36" font-family="Instrument Serif, serif" font-size="40" fill="hsl(220 30% 12%)">arc</text>
+  <path d="M64 30 L74 30 L74 20" stroke="hsl(20 80% 45%)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M70 34 L74 30 L70 26" stroke="hsl(20 80% 45%)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

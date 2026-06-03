@@ -7,10 +7,13 @@ import postsRouter from "./posts";
 import ideasRouter from "./ideas";
 import dashboardRouter from "./dashboard";
 import onboardingRouter from "./onboarding";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+
+router.use(requireAuth);
 router.use(clientRouter);
 router.use(auditRouter);
 router.use(narrativeRouter);

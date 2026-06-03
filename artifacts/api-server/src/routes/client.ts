@@ -8,29 +8,30 @@ import {
   ideasTable,
 } from "@workspace/db";
 import { UpsertClientBody } from "@workspace/api-zod";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
 function serializeClient(c: typeof clientProfileTable.$inferSelect) {
+  const { userId: _userId, ...rest } = c;
   return {
-    ...c,
+    ...rest,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
   };
 }
 
-async function getCurrentClient() {
+async function getClientForUser(userId: string) {
   const [client] = await db
     .select()
     .from(clientProfileTable)
-    .orderBy(desc(clientProfileTable.id))
+    .where(eq(clientProfileTable.userId, userId))
     .limit(1);
   return client;
 }
 
 router.get("/client", async (req, res) => {
-  const client = await getCurrentClient();
+  const client = await getClientForUser(req.userId!);
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -81,7 +82,7 @@ router.put("/client", async (req, res) => {
     updatedAt: new Date(),
   };
 
-  const existing = await getCurrentClient();
+  const existing = await getClientForUser(req.userId!);
   let client: typeof clientProfileTable.$inferSelect;
   if (existing) {
     [client] = await db
@@ -90,21 +91,29 @@ router.put("/client", async (req, res) => {
       .where(eq(clientProfileTable.id, existing.id))
       .returning();
   } else {
-    [client] = await db.insert(clientProfileTable).values(values).returning();
+    [client] = await db
+      .insert(clientProfileTable)
+      .values({ ...values, userId: req.userId! })
+      .returning();
   }
   res.json(serializeClient(client));
 });
 
 router.post("/client/reset", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(204).end();
+    return;
+  }
   await db.transaction(async (tx) => {
-    await tx.delete(postsTable);
-    await tx.delete(ideasTable);
-    await tx.delete(narrativeProfilesTable);
-    await tx.delete(auditResultsTable);
-    await tx.delete(clientProfileTable);
+    await tx.delete(postsTable).where(eq(postsTable.clientId, client.id));
+    await tx.delete(ideasTable).where(eq(ideasTable.clientId, client.id));
+    await tx.delete(narrativeProfilesTable).where(eq(narrativeProfilesTable.clientId, client.id));
+    await tx.delete(auditResultsTable).where(eq(auditResultsTable.clientId, client.id));
+    await tx.delete(clientProfileTable).where(eq(clientProfileTable.id, client.id));
   });
   res.status(204).end();
 });
 
-export { getCurrentClient, serializeClient };
+export { getClientForUser, serializeClient };
 export default router;

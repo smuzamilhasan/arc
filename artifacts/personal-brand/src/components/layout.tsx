@@ -8,8 +8,10 @@ import {
   Lightbulb,
   CornerDownRight,
   RotateCcw,
+  LogOut,
   Loader2
 } from "lucide-react";
+import { useClerk, useUser } from "@clerk/react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,6 +100,36 @@ function StartOver() {
   );
 }
 
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function UserMenu() {
+  const { user } = useUser();
+  const { signOut } = useClerk();
+
+  const name =
+    user?.fullName ||
+    user?.primaryEmailAddress?.emailAddress ||
+    "Account";
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="px-4 py-2 min-w-0">
+        <p className="text-sm font-medium text-foreground truncate">{name}</p>
+        <p className="text-xs text-muted-foreground tracking-widest uppercase">
+          Signed in
+        </p>
+      </div>
+      <button
+        onClick={() => signOut({ redirectUrl: basePath || "/" })}
+        className="flex w-full items-center gap-3 px-4 py-2.5 rounded-none text-sm font-medium text-muted-foreground border-l-2 border-transparent transition-all duration-300 hover:text-foreground hover:bg-secondary/30 hover:border-secondary-foreground/20"
+      >
+        <LogOut className="w-4 h-4 stroke-[1.5]" />
+        Sign out
+      </button>
+    </div>
+  );
+}
+
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
   { href: "/audit", icon: Search, label: "Audit" },
@@ -149,6 +181,9 @@ export function Layout({ children }: LayoutProps) {
             <StartOver />
           </div>
         </div>
+        <div className="mt-auto px-4 py-6 border-t border-border/50">
+          <UserMenu />
+        </div>
       </aside>
 
       {/* Mobile Header & Sidebar */}
@@ -177,6 +212,9 @@ export function Layout({ children }: LayoutProps) {
             </div>
             <div className="px-4 mt-6 pt-4 border-t border-border/50">
               <StartOver />
+            </div>
+            <div className="px-4 mt-6 pt-4 border-t border-border/50">
+              <UserMenu />
             </div>
           </SheetContent>
         </Sheet>

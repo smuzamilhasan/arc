@@ -38,6 +38,7 @@ import type {
   ListPostsParams,
   NarrativeGenerateInput,
   NarrativeProfile,
+  NarrativeUpdateInput,
   Post,
   PostInput,
   PostUpdate
@@ -646,6 +647,77 @@ export function useGetNarrative<TData = Awaited<ReturnType<typeof getNarrative>>
 
 
 
+
+export const getUpdateNarrativeUrl = () => {
+
+
+
+
+  return `/api/narrative`
+}
+
+/**
+ * @summary Update the editable fields of the narrative profile
+ */
+export const updateNarrative = async (narrativeUpdateInput: NarrativeUpdateInput, options?: RequestInit): Promise<NarrativeProfile> => {
+
+  return customFetch<NarrativeProfile>(getUpdateNarrativeUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      narrativeUpdateInput,)
+  }
+);}
+
+
+
+
+export const getUpdateNarrativeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateNarrative>>, TError,{data: BodyType<NarrativeUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateNarrative>>, TError,{data: BodyType<NarrativeUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateNarrative'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateNarrative>>, {data: BodyType<NarrativeUpdateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateNarrative(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateNarrativeMutationResult = NonNullable<Awaited<ReturnType<typeof updateNarrative>>>
+    export type UpdateNarrativeMutationBody = BodyType<NarrativeUpdateInput>
+    export type UpdateNarrativeMutationError = ErrorType<void>
+
+    /**
+ * @summary Update the editable fields of the narrative profile
+ */
+export const useUpdateNarrative = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateNarrative>>, TError,{data: BodyType<NarrativeUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateNarrative>>,
+        TError,
+        {data: BodyType<NarrativeUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateNarrativeMutationOptions(options));
+    }
 
 export const getGenerateNarrativeUrl = () => {
 

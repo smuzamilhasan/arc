@@ -3,16 +3,29 @@ import {
   useGetNarrative,
   getGetNarrativeQueryKey,
   useGenerateNarrative,
+  useUpdateNarrative,
   useGetClient,
   getGetClientQueryKey,
   IndustryAnswer,
   ClientProfile,
+  NarrativeProfile,
+  NarrativeTheme,
+  PlatformRecommendation,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, ArrowRight, Sparkles, Target, Quote, MessageSquare, Briefcase } from "lucide-react";
+import { Loader2, ArrowRight, Sparkles, Target, Quote, MessageSquare, Briefcase, Pencil, Plus, Trash2, X, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 const QUESTIONS = [
@@ -47,6 +60,24 @@ function hasCoachMaterial(client: ClientProfile | undefined): client is ClientPr
   ].some((v) => v?.trim());
 }
 
+type NarrativeDraft = {
+  coreNarrative: string;
+  pointOfView: string;
+  themes: NarrativeTheme[];
+  recommendedPlatforms: PlatformRecommendation[];
+  contentHooks: string[];
+};
+
+function draftFromNarrative(n: NarrativeProfile): NarrativeDraft {
+  return {
+    coreNarrative: n.coreNarrative,
+    pointOfView: n.pointOfView,
+    themes: n.themes.map((t) => ({ ...t })),
+    recommendedPlatforms: n.recommendedPlatforms.map((p) => ({ ...p })),
+    contentHooks: [...n.contentHooks],
+  };
+}
+
 export default function Narrative() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -55,6 +86,7 @@ export default function Narrative() {
   const [retake, setRetake] = useState(false);
   const [autoGenFailed, setAutoGenFailed] = useState(false);
   const autoGenAttempted = useRef(false);
+  const [draft, setDraft] = useState<NarrativeDraft | null>(null);
 
   const { data: narrative, isLoading: isNarrativeLoading } = useGetNarrative({
     query: {
@@ -68,6 +100,7 @@ export default function Narrative() {
   });
 
   const generateNarrative = useGenerateNarrative();
+  const updateNarrative = useUpdateNarrative();
 
   const canAutoGenerate =
     !narrative && !retake && !autoGenFailed && hasCoachMaterial(client);
@@ -153,6 +186,40 @@ export default function Narrative() {
     setRetake(true);
   };
 
+  const startEdit = () => {
+    if (narrative) setDraft(draftFromNarrative(narrative));
+  };
+
+  const cancelEdit = () => setDraft(null);
+
+  const saveEdit = () => {
+    if (!draft) return;
+    const cleaned: NarrativeDraft = {
+      coreNarrative: draft.coreNarrative.trim(),
+      pointOfView: draft.pointOfView.trim(),
+      themes: draft.themes
+        .map((t) => ({ title: t.title.trim(), description: t.description.trim() }))
+        .filter((t) => t.title || t.description),
+      recommendedPlatforms: draft.recommendedPlatforms
+        .map((p) => ({ platform: p.platform.trim(), reason: p.reason.trim(), priority: p.priority }))
+        .filter((p) => p.platform || p.reason),
+      contentHooks: draft.contentHooks.map((h) => h.trim()).filter(Boolean),
+    };
+    updateNarrative.mutate(
+      { data: cleaned },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetNarrativeQueryKey() });
+          setDraft(null);
+          toast({ title: "Narrative updated" });
+        },
+        onError: () => {
+          toast({ title: "Failed to save changes", variant: "destructive" });
+        },
+      }
+    );
+  };
+
   // 1. Loading state for AI generation (auto or manual)
   if (generateNarrative.isPending || canAutoGenerate) {
     return (
@@ -229,13 +296,47 @@ export default function Narrative() {
   }
 
   // 3. Results State (Narrative exists)
+  const editing = draft !== null;
+
   return (
     <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-      <div className="space-y-2 max-w-3xl">
-        <h1 className="text-4xl font-serif text-foreground tracking-tight">Your Narrative Strategy</h1>
-        <p className="text-muted-foreground text-lg font-light leading-relaxed">
-          The synthesized foundation for your personal brand. Everything you publish should flow from these pillars.
-        </p>
+      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-2 max-w-3xl">
+          <h1 className="text-4xl font-serif text-foreground tracking-tight">Your Narrative Strategy</h1>
+          <p className="text-muted-foreground text-lg font-light leading-relaxed">
+            The synthesized foundation for your personal brand. Everything you publish should flow from these pillars.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {editing ? (
+            <>
+              <Button
+                variant="ghost"
+                onClick={cancelEdit}
+                disabled={updateNarrative.isPending}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" /> Cancel
+              </Button>
+              <Button
+                onClick={saveEdit}
+                disabled={updateNarrative.isPending}
+                className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full"
+              >
+                {updateNarrative.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4" />
+                )}
+                Save changes
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={startEdit} className="gap-2 rounded-full">
+              <Pencil className="w-4 h-4" /> Edit narrative
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -248,14 +349,37 @@ export default function Narrative() {
             <CardTitle className="font-serif text-2xl font-normal">Core Positioning</CardTitle>
           </CardHeader>
           <CardContent className="space-y-8">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3">The Narrative</h3>
-              <p className="text-lg leading-relaxed text-foreground font-light">{narrative.coreNarrative}</p>
-            </div>
-            <div className="border-l-2 border-primary/30 pl-6 py-2">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3">Point of View</h3>
-              <p className="text-xl font-serif italic text-foreground/90">{narrative.pointOfView}</p>
-            </div>
+            {editing && draft ? (
+              <>
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-widest">The Narrative</Label>
+                  <Textarea
+                    className="min-h-[140px] text-base leading-relaxed resize-none bg-background border-border/50"
+                    value={draft.coreNarrative}
+                    onChange={(e) => setDraft({ ...draft, coreNarrative: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Point of View</Label>
+                  <Textarea
+                    className="min-h-[100px] text-base leading-relaxed resize-none bg-background border-border/50"
+                    value={draft.pointOfView}
+                    onChange={(e) => setDraft({ ...draft, pointOfView: e.target.value })}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3">The Narrative</h3>
+                  <p className="text-lg leading-relaxed text-foreground font-light">{narrative.coreNarrative}</p>
+                </div>
+                <div className="border-l-2 border-primary/30 pl-6 py-2">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3">Point of View</h3>
+                  <p className="text-xl font-serif italic text-foreground/90">{narrative.pointOfView}</p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -269,14 +393,51 @@ export default function Narrative() {
             <CardDescription className="font-light">Ready-to-use angles for posts.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-4">
-              {narrative.contentHooks.map((hook, i) => (
-                <li key={i} className="flex items-start gap-3 text-sm font-light leading-relaxed">
-                  <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0" />
-                  <span>{hook}</span>
-                </li>
-              ))}
-            </ul>
+            {editing && draft ? (
+              <div className="space-y-3">
+                {draft.contentHooks.map((hook, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Textarea
+                      className="min-h-[60px] text-sm leading-relaxed resize-none bg-background border-border/50"
+                      value={hook}
+                      onChange={(e) => {
+                        const contentHooks = [...draft.contentHooks];
+                        contentHooks[i] = e.target.value;
+                        setDraft({ ...draft, contentHooks });
+                      }}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() =>
+                        setDraft({ ...draft, contentHooks: draft.contentHooks.filter((_, j) => j !== i) })
+                      }
+                      aria-label="Remove hook"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 w-full"
+                  onClick={() => setDraft({ ...draft, contentHooks: [...draft.contentHooks, ""] })}
+                >
+                  <Plus className="w-4 h-4" /> Add hook
+                </Button>
+              </div>
+            ) : (
+              <ul className="space-y-4">
+                {narrative.contentHooks.map((hook, i) => (
+                  <li key={i} className="flex items-start gap-3 text-sm font-light leading-relaxed">
+                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0" />
+                    <span>{hook}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -293,14 +454,66 @@ export default function Narrative() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-8">
-              {narrative.themes.map((theme, i) => (
-                <div key={i} className="space-y-2">
-                  <h4 className="font-medium text-foreground text-lg">{theme.title}</h4>
-                  <p className="text-muted-foreground font-light leading-relaxed">{theme.description}</p>
-                </div>
-              ))}
-            </div>
+            {editing && draft ? (
+              <div className="space-y-5">
+                {draft.themes.map((theme, i) => (
+                  <div key={i} className="space-y-2 rounded-xl border border-border/50 bg-background/50 p-4">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        className="bg-background border-border/50 font-medium"
+                        placeholder="Theme title"
+                        value={theme.title}
+                        onChange={(e) => {
+                          const themes = [...draft.themes];
+                          themes[i] = { ...themes[i], title: e.target.value };
+                          setDraft({ ...draft, themes });
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() =>
+                          setDraft({ ...draft, themes: draft.themes.filter((_, j) => j !== i) })
+                        }
+                        aria-label="Remove theme"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <Textarea
+                      className="min-h-[70px] text-sm leading-relaxed resize-none bg-background border-border/50"
+                      placeholder="Theme description"
+                      value={theme.description}
+                      onChange={(e) => {
+                        const themes = [...draft.themes];
+                        themes[i] = { ...themes[i], description: e.target.value };
+                        setDraft({ ...draft, themes });
+                      }}
+                    />
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 w-full"
+                  onClick={() =>
+                    setDraft({ ...draft, themes: [...draft.themes, { title: "", description: "" }] })
+                  }
+                >
+                  <Plus className="w-4 h-4" /> Add theme
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {narrative.themes.map((theme, i) => (
+                  <div key={i} className="space-y-2">
+                    <h4 className="font-medium text-foreground text-lg">{theme.title}</h4>
+                    <p className="text-muted-foreground font-light leading-relaxed">{theme.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -315,34 +528,117 @@ export default function Narrative() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {narrative.recommendedPlatforms.map((platform, i) => (
-                <div key={i} className="flex gap-4 p-4 rounded-xl border border-border/50 bg-background/50 items-start">
-                  <div className="shrink-0 pt-1">
-                    <span className={`text-[10px] uppercase tracking-wider font-medium px-2 py-1 rounded-sm
-                      ${platform.priority === 'high' ? 'bg-primary/10 text-primary' : 
-                        platform.priority === 'medium' ? 'bg-secondary text-secondary-foreground' : 
-                        'bg-muted text-muted-foreground'}`}>
-                      {platform.priority} Priority
-                    </span>
+            {editing && draft ? (
+              <div className="space-y-5">
+                {draft.recommendedPlatforms.map((platform, i) => (
+                  <div key={i} className="space-y-2 rounded-xl border border-border/50 bg-background/50 p-4">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        className="bg-background border-border/50 font-medium"
+                        placeholder="Platform"
+                        value={platform.platform}
+                        onChange={(e) => {
+                          const recommendedPlatforms = [...draft.recommendedPlatforms];
+                          recommendedPlatforms[i] = { ...recommendedPlatforms[i], platform: e.target.value };
+                          setDraft({ ...draft, recommendedPlatforms });
+                        }}
+                      />
+                      <Select
+                        value={platform.priority}
+                        onValueChange={(value) => {
+                          const recommendedPlatforms = [...draft.recommendedPlatforms];
+                          recommendedPlatforms[i] = {
+                            ...recommendedPlatforms[i],
+                            priority: value as PlatformRecommendation["priority"],
+                          };
+                          setDraft({ ...draft, recommendedPlatforms });
+                        }}
+                      >
+                        <SelectTrigger className="w-[130px] shrink-0 bg-background border-border/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() =>
+                          setDraft({
+                            ...draft,
+                            recommendedPlatforms: draft.recommendedPlatforms.filter((_, j) => j !== i),
+                          })
+                        }
+                        aria-label="Remove platform"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <Textarea
+                      className="min-h-[70px] text-sm leading-relaxed resize-none bg-background border-border/50"
+                      placeholder="Why this platform"
+                      value={platform.reason}
+                      onChange={(e) => {
+                        const recommendedPlatforms = [...draft.recommendedPlatforms];
+                        recommendedPlatforms[i] = { ...recommendedPlatforms[i], reason: e.target.value };
+                        setDraft({ ...draft, recommendedPlatforms });
+                      }}
+                    />
                   </div>
-                  <div>
-                    <h4 className="font-medium text-foreground capitalize mb-1">{platform.platform}</h4>
-                    <p className="text-sm text-muted-foreground font-light leading-relaxed">{platform.reason}</p>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 w-full"
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      recommendedPlatforms: [
+                        ...draft.recommendedPlatforms,
+                        { platform: "", reason: "", priority: "medium" },
+                      ],
+                    })
+                  }
+                >
+                  <Plus className="w-4 h-4" /> Add platform
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {narrative.recommendedPlatforms.map((platform, i) => (
+                  <div key={i} className="flex gap-4 p-4 rounded-xl border border-border/50 bg-background/50 items-start">
+                    <div className="shrink-0 pt-1">
+                      <span className={`text-[10px] uppercase tracking-wider font-medium px-2 py-1 rounded-sm
+                        ${platform.priority === 'high' ? 'bg-primary/10 text-primary' : 
+                          platform.priority === 'medium' ? 'bg-secondary text-secondary-foreground' : 
+                          'bg-muted text-muted-foreground'}`}>
+                        {platform.priority} Priority
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-foreground capitalize mb-1">{platform.platform}</h4>
+                      <p className="text-sm text-muted-foreground font-light leading-relaxed">{platform.reason}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
       
       {/* Utility to retake interview (hidden away but useful) */}
-      <div className="flex justify-center pt-8">
-        <Button variant="ghost" onClick={startRetake} className="text-muted-foreground text-xs hover:text-foreground">
-          Retake Synthesis Interview
-        </Button>
-      </div>
+      {!editing && (
+        <div className="flex justify-center pt-8">
+          <Button variant="ghost" onClick={startRetake} className="text-muted-foreground text-xs hover:text-foreground">
+            Retake Synthesis Interview
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

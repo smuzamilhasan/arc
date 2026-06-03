@@ -199,6 +199,48 @@ export const GetNarrativeResponse = zod.object({
 
 
 /**
+ * @summary Update the editable fields of the narrative profile
+ */
+export const UpdateNarrativeBody = zod.object({
+  "coreNarrative": zod.string(),
+  "pointOfView": zod.string(),
+  "themes": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string()
+})),
+  "recommendedPlatforms": zod.array(zod.object({
+  "platform": zod.string(),
+  "reason": zod.string(),
+  "priority": zod.enum(['high', 'medium', 'low'])
+})),
+  "contentHooks": zod.array(zod.string())
+})
+
+export const UpdateNarrativeResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "industryAnswers": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})),
+  "coreNarrative": zod.string(),
+  "pointOfView": zod.string(),
+  "themes": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string()
+})),
+  "recommendedPlatforms": zod.array(zod.object({
+  "platform": zod.string(),
+  "reason": zod.string(),
+  "priority": zod.enum(['high', 'medium', 'low'])
+})),
+  "contentHooks": zod.array(zod.string()),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
  * @summary Generate a narrative from industry questionnaire answers
  */
 export const GenerateNarrativeBody = zod.object({

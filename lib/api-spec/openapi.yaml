@@ -135,6 +135,25 @@ paths:
                 $ref: "#/components/schemas/NarrativeProfile"
         "404":
           description: Not found
+    put:
+      operationId: updateNarrative
+      tags: [narrative]
+      summary: Update the editable fields of the narrative profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NarrativeUpdateInput"
+      responses:
+        "200":
+          description: Updated narrative profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NarrativeProfile"
+        "404":
+          description: Not found
 
   /narrative/generate:
     post:
@@ -822,6 +841,27 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/IndustryAnswer"
+
+    NarrativeUpdateInput:
+      type: object
+      required: [coreNarrative, pointOfView, themes, recommendedPlatforms, contentHooks]
+      properties:
+        coreNarrative:
+          type: string
+        pointOfView:
+          type: string
+        themes:
+          type: array
+          items:
+            $ref: "#/components/schemas/NarrativeTheme"
+        recommendedPlatforms:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformRecommendation"
+        contentHooks:
+          type: array
+          items:
+            type: string
 
     Post:
       type: object

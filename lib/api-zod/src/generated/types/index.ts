@@ -30,6 +30,7 @@ export * from './listPostsParams';
 export * from './narrativeGenerateInput';
 export * from './narrativeProfile';
 export * from './narrativeTheme';
+export * from './narrativeUpdateInput';
 export * from './platformCount';
 export * from './platformRecommendation';
 export * from './platformRecommendationPriority';

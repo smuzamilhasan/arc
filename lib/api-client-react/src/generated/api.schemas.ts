@@ -229,6 +229,14 @@ export interface NarrativeGenerateInput {
   answers: IndustryAnswer[];
 }
 
+export interface NarrativeUpdateInput {
+  coreNarrative: string;
+  pointOfView: string;
+  themes: NarrativeTheme[];
+  recommendedPlatforms: PlatformRecommendation[];
+  contentHooks: string[];
+}
+
 export type PostPlatform = typeof PostPlatform[keyof typeof PostPlatform];
 
 

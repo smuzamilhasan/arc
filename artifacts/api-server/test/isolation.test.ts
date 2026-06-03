@@ -128,6 +128,7 @@ describe("authentication", () => {
     ["get", "/api/audit/latest"],
     ["post", "/api/audit/run"],
     ["get", "/api/narrative"],
+    ["put", "/api/narrative"],
     ["post", "/api/narrative/generate"],
     ["post", "/api/onboarding/extract"],
     ["post", "/api/onboarding/generate-bio"],
@@ -233,6 +234,63 @@ describe("dashboard isolation", () => {
 
     const resB = await request(app).get("/api/dashboard").set(as(USER_B)).expect(200);
     expect(resB.body.clientName).toBe("Bob Brown");
+  });
+});
+
+describe("narrative editing", () => {
+  it("updates the caller's narrative fields and persists them", async () => {
+    const [client] = await db
+      .select()
+      .from(clientProfileTable)
+      .where(eq(clientProfileTable.userId, USER_B));
+    expect(client).toBeDefined();
+
+    await db.insert(narrativeProfilesTable).values({
+      clientId: client.id,
+      coreNarrative: "original narrative",
+      pointOfView: "original pov",
+      themes: [{ title: "Old theme", description: "old desc" }],
+      recommendedPlatforms: [{ platform: "linkedin", reason: "old reason", priority: "low" }],
+      contentHooks: ["old hook 1", "old hook 2"],
+    });
+
+    const update = {
+      coreNarrative: "edited narrative",
+      pointOfView: "edited pov",
+      themes: [{ title: "New theme", description: "new desc" }],
+      recommendedPlatforms: [
+        { platform: "twitter", reason: "new reason", priority: "high" as const },
+      ],
+      contentHooks: ["kept hook"],
+    };
+
+    const resPut = await request(app)
+      .put("/api/narrative")
+      .set(as(USER_B))
+      .send(update)
+      .expect(200);
+    expect(resPut.body.coreNarrative).toBe("edited narrative");
+    expect(resPut.body.contentHooks).toEqual(["kept hook"]);
+
+    // Survives a refresh (re-read from the API).
+    const resGet = await request(app).get("/api/narrative").set(as(USER_B)).expect(200);
+    expect(resGet.body.pointOfView).toBe("edited pov");
+    expect(resGet.body.themes).toEqual([{ title: "New theme", description: "new desc" }]);
+    expect(resGet.body.recommendedPlatforms[0].priority).toBe("high");
+  });
+
+  it("returns 404 when the caller has no narrative", async () => {
+    await request(app)
+      .put("/api/narrative")
+      .set(as(USER_A))
+      .send({
+        coreNarrative: "x",
+        pointOfView: "y",
+        themes: [],
+        recommendedPlatforms: [],
+        contentHooks: [],
+      })
+      .expect(404);
   });
 });
 

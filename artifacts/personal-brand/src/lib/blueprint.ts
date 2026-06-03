@@ -457,6 +457,47 @@ export function isPillarUnlocked(
   return unlockedPillarIds(client).has(pillarId);
 }
 
+// Where a stage sits on the journey. "complete" = all its pillars' core fields
+// are filled; "current" = its gate is open but it isn't finished (this is the
+// stage that holds the next best step); "locked" = the previous stage isn't
+// done yet, so it hasn't been reached.
+export type BlueprintStageStatus = "complete" | "current" | "locked";
+
+export type BlueprintStageView = {
+  index: number;
+  pillars: Pillar[];
+  // A readable label for the whole stage (its pillar titles).
+  label: string;
+  status: BlueprintStageStatus;
+};
+
+// The journey as an ordered list of stages with their progress state, for the
+// timeline/stepper. Because gating is linear, exactly one stage is "current"
+// (gate open but unfinished) until everything is complete — and that current
+// stage is the one holding `nextPillar`, so the stepper and the nudge agree.
+export function blueprintStages(
+  client: ClientProfile | undefined,
+): BlueprintStageView[] {
+  return BLUEPRINT_STAGES.map((ids, i) => {
+    const pillars = ids
+      .map((id) => getPillar(id))
+      .filter((p): p is Pillar => Boolean(p));
+    const complete = stageComplete(ids, client);
+    const gateOpen = i === 0 || stageComplete(BLUEPRINT_STAGES[i - 1], client);
+    const status: BlueprintStageStatus = complete
+      ? "complete"
+      : gateOpen
+        ? "current"
+        : "locked";
+    return {
+      index: i,
+      pillars,
+      label: pillars.map((p) => p.title).join(", "),
+      status,
+    };
+  });
+}
+
 // A short hint of what unlocks a locked pillar: the previous stage's title(s).
 export function unlockHint(pillarId: string): string {
   const stageIndex = BLUEPRINT_STAGES.findIndex((s) => s.includes(pillarId));

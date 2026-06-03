@@ -13,8 +13,10 @@ import {
   nextPillar,
   unlockedPillarIds,
   unlockHint,
+  blueprintStages,
 } from "@/lib/blueprint";
 import { BlueprintModeToggle } from "@/components/blueprint-mode-toggle";
+import { BlueprintStepper } from "@/components/blueprint-stepper";
 
 export default function Blueprint() {
   const { data: client, isLoading } = useGetClient({
@@ -40,6 +42,7 @@ export default function Blueprint() {
   const overall = overallCompletion(client);
   const next = nextPillar(client);
   const unlocked = unlockedPillarIds(client);
+  const stages = blueprintStages(client);
 
   return (
     <div className="space-y-12 pb-10">
@@ -93,6 +96,15 @@ export default function Blueprint() {
             </div>
           </Link>
         )}
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-6">
+        <h2 className="font-serif text-2xl text-foreground">Your journey</h2>
+        <p className="text-sm text-muted-foreground mt-1 mb-7 max-w-2xl">
+          Each stage unlocks the next. Here's what you've finished, where you are,
+          and what's still to come.
+        </p>
+        <BlueprintStepper stages={stages} />
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-5">

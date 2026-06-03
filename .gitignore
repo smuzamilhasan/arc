@@ -27,6 +27,10 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# Playwright
+test-results
+playwright-report
+
 # misc
 /.sass-cache
 /connect.lock

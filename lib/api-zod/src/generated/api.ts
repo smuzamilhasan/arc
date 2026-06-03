@@ -351,6 +351,40 @@ export const GenerateBioResponse = zod.object({
 
 
 /**
+ * @summary Draft tentative answers for a Blueprint pillar from existing intake material
+ */
+export const DraftPillarBody = zod.object({
+  "pillarId": zod.string(),
+  "fullName": zod.string(),
+  "currentRole": zod.string().optional(),
+  "company": zod.string().optional(),
+  "industry": zod.string().optional(),
+  "professionalJourney": zod.string().optional(),
+  "signatureAchievements": zod.string().optional(),
+  "awards": zod.string().optional(),
+  "quantifiableResults": zod.string().optional(),
+  "audienceImpact": zod.string().optional(),
+  "passions": zod.string().optional(),
+  "beliefs": zod.string().optional(),
+  "frustrations": zod.string().optional(),
+  "desiredChange": zod.string().optional(),
+  "thesis": zod.string().optional(),
+  "coreBeliefs": zod.string().optional(),
+  "signatureFrameworks": zod.string().optional(),
+  "extractedInfo": zod.string().optional(),
+  "fields": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "multiline": zod.boolean().optional()
+}))
+})
+
+export const DraftPillarResponse = zod.object({
+  "fields": zod.record(zod.string(), zod.string())
+})
+
+
+/**
  * @summary List all posts
  */
 export const ListPostsQueryParams = zod.object({

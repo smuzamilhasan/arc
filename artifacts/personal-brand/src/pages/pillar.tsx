@@ -6,6 +6,7 @@ import {
   useUpsertClient,
   useExtractPublicInfo,
   useGenerateBio,
+  useDraftPillar,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,7 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
   const upsertClient = useUpsertClient();
   const extract = useExtractPublicInfo();
   const generateBio = useGenerateBio();
+  const draft = useDraftPillar();
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [initial, setInitial] = useState<Record<string, string>>({});
@@ -196,6 +198,71 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
     );
   };
 
+  const handleDraftPillar = () => {
+    if (!client) return;
+    draft.mutate(
+      {
+        data: {
+          pillarId: pillar.id,
+          fullName: client.fullName,
+          currentRole: client.currentRole || undefined,
+          company: client.company || undefined,
+          industry: client.industry || undefined,
+          professionalJourney: client.professionalJourney || undefined,
+          signatureAchievements: client.signatureAchievements || undefined,
+          awards: client.awards || undefined,
+          quantifiableResults: client.quantifiableResults || undefined,
+          audienceImpact: client.audienceImpact || undefined,
+          passions: client.passions || undefined,
+          beliefs: client.beliefs || undefined,
+          frustrations: client.frustrations || undefined,
+          desiredChange: client.desiredChange || undefined,
+          thesis: client.thesis || undefined,
+          coreBeliefs: client.coreBeliefs || undefined,
+          signatureFrameworks: client.signatureFrameworks || undefined,
+          extractedInfo: client.extractedInfo || undefined,
+          fields: pillar.fields.map((f) => ({
+            name: f.name,
+            label: f.label,
+            multiline: f.multiline,
+          })),
+        },
+      },
+      {
+        onSuccess: (result) => {
+          let count = 0;
+          // Merge against the latest state inside the updater so a field the user
+          // typed into while the request was in flight is never overwritten.
+          setValues((prev) => {
+            const next = { ...prev };
+            for (const f of pillar.fields) {
+              const suggestion = result.fields[f.name];
+              if (suggestion && suggestion.trim() && !(prev[f.name] ?? "").trim()) {
+                next[f.name] = suggestion;
+                count++;
+              }
+            }
+            return count > 0 ? next : prev;
+          });
+          toast({
+            title: count > 0 ? "Drafted from what you've shared" : "Nothing left to draft",
+            description:
+              count > 0
+                ? "Review and edit anything that doesn't sound like you, then save."
+                : "These fields are already filled. Clear one and draft again for a fresh take.",
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Could not draft suggestions",
+            description: "Please try again, or fill these in yourself.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-8 max-w-2xl">
@@ -225,6 +292,32 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
           </div>
         </div>
       </div>
+
+      {pillar.hasDraft && (
+        <div className="rounded-lg border border-border/60 bg-card p-5 flex items-start justify-between gap-4">
+          <div>
+            <p className="font-medium text-foreground/90">Draft this from what you've shared</p>
+            <p className="text-sm text-muted-foreground font-light mt-1">
+              arc turns your onboarding answers into a first draft of these questions. It only
+              fills blanks, so anything you've written stays. Review and edit, then save.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleDraftPillar}
+            disabled={draft.isPending}
+            className="gap-2 shrink-0 rounded-full"
+          >
+            {draft.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            Draft
+          </Button>
+        </div>
+      )}
 
       {pillar.hasGather && (
         <div className="rounded-lg border border-border/60 bg-card p-5 flex items-start justify-between gap-4">

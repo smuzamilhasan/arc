@@ -212,6 +212,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenerateBioResult"
 
+  /onboarding/draft-pillar:
+    post:
+      operationId: draftPillar
+      tags: [onboarding]
+      summary: Draft tentative answers for a Blueprint pillar from existing intake material
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DraftPillarInput"
+      responses:
+        "200":
+          description: Drafted field values keyed by field name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftPillarResult"
+
   /posts:
     get:
       operationId: listPosts
@@ -726,6 +745,71 @@ components:
           type: string
         bio:
           type: string
+
+    DraftPillarField:
+      type: object
+      required: [name, label]
+      properties:
+        name:
+          type: string
+        label:
+          type: string
+        multiline:
+          type: boolean
+
+    DraftPillarInput:
+      type: object
+      required: [pillarId, fullName, fields]
+      properties:
+        pillarId:
+          type: string
+        fullName:
+          type: string
+        currentRole:
+          type: string
+        company:
+          type: string
+        industry:
+          type: string
+        professionalJourney:
+          type: string
+        signatureAchievements:
+          type: string
+        awards:
+          type: string
+        quantifiableResults:
+          type: string
+        audienceImpact:
+          type: string
+        passions:
+          type: string
+        beliefs:
+          type: string
+        frustrations:
+          type: string
+        desiredChange:
+          type: string
+        thesis:
+          type: string
+        coreBeliefs:
+          type: string
+        signatureFrameworks:
+          type: string
+        extractedInfo:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/DraftPillarField"
+
+    DraftPillarResult:
+      type: object
+      required: [fields]
+      properties:
+        fields:
+          type: object
+          additionalProperties:
+            type: string
 
     SeoFinding:
       type: object

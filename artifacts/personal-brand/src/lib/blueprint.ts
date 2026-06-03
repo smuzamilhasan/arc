@@ -24,6 +24,7 @@ export type Pillar = {
   supportingHint?: string;
   hasGather?: boolean;
   hasBioDraft?: boolean;
+  hasDraft?: boolean;
 };
 
 export const PILLARS: Pillar[] = [
@@ -34,6 +35,7 @@ export const PILLARS: Pillar[] = [
     intro:
       "Sharpen the single space you want to be known for and the people you serve. The clearer this is, the sharper everything arc generates downstream.",
     icon: Compass,
+    hasDraft: true,
     countFields: ["positioning", "primaryAudience", "brandValues", "personalityTone"],
     supportingLabel: "More positioning detail",
     supportingHint:
@@ -94,6 +96,7 @@ export const PILLARS: Pillar[] = [
     intro:
       "This is the engine of your point of view: the central argument you keep making and the named ideas only you bring.",
     icon: Lightbulb,
+    hasDraft: true,
     countFields: ["thesis", "coreBeliefs", "signatureFrameworks"],
     supportingLabel: "Narrative depth",
     supportingHint:

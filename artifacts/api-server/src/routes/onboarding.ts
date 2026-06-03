@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { ExtractPublicInfoBody, GenerateBioBody } from "@workspace/api-zod";
-import { extractPublicInfo, generateBio } from "../services/profile";
+import { ExtractPublicInfoBody, GenerateBioBody, DraftPillarBody } from "@workspace/api-zod";
+import { extractPublicInfo, generateBio, draftPillar } from "../services/profile";
 
 const router = Router();
 
@@ -31,6 +31,21 @@ router.post("/onboarding/generate-bio", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to generate bio");
     res.status(502).json({ error: "Could not generate a headline and bio. Please try again." });
+  }
+});
+
+router.post("/onboarding/draft-pillar", async (req, res) => {
+  const parsed = DraftPillarBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  try {
+    const data = await draftPillar(parsed.data);
+    res.json(data);
+  } catch (err) {
+    req.log.error({ err }, "Failed to draft pillar");
+    res.status(502).json({ error: "Could not draft suggestions. Please try again." });
   }
 });
 

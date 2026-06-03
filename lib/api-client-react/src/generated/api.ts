@@ -27,6 +27,8 @@ import type {
   ClientProfile,
   ClientProfileInput,
   DashboardSummary,
+  DraftPillarInput,
+  DraftPillarResult,
   ExtractInfoInput,
   ExtractInfoResult,
   GenerateBioInput,
@@ -930,6 +932,77 @@ export const useGenerateBio = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getGenerateBioMutationOptions(options));
+    }
+
+export const getDraftPillarUrl = () => {
+
+
+
+
+  return `/api/onboarding/draft-pillar`
+}
+
+/**
+ * @summary Draft tentative answers for a Blueprint pillar from existing intake material
+ */
+export const draftPillar = async (draftPillarInput: DraftPillarInput, options?: RequestInit): Promise<DraftPillarResult> => {
+
+  return customFetch<DraftPillarResult>(getDraftPillarUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      draftPillarInput,)
+  }
+);}
+
+
+
+
+export const getDraftPillarMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof draftPillar>>, TError,{data: BodyType<DraftPillarInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof draftPillar>>, TError,{data: BodyType<DraftPillarInput>}, TContext> => {
+
+const mutationKey = ['draftPillar'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof draftPillar>>, {data: BodyType<DraftPillarInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  draftPillar(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DraftPillarMutationResult = NonNullable<Awaited<ReturnType<typeof draftPillar>>>
+    export type DraftPillarMutationBody = BodyType<DraftPillarInput>
+    export type DraftPillarMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Draft tentative answers for a Blueprint pillar from existing intake material
+ */
+export const useDraftPillar = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof draftPillar>>, TError,{data: BodyType<DraftPillarInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof draftPillar>>,
+        TError,
+        {data: BodyType<DraftPillarInput>},
+        TContext
+      > => {
+      return useMutation(getDraftPillarMutationOptions(options));
     }
 
 export const getListPostsUrl = (params?: ListPostsParams,) => {

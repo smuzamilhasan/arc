@@ -148,6 +148,40 @@ export interface GenerateBioResult {
   bio: string;
 }
 
+export interface DraftPillarField {
+  name: string;
+  label: string;
+  multiline?: boolean;
+}
+
+export interface DraftPillarInput {
+  pillarId: string;
+  fullName: string;
+  currentRole?: string;
+  company?: string;
+  industry?: string;
+  professionalJourney?: string;
+  signatureAchievements?: string;
+  awards?: string;
+  quantifiableResults?: string;
+  audienceImpact?: string;
+  passions?: string;
+  beliefs?: string;
+  frustrations?: string;
+  desiredChange?: string;
+  thesis?: string;
+  coreBeliefs?: string;
+  signatureFrameworks?: string;
+  extractedInfo?: string;
+  fields: DraftPillarField[];
+}
+
+export type DraftPillarResultFields = {[key: string]: string};
+
+export interface DraftPillarResult {
+  fields: DraftPillarResultFields;
+}
+
 export type SeoFindingType = typeof SeoFindingType[keyof typeof SeoFindingType];
 
 

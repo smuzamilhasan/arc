@@ -339,6 +339,68 @@ describe("blueprint fields persistence", () => {
   });
 });
 
+describe("blueprint full-row overwrite merge", () => {
+  // PUT /client is a full-row overwrite. The pillar editors guard against data
+  // loss by reading the full profile and merging a single pillar's edits onto it
+  // (clientToInput). This regression locks the server side of that contract: a
+  // second PUT that carries a legacy field forward while adding a new blueprint
+  // field must keep BOTH. If either is dropped from the route's values map, the
+  // overwrite silently wipes the field and this fails.
+  const USER_C = `test-iso-c-${suffix}`;
+
+  beforeAll(async () => {
+    await cleanupUser(USER_C);
+  });
+
+  afterAll(async () => {
+    await cleanupUser(USER_C);
+  });
+
+  it("two sequential PUTs (legacy field, then a new blueprint field) keep both", async () => {
+    // First PUT seeds a legacy field.
+    await request(app)
+      .put("/api/client")
+      .set(as(USER_C))
+      .send({ fullName: "Carol Clark", headline: "Carol's legacy headline" })
+      .expect(200);
+
+    // Read the full profile back and merge in a single new blueprint field —
+    // exactly what a pillar editor does via clientToInput (strip server-managed
+    // keys, coerce nullable fields to "", then overlay the edited field).
+    const current = await request(app).get("/api/client").set(as(USER_C)).expect(200);
+    const { id, createdAt, updatedAt, ...rest } = current.body;
+    void id;
+    void createdAt;
+    void updatedAt;
+    const merged = {
+      ...rest,
+      dateOfBirth: rest.dateOfBirth ?? "",
+      website: rest.website ?? "",
+      newsletter: rest.newsletter ?? "",
+      linkedinUrl: rest.linkedinUrl ?? "",
+      twitterUrl: rest.twitterUrl ?? "",
+      instagramUrl: rest.instagramUrl ?? "",
+      youtubeUrl: rest.youtubeUrl ?? "",
+      positioning: "the go-to person for Y",
+    };
+
+    const resPut = await request(app)
+      .put("/api/client")
+      .set(as(USER_C))
+      .send(merged)
+      .expect(200);
+
+    // The legacy field survives the overwrite and the new field is applied.
+    expect(resPut.body.headline).toBe("Carol's legacy headline");
+    expect(resPut.body.positioning).toBe("the go-to person for Y");
+
+    // Both survive a refresh (re-read from the API).
+    const resGet = await request(app).get("/api/client").set(as(USER_C)).expect(200);
+    expect(resGet.body.headline).toBe("Carol's legacy headline");
+    expect(resGet.body.positioning).toBe("the go-to person for Y");
+  });
+});
+
 describe("reset isolation", () => {
   it("only deletes the calling user's data", async () => {
     await request(app).post("/api/client/reset").set(as(USER_A)).expect(204);

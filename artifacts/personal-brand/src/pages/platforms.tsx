@@ -180,7 +180,7 @@ function Results({
                 {online.longForm.recommendation}
               </p>
               <div className="flex flex-wrap gap-2">
-                {online.longForm.platforms.map((p, i) => (
+                {online.longForm.platforms.map((p: string, i: number) => (
                   <Chip key={i}>{p}</Chip>
                 ))}
               </div>
@@ -200,7 +200,7 @@ function Results({
                 {online.shortForm.recommendation}
               </p>
               <div className="flex flex-wrap gap-2">
-                {online.shortForm.platforms.map((p, i) => (
+                {online.shortForm.platforms.map((p: string, i: number) => (
                   <Chip key={i}>{p}</Chip>
                 ))}
               </div>
@@ -223,7 +223,7 @@ function Results({
                 {online.website.recommendation}
               </p>
               <ul className="space-y-2">
-                {online.website.elements.map((el, i) => (
+                {online.website.elements.map((el: string, i: number) => (
                   <li key={i} className="flex items-start gap-3 text-sm font-light">
                     <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
                     <span>{el}</span>

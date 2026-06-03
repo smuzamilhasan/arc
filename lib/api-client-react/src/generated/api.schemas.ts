@@ -61,6 +61,7 @@ export interface ClientProfile {
   /** @nullable */
   youtubeUrl?: string | null;
   onboardingComplete: boolean;
+  onboardingStep: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -109,6 +110,7 @@ export interface ClientProfileInput {
   instagramUrl?: string;
   youtubeUrl?: string;
   onboardingComplete?: boolean;
+  onboardingStep?: number;
 }
 
 export interface ExtractInfoInput {

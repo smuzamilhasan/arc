@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUpsertClient, ClientProfileInput } from "@workspace/api-client-react";
+import {
+  useUpsertClient,
+  useGetClient,
+  getGetClientQueryKey,
+  ClientProfileInput,
+  ClientProfile,
+} from "@workspace/api-client-react";
+import { clientToInput } from "@/lib/blueprint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,11 +60,29 @@ const STEP_META: Record<number, { title: string; description: string }> = {
   3: { title: "Your Worldview", description: "The ideas that are yours." },
 };
 
+function clampStep(step: number | undefined): number {
+  if (!step || step < 1) return 1;
+  if (step > TOTAL_STEPS) return TOTAL_STEPS;
+  return step;
+}
+
 export default function Onboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const upsertClient = useUpsertClient();
   const [step, setStep] = useState(1);
+  const [hydrated, setHydrated] = useState(false);
+
+  const {
+    data: existingClient,
+    isLoading: isLoadingClient,
+    isError: isClientError,
+  } = useGetClient({
+    query: {
+      queryKey: getGetClientQueryKey(),
+      retry: false,
+    },
+  });
 
   const form = useForm<OnboardFormValues>({
     resolver: zodResolver(onboardSchema),
@@ -74,11 +99,53 @@ export default function Onboard() {
     },
   });
 
-  const onSubmit = (data: OnboardFormValues) => {
-    const input: ClientProfileInput = {
+  // Pre-fill the form and resume on the saved step once the profile loads.
+  useEffect(() => {
+    if (hydrated || isLoadingClient) return;
+
+    if (isClientError || !existingClient) {
+      // First-time user (or no profile yet): start empty on step 1.
+      setHydrated(true);
+      return;
+    }
+
+    form.reset({
+      fullName: existingClient.fullName ?? "",
+      currentRole: existingClient.currentRole ?? "",
+      company: existingClient.company ?? "",
+      industry: existingClient.industry ?? "",
+      positioning: existingClient.positioning ?? "",
+      primaryAudience: existingClient.primaryAudience ?? "",
+      personalityTone: existingClient.personalityTone ?? "",
+      thesis: existingClient.thesis ?? "",
+      beliefs: existingClient.beliefs ?? "",
+    });
+    setStep(clampStep(existingClient.onboardingStep));
+    setHydrated(true);
+  }, [hydrated, isLoadingClient, isClientError, existingClient, form]);
+
+  // Build a full input so a partial onboarding save never drops fields that
+  // belong to other parts of the profile (e.g. Brand Blueprint pillars).
+  const buildInput = (
+    data: OnboardFormValues,
+    extra: { onboardingComplete: boolean; onboardingStep: number },
+  ): ClientProfileInput => {
+    const base: Partial<ClientProfileInput> = existingClient
+      ? clientToInput(existingClient as ClientProfile)
+      : {};
+    return {
+      ...base,
       ...data,
-      onboardingComplete: true,
+      onboardingComplete: extra.onboardingComplete,
+      onboardingStep: extra.onboardingStep,
     };
+  };
+
+  const onSubmit = (data: OnboardFormValues) => {
+    const input = buildInput(data, {
+      onboardingComplete: true,
+      onboardingStep: TOTAL_STEPS,
+    });
 
     upsertClient.mutate(
       { data: input },
@@ -103,10 +170,40 @@ export default function Onboard() {
 
   const nextStep = async () => {
     const isValid = await form.trigger(STEP_FIELDS[step]);
-    if (isValid) setStep(step + 1);
+    if (!isValid) return;
+
+    const target = step + 1;
+    // Persist progress so far (without marking onboarding complete) and only
+    // advance once the save succeeds, so a failed save never loses answers.
+    try {
+      await upsertClient.mutateAsync({
+        data: buildInput(form.getValues(), {
+          onboardingComplete: false,
+          onboardingStep: target,
+        }),
+      });
+      setStep(target);
+    } catch {
+      toast({
+        title: "Couldn't save progress",
+        description: "We couldn't save your answers. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const meta = STEP_META[step];
+
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-6 animate-pulse text-muted-foreground">
+          <span className="font-serif text-4xl">arc</span>
+          <Loader2 className="w-6 h-6 animate-spin opacity-50" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
@@ -322,8 +419,10 @@ export default function Onboard() {
                     <Button
                       type="button"
                       onClick={nextStep}
+                      disabled={upsertClient.isPending}
                       className="gap-2 px-6 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full h-11"
                     >
+                      {upsertClient.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                       Continue <ArrowRight className="w-4 h-4" />
                     </Button>
                   ) : (

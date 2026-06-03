@@ -105,6 +105,7 @@ router.put("/client", async (req, res) => {
     instagramUrl: data.instagramUrl ?? null,
     youtubeUrl: data.youtubeUrl ?? null,
     onboardingComplete: data.onboardingComplete ?? false,
+    onboardingStep: data.onboardingStep ?? 1,
     updatedAt: new Date(),
   };
 

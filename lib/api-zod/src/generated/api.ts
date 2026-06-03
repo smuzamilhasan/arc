@@ -64,6 +64,7 @@ export const GetClientResponse = zod.object({
   "instagramUrl": zod.string().nullish(),
   "youtubeUrl": zod.string().nullish(),
   "onboardingComplete": zod.boolean(),
+  "onboardingStep": zod.number(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -115,7 +116,8 @@ export const UpsertClientBody = zod.object({
   "twitterUrl": zod.string().optional(),
   "instagramUrl": zod.string().optional(),
   "youtubeUrl": zod.string().optional(),
-  "onboardingComplete": zod.boolean().optional()
+  "onboardingComplete": zod.boolean().optional(),
+  "onboardingStep": zod.number().optional()
 })
 
 export const UpsertClientResponse = zod.object({
@@ -163,6 +165,7 @@ export const UpsertClientResponse = zod.object({
   "instagramUrl": zod.string().nullish(),
   "youtubeUrl": zod.string().nullish(),
   "onboardingComplete": zod.boolean(),
+  "onboardingStep": zod.number(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -727,6 +730,7 @@ export const GetAdminUserResponse = zod.object({
   "instagramUrl": zod.string().nullish(),
   "youtubeUrl": zod.string().nullish(),
   "onboardingComplete": zod.boolean(),
+  "onboardingStep": zod.number(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }),

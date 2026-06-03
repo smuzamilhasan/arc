@@ -61,6 +61,7 @@ export const clientProfileTable = pgTable("client_profile", {
   instagramUrl: text("instagram_url"),
   youtubeUrl: text("youtube_url"),
   onboardingComplete: boolean("onboarding_complete").notNull().default(false),
+  onboardingStep: integer("onboarding_step").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

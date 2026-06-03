@@ -50,4 +50,5 @@ export interface ClientProfileInput {
   instagramUrl?: string;
   youtubeUrl?: string;
   onboardingComplete?: boolean;
+  onboardingStep?: number;
 }

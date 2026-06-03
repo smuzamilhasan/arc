@@ -517,7 +517,7 @@ components:
 
     ClientProfile:
       type: object
-      required: [id, fullName, location, headline, currentRole, company, industry, yearsExperience, achievements, goals, bio, placeOfBirth, earlyLife, schooling, university, professionalJourney, signatureAchievements, awards, quantifiableResults, audienceImpact, passions, beliefs, frustrations, desiredChange, positioning, primaryAudience, secondaryAudience, geographyCulture, brandValues, nonNegotiables, personalityTone, desiredFeeling, thesis, coreBeliefs, signatureFrameworks, extractedInfo, onboardingComplete, createdAt, updatedAt]
+      required: [id, fullName, location, headline, currentRole, company, industry, yearsExperience, achievements, goals, bio, placeOfBirth, earlyLife, schooling, university, professionalJourney, signatureAchievements, awards, quantifiableResults, audienceImpact, passions, beliefs, frustrations, desiredChange, positioning, primaryAudience, secondaryAudience, geographyCulture, brandValues, nonNegotiables, personalityTone, desiredFeeling, thesis, coreBeliefs, signatureFrameworks, extractedInfo, onboardingComplete, onboardingStep, createdAt, updatedAt]
       properties:
         id:
           type: integer
@@ -609,6 +609,8 @@ components:
           type: ["string", "null"]
         onboardingComplete:
           type: boolean
+        onboardingStep:
+          type: integer
         createdAt:
           type: string
         updatedAt:
@@ -706,6 +708,8 @@ components:
           type: string
         onboardingComplete:
           type: boolean
+        onboardingStep:
+          type: integer
 
     ExtractInfoInput:
       type: object

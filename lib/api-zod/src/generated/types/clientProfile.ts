@@ -58,6 +58,7 @@ export interface ClientProfile {
   /** @nullable */
   youtubeUrl?: string | null;
   onboardingComplete: boolean;
+  onboardingStep: number;
   createdAt: string;
   updatedAt: string;
 }

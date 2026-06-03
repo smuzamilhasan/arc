@@ -3,3 +3,4 @@
 - [Admin access model](admin-access.md) — admins set via ADMIN_EMAILS env var, checked against Clerk email in requireAdmin; the only cross-user view in an otherwise per-user app.
 - [Clerk principal resolution](clerk-principal-resolution.md) — derive the auth user id from `getAuth(req).userId` only, never `sessionClaims.userId`, or per-user scoping can run as the wrong user.
 - [api-server testing setup](api-server-testing.md) — vitest tests mock `@clerk/express` (userId via `x-test-user-id` header); AI client modules throw at import unless `AI_INTEGRATIONS_*` env vars are set (placeholders in test/setup.ts).
+- [e2e testing an authed page](e2e-authed-page-testing.md) — runTest a Clerk-gated page: sign in, read `window.Clerk.user.id`, seed client_profile+deps via [DB], then exercise UI (deterministic, no AI).

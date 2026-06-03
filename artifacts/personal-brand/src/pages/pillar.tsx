@@ -25,10 +25,48 @@ import {
   getPillar,
   fieldValue,
   clientToInput,
+  coreFields,
+  supportingFields,
   type Pillar,
+  type PillarField,
 } from "@/lib/blueprint";
 
 type Source = { title: string; url: string };
+
+function FieldInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: PillarField;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={field.name} className="text-foreground/80 font-medium">
+        {field.label}
+      </Label>
+      {field.multiline ? (
+        <Textarea
+          id={field.name}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          className="min-h-[100px] resize-none bg-background border-border/50 p-4"
+        />
+      ) : (
+        <Input
+          id={field.name}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          className="h-12 bg-background border-border/50"
+        />
+      )}
+    </div>
+  );
+}
 
 function PillarEditor({ pillar }: { pillar: Pillar }) {
   const { toast } = useToast();
@@ -43,6 +81,9 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [initial, setInitial] = useState<Record<string, string>>({});
   const [sources, setSources] = useState<Source[]>([]);
+
+  const core = useMemo(() => coreFields(pillar), [pillar]);
+  const supporting = useMemo(() => supportingFields(pillar), [pillar]);
 
   useEffect(() => {
     if (!client) return;
@@ -211,31 +252,37 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
       )}
 
       <div className="space-y-6">
-        {pillar.fields.map((f) => (
-          <div key={f.name} className="space-y-2">
-            <Label htmlFor={f.name} className="text-foreground/80 font-medium">
-              {f.label}
-            </Label>
-            {f.multiline ? (
-              <Textarea
-                id={f.name}
-                value={values[f.name] ?? ""}
-                onChange={(e) => setField(f.name, e.target.value)}
-                placeholder={f.placeholder}
-                className="min-h-[100px] resize-none bg-background border-border/50 p-4"
-              />
-            ) : (
-              <Input
-                id={f.name}
-                value={values[f.name] ?? ""}
-                onChange={(e) => setField(f.name, e.target.value)}
-                placeholder={f.placeholder}
-                className="h-12 bg-background border-border/50"
-              />
-            )}
-          </div>
+        {core.map((f) => (
+          <FieldInput
+            key={f.name}
+            field={f}
+            value={values[f.name] ?? ""}
+            onChange={(v) => setField(f.name, v)}
+          />
         ))}
       </div>
+
+      {supporting.length > 0 && (
+        <div className="space-y-6 pt-2">
+          <div className="border-t border-border/60 pt-6 space-y-1">
+            <h3 className="text-sm font-medium text-foreground/80">
+              {pillar.supportingLabel ?? "Supporting detail"}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {pillar.supportingHint ??
+                "Optional questions that enrich the work. These aren't part of the count above."}
+            </p>
+          </div>
+          {supporting.map((f) => (
+            <FieldInput
+              key={f.name}
+              field={f}
+              value={values[f.name] ?? ""}
+              onChange={(v) => setField(f.name, v)}
+            />
+          ))}
+        </div>
+      )}
 
       {sources.length > 0 && (
         <div className="rounded-lg border border-border/60 bg-card p-5">

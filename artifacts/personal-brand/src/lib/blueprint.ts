@@ -20,6 +20,8 @@ export type Pillar = {
   icon: LucideIcon;
   fields: PillarField[];
   countFields: string[];
+  supportingLabel?: string;
+  supportingHint?: string;
   hasGather?: boolean;
   hasBioDraft?: boolean;
 };
@@ -33,6 +35,9 @@ export const PILLARS: Pillar[] = [
       "Sharpen the single space you want to be known for and the people you serve. The clearer this is, the sharper everything arc generates downstream.",
     icon: Compass,
     countFields: ["positioning", "primaryAudience", "brandValues", "personalityTone"],
+    supportingLabel: "More positioning detail",
+    supportingHint:
+      "Optional nuance on who you serve and how you sound. These aren't part of the count above.",
     fields: [
       {
         name: "positioning",
@@ -90,6 +95,9 @@ export const PILLARS: Pillar[] = [
       "This is the engine of your point of view: the central argument you keep making and the named ideas only you bring.",
     icon: Lightbulb,
     countFields: ["thesis", "coreBeliefs", "signatureFrameworks"],
+    supportingLabel: "Narrative depth",
+    supportingHint:
+      "These come from your narrative interview. They enrich what arc generates but aren't part of the count above.",
     fields: [
       {
         name: "thesis",
@@ -145,6 +153,9 @@ export const PILLARS: Pillar[] = [
       "The arc of where you came from and how you got here. Stories make positioning believable and memorable.",
     icon: BookOpen,
     countFields: ["earlyLife", "professionalJourney"],
+    supportingLabel: "More of your story",
+    supportingHint:
+      "Optional background that adds color and context. These aren't part of the count above.",
     fields: [
       {
         name: "earlyLife",
@@ -188,6 +199,9 @@ export const PILLARS: Pillar[] = [
       "The concrete proof behind your claims: what you've built, the numbers, the recognition, and who you've helped.",
     icon: Award,
     countFields: ["signatureAchievements", "quantifiableResults", "audienceImpact"],
+    supportingLabel: "More proof",
+    supportingHint:
+      "Optional recognition that strengthens your case. These aren't part of the count above.",
     fields: [
       {
         name: "signatureAchievements",
@@ -223,6 +237,9 @@ export const PILLARS: Pillar[] = [
       "Your current role, your headline and bio, your goals, and the links where people already find you.",
     icon: User,
     countFields: ["currentRole", "company", "industry", "headline", "bio"],
+    supportingLabel: "Goals, links & footprint",
+    supportingHint:
+      "Your goals and where people already find you online. These aren't part of the count above.",
     hasGather: true,
     hasBioDraft: true,
     fields: [
@@ -264,6 +281,17 @@ export const PILLARS: Pillar[] = [
 
 export function getPillar(id: string): Pillar | undefined {
   return PILLARS.find((p) => p.id === id);
+}
+
+// Core (counted) fields, kept in their original order within the pillar.
+export function coreFields(pillar: Pillar): PillarField[] {
+  return pillar.fields.filter((f) => pillar.countFields.includes(f.name));
+}
+
+// Supporting (non-counted) fields, kept in their original order. These enrich
+// the work but are not part of the completion count.
+export function supportingFields(pillar: Pillar): PillarField[] {
+  return pillar.fields.filter((f) => !pillar.countFields.includes(f.name));
 }
 
 export function fieldValue(

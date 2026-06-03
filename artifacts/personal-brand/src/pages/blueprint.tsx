@@ -105,7 +105,10 @@ export default function Blueprint() {
                         <CheckCircle2 className="w-4 h-4" /> Complete
                       </span>
                     ) : (
-                      <span className="text-xs font-medium text-muted-foreground">
+                      <span
+                        className="text-xs font-medium text-muted-foreground"
+                        title="Core fields completed in this section"
+                      >
                         {progress.filled}/{progress.total}
                       </span>
                     )}

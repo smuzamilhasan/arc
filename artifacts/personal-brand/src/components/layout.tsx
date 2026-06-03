@@ -17,7 +17,13 @@ import {
   Shield
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
-import { useGetAdminAccess, useGetClient, getGetClientQueryKey } from "@workspace/api-client-react";
+import {
+  useGetAdminAccess,
+  useGetClient,
+  getGetClientQueryKey,
+  useGetPlatforms,
+  getGetPlatformsQueryKey,
+} from "@workspace/api-client-react";
 import { overallCompletion } from "@/lib/blueprint";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -148,6 +154,7 @@ type NavItem = {
   icon: typeof LayoutDashboard;
   label: string;
   requiresBlueprint?: boolean;
+  requiresPlatforms?: boolean;
 };
 
 const navItems: NavItem[] = [
@@ -156,7 +163,7 @@ const navItems: NavItem[] = [
   { href: "/audit", icon: Search, label: "Audit" },
   { href: "/narrative", icon: BookOpen, label: "Narrative" },
   { href: "/platforms", icon: Radio, label: "Platforms", requiresBlueprint: true },
-  { href: "/content", icon: FileText, label: "Content" },
+  { href: "/content", icon: FileText, label: "Content", requiresPlatforms: true },
   { href: "/ideas", icon: Lightbulb, label: "Ideas" },
 ];
 
@@ -167,8 +174,12 @@ export function Layout({ children }: LayoutProps) {
   const { data: client } = useGetClient({
     query: { queryKey: getGetClientQueryKey(), retry: false },
   });
+  const { data: platformStrategy } = useGetPlatforms({
+    query: { queryKey: getGetPlatformsQueryKey(), retry: false },
+  });
 
   const blueprintComplete = overallCompletion(client).pct === 100;
+  const platformsReady = blueprintComplete && Boolean(platformStrategy);
 
   const items: NavItem[] = access?.isAdmin
     ? [...navItems, { href: "/admin", icon: Shield, label: "Admin" }]
@@ -177,13 +188,18 @@ export function Layout({ children }: LayoutProps) {
   const NavLinks = () => (
     <div className="flex flex-col gap-1">
       {items.map((item) => {
-        const locked = item.requiresBlueprint && !blueprintComplete;
+        const locked =
+          (item.requiresBlueprint && !blueprintComplete) ||
+          (item.requiresPlatforms && !platformsReady);
+        const lockHint = item.requiresPlatforms
+          ? "Complete your Blueprint and Platforms to unlock"
+          : "Complete your Blueprint to unlock";
 
         if (locked) {
           return (
             <div
               key={item.href}
-              title="Complete your Blueprint to unlock"
+              title={lockHint}
               className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-none border-l-2 border-transparent text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
             >
               <span className="flex items-center gap-3">

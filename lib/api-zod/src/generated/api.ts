@@ -391,6 +391,78 @@ export const GeneratePlatformsResponse = zod.object({
 
 
 /**
+ * @summary Get the content strategy
+ */
+export const GetContentStrategyResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "summary": zod.string(),
+  "platformPlan": zod.array(zod.object({
+  "platform": zod.string(),
+  "frequency": zod.string(),
+  "formats": zod.array(zod.string()),
+  "focus": zod.string()
+})),
+  "contentMix": zod.array(zod.object({
+  "type": zod.string(),
+  "description": zod.string(),
+  "whyForClient": zod.string(),
+  "exampleTopics": zod.array(zod.string()),
+  "weight": zod.string()
+})),
+  "signatureSeries": zod.array(zod.object({
+  "name": zod.string(),
+  "cadence": zod.string(),
+  "description": zod.string()
+})),
+  "postFormats": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "repurposing": zod.string(),
+  "closing": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Generate a content strategy from the blueprint and platform strategy
+ */
+export const GenerateContentStrategyResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "summary": zod.string(),
+  "platformPlan": zod.array(zod.object({
+  "platform": zod.string(),
+  "frequency": zod.string(),
+  "formats": zod.array(zod.string()),
+  "focus": zod.string()
+})),
+  "contentMix": zod.array(zod.object({
+  "type": zod.string(),
+  "description": zod.string(),
+  "whyForClient": zod.string(),
+  "exampleTopics": zod.array(zod.string()),
+  "weight": zod.string()
+})),
+  "signatureSeries": zod.array(zod.object({
+  "name": zod.string(),
+  "cadence": zod.string(),
+  "description": zod.string()
+})),
+  "postFormats": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "repurposing": zod.string(),
+  "closing": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
  * @summary Gather publicly available info about the person from their name and links
  */
 export const ExtractPublicInfoBody = zod.object({

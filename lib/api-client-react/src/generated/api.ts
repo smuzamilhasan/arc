@@ -26,6 +26,7 @@ import type {
   AuditResult,
   ClientProfile,
   ClientProfileInput,
+  ContentStrategy,
   DashboardSummary,
   DraftPillarInput,
   DraftPillarResult,
@@ -938,6 +939,153 @@ export const useGeneratePlatforms = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getGeneratePlatformsMutationOptions(options));
+    }
+
+export const getGetContentStrategyUrl = () => {
+
+
+
+
+  return `/api/content-strategy`
+}
+
+/**
+ * @summary Get the content strategy
+ */
+export const getContentStrategy = async ( options?: RequestInit): Promise<ContentStrategy> => {
+
+  return customFetch<ContentStrategy>(getGetContentStrategyUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContentStrategyQueryKey = () => {
+    return [
+    `/api/content-strategy`
+    ] as const;
+    }
+
+
+export const getGetContentStrategyQueryOptions = <TData = Awaited<ReturnType<typeof getContentStrategy>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContentStrategy>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContentStrategyQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContentStrategy>>> = ({ signal }) => getContentStrategy({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContentStrategy>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetContentStrategyQueryResult = NonNullable<Awaited<ReturnType<typeof getContentStrategy>>>
+export type GetContentStrategyQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the content strategy
+ */
+
+export function useGetContentStrategy<TData = Awaited<ReturnType<typeof getContentStrategy>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContentStrategy>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetContentStrategyQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGenerateContentStrategyUrl = () => {
+
+
+
+
+  return `/api/content-strategy/generate`
+}
+
+/**
+ * @summary Generate a content strategy from the blueprint and platform strategy
+ */
+export const generateContentStrategy = async ( options?: RequestInit): Promise<ContentStrategy> => {
+
+  return customFetch<ContentStrategy>(getGenerateContentStrategyUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGenerateContentStrategyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentStrategy>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateContentStrategy>>, TError,void, TContext> => {
+
+const mutationKey = ['generateContentStrategy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateContentStrategy>>, void> = () => {
+
+
+          return  generateContentStrategy(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateContentStrategyMutationResult = NonNullable<Awaited<ReturnType<typeof generateContentStrategy>>>
+
+    export type GenerateContentStrategyMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate a content strategy from the blueprint and platform strategy
+ */
+export const useGenerateContentStrategy = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentStrategy>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateContentStrategy>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGenerateContentStrategyMutationOptions(options));
     }
 
 export const getExtractPublicInfoUrl = () => {

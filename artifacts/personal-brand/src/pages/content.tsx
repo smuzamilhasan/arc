@@ -1,5 +1,19 @@
-import { useState } from "react";
-import { useListPosts, useCreatePost, useUpdatePost, useDeletePost, getListPostsQueryKey } from "@workspace/api-client-react";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "wouter";
+import {
+  useListPosts,
+  useCreatePost,
+  useUpdatePost,
+  useDeletePost,
+  getListPostsQueryKey,
+  useGetClient,
+  getGetClientQueryKey,
+  useGetPlatforms,
+  getGetPlatformsQueryKey,
+  useGetContentStrategy,
+  getGetContentStrategyQueryKey,
+  useGenerateContentStrategy,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,13 +23,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Edit2, Trash2, Calendar as CalendarIcon, Search, FileText } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  Calendar as CalendarIcon,
+  CalendarClock,
+  Search,
+  FileText,
+  Lock,
+  ArrowRight,
+  Sparkles,
+  RotateCcw,
+  Repeat2,
+  Layers,
+  GraduationCap,
+  BarChart3,
+  Flame,
+  BookOpen,
+  Users,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import type { Post } from "@workspace/api-client-react";
+import type { Post, ContentStrategy, ContentMixItem } from "@workspace/api-client-react";
+import { overallCompletion } from "@/lib/blueprint";
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -27,7 +61,241 @@ const postSchema = z.object({
 
 type PostFormValues = z.infer<typeof postSchema>;
 
-export default function Content() {
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-border/60 bg-secondary/40 px-3 py-1 text-xs font-medium text-foreground">
+      {children}
+    </span>
+  );
+}
+
+function mixIcon(type: string) {
+  const t = type.toLowerCase();
+  if (t.startsWith("educ")) return GraduationCap;
+  if (t.startsWith("anal")) return BarChart3;
+  if (t.startsWith("opin")) return Flame;
+  if (t.startsWith("stor")) return BookOpen;
+  if (t.startsWith("comm")) return Users;
+  return Layers;
+}
+
+function StrategyDashboard({
+  strategy,
+  onRegenerate,
+  regenerating,
+}: {
+  strategy: ContentStrategy;
+  onRegenerate: () => void;
+  regenerating: boolean;
+}) {
+  return (
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+        <div className="max-w-3xl space-y-3">
+          <p className="text-xs font-medium uppercase tracking-widest text-primary">
+            Content Strategy
+          </p>
+          <h2 className="font-serif text-3xl tracking-tight text-foreground">
+            Your publishing engine
+          </h2>
+          {strategy.summary && (
+            <p className="text-lg font-light leading-relaxed text-muted-foreground">
+              {strategy.summary}
+            </p>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          onClick={onRegenerate}
+          disabled={regenerating}
+          className="shrink-0 gap-2 rounded-full"
+        >
+          {regenerating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RotateCcw className="h-4 w-4" />
+          )}
+          Regenerate
+        </Button>
+      </div>
+
+      {/* Posting cadence per platform */}
+      {strategy.platformPlan.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <CalendarClock className="h-5 w-5 text-primary" />
+            <h3 className="font-serif text-xl text-foreground">Posting cadence</h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {strategy.platformPlan.map((p, i) => (
+              <Card key={i} className="border-border/50 bg-card shadow-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <CardTitle className="font-serif text-lg font-normal">{p.platform}</CardTitle>
+                    {p.frequency && (
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 rounded-full border-primary/20 bg-primary/5 text-primary"
+                      >
+                        {p.frequency}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {p.focus && (
+                    <p className="text-sm font-light leading-relaxed text-foreground/90">{p.focus}</p>
+                  )}
+                  {p.formats.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {p.formats.map((f, j) => (
+                        <Chip key={j}>{f}</Chip>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Content mix */}
+      {strategy.contentMix.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Layers className="h-5 w-5 text-primary" />
+            <h3 className="font-serif text-xl text-foreground">Content mix</h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {strategy.contentMix.map((m: ContentMixItem, i: number) => {
+              const Icon = mixIcon(m.type);
+              return (
+                <Card key={i} className="flex flex-col border-border/50 bg-card shadow-sm">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <CardTitle className="font-serif text-lg font-normal">{m.type}</CardTitle>
+                      </div>
+                      {m.weight && (
+                        <span className="text-sm font-medium text-primary">{m.weight}</span>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1 space-y-3">
+                    {m.description && (
+                      <p className="text-sm font-light leading-relaxed text-foreground/90">
+                        {m.description}
+                      </p>
+                    )}
+                    {m.whyForClient && (
+                      <p className="text-xs font-light italic leading-relaxed text-muted-foreground">
+                        {m.whyForClient}
+                      </p>
+                    )}
+                    {m.exampleTopics.length > 0 && (
+                      <ul className="space-y-1.5 pt-1">
+                        {m.exampleTopics.map((t, j) => (
+                          <li key={j} className="flex items-start gap-2 text-sm font-light">
+                            <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
+                            <span>{t}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Content systems */}
+      {(strategy.signatureSeries.length > 0 || strategy.postFormats.length > 0) && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Repeat2 className="h-5 w-5 text-primary" />
+            <h3 className="font-serif text-xl text-foreground">Content systems</h3>
+          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {strategy.signatureSeries.length > 0 && (
+              <Card className="border-border/50 bg-card shadow-sm">
+                <CardHeader className="mb-2 border-b border-border/50 pb-4">
+                  <CardTitle className="font-serif text-lg font-normal">Signature series</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5 pt-2">
+                  {strategy.signatureSeries.map((s, i) => (
+                    <div key={i} className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-serif text-base text-foreground">{s.name}</h4>
+                        {s.cadence && (
+                          <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                            {s.cadence}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-light leading-relaxed text-foreground/90">
+                        {s.description}
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+            {strategy.postFormats.length > 0 && (
+              <Card className="border-border/50 bg-card shadow-sm">
+                <CardHeader className="mb-2 border-b border-border/50 pb-4">
+                  <CardTitle className="font-serif text-lg font-normal">Repeatable formats</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5 pt-2">
+                  {strategy.postFormats.map((f, i) => (
+                    <div key={i} className="space-y-1">
+                      <h4 className="font-serif text-base text-foreground">{f.name}</h4>
+                      <p className="text-sm font-light leading-relaxed text-foreground/90">
+                        {f.description}
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Repurposing */}
+      {strategy.repurposing && (
+        <Card className="border-border/50 bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <Repeat2 className="h-5 w-5 text-primary" />
+              <CardTitle className="font-serif text-lg font-normal">Repurposing flow</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm font-light leading-relaxed text-foreground/90">
+              {strategy.repurposing}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {strategy.closing && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 text-center">
+          <p className="mx-auto max-w-2xl font-serif text-xl font-normal italic leading-relaxed text-foreground">
+            {strategy.closing}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ContentLibrary() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [platformFilter, setPlatformFilter] = useState<string>("all");
@@ -59,8 +327,8 @@ export default function Content() {
     },
   });
 
-  const filteredPosts = posts.filter(post => 
-    post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredPosts = posts.filter(post =>
+    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -140,10 +408,10 @@ export default function Content() {
   };
 
   return (
-    <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+    <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
         <header className="space-y-2">
-          <h1 className="text-4xl font-serif text-foreground tracking-tight">Content Library</h1>
+          <h2 className="text-3xl font-serif text-foreground tracking-tight">Content Library</h2>
           <p className="text-muted-foreground text-lg font-light">Draft, schedule, and publish your ideas.</p>
         </header>
         <Button onClick={() => handleOpenEditor()} className="shrink-0 rounded-full bg-primary hover:bg-primary/90 gap-2 h-11 px-6 shadow-sm">
@@ -154,8 +422,8 @@ export default function Content() {
       <div className="flex flex-col md:flex-row gap-4 items-center bg-card/50 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-sm">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search content..." 
+          <Input
+            placeholder="Search content..."
             className="pl-11 h-11 bg-background border-border/50"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -199,7 +467,7 @@ export default function Content() {
           </div>
           <h3 className="text-2xl font-serif mb-2 text-foreground">A blank canvas</h3>
           <p className="text-muted-foreground font-light max-w-md mx-auto mb-8">
-            {searchQuery || platformFilter !== "all" || statusFilter !== "all" 
+            {searchQuery || platformFilter !== "all" || statusFilter !== "all"
               ? "No posts match your current filters."
               : "Your content library is empty. Start translating your narrative into posts."}
           </p>
@@ -271,7 +539,7 @@ export default function Content() {
               {editingPost ? "Edit Post" : "Compose Post"}
             </DialogTitle>
           </DialogHeader>
-          
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-background">
@@ -362,10 +630,10 @@ export default function Content() {
                     <FormItem className="flex-1 flex flex-col min-h-[300px]">
                       <FormLabel className="text-muted-foreground font-medium text-xs uppercase tracking-widest">The Content</FormLabel>
                       <FormControl className="flex-1">
-                        <Textarea 
-                          placeholder="Tell the story..." 
-                          className="flex-1 resize-none bg-card border-border/50 p-4 text-base leading-relaxed font-light focus-visible:ring-primary/20" 
-                          {...field} 
+                        <Textarea
+                          placeholder="Tell the story..."
+                          className="flex-1 resize-none bg-card border-border/50 p-4 text-base leading-relaxed font-light focus-visible:ring-primary/20"
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -373,7 +641,7 @@ export default function Content() {
                   )}
                 />
               </div>
-              
+
               <div className="p-6 border-t border-border/50 bg-card shrink-0 flex justify-between items-center">
                 <Button type="button" variant="ghost" onClick={() => setIsEditorOpen(false)} className="text-muted-foreground hover:text-foreground">
                   Cancel
@@ -406,6 +674,145 @@ export default function Content() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+export default function Content() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [autoGenFailed, setAutoGenFailed] = useState(false);
+  const autoGenAttempted = useRef(false);
+
+  const { data: client, isLoading: isClientLoading } = useGetClient({
+    query: { queryKey: getGetClientQueryKey(), retry: false },
+  });
+  const { data: platformStrategy, isLoading: isPlatformsLoading } = useGetPlatforms({
+    query: { queryKey: getGetPlatformsQueryKey(), retry: false },
+  });
+  const { data: strategy, isLoading: isStrategyLoading } = useGetContentStrategy({
+    query: { queryKey: getGetContentStrategyQueryKey(), retry: false },
+  });
+
+  const generateStrategy = useGenerateContentStrategy();
+
+  const blueprintComplete = overallCompletion(client).pct === 100;
+  const platformsReady = blueprintComplete && Boolean(platformStrategy);
+
+  const runGenerate = (isAuto: boolean) => {
+    generateStrategy.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetContentStrategyQueryKey() });
+        if (!isAuto) toast({ title: "Content strategy generated" });
+      },
+      onError: () => {
+        if (isAuto) setAutoGenFailed(true);
+        toast({
+          title: "Could not generate content strategy",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  const canAutoGenerate = platformsReady && !strategy && !autoGenFailed;
+
+  // Auto-generate the strategy the first time the panel unlocks.
+  useEffect(() => {
+    if (autoGenAttempted.current) return;
+    if (isClientLoading || isPlatformsLoading || isStrategyLoading) return;
+    if (!canAutoGenerate) return;
+    autoGenAttempted.current = true;
+    runGenerate(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canAutoGenerate, isClientLoading, isPlatformsLoading, isStrategyLoading]);
+
+  if (isClientLoading || isPlatformsLoading || isStrategyLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" />
+      </div>
+    );
+  }
+
+  // Locked: blueprint and/or platform strategy not yet complete.
+  if (!platformsReady) {
+    return (
+      <div className="mx-auto mt-20 max-w-2xl space-y-8 text-center animate-in fade-in duration-700">
+        <div className="relative mx-auto mb-6 inline-flex h-24 w-24 items-center justify-center rounded-full border border-border bg-secondary/40 text-muted-foreground">
+          <Lock className="h-9 w-9" />
+        </div>
+        <h1 className="font-serif text-4xl tracking-tight text-foreground">Content</h1>
+        <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-muted-foreground">
+          {!blueprintComplete
+            ? "This panel unlocks once your Blueprint is complete and you have a Platforms strategy. Start by completing your Blueprint."
+            : "Almost there. Generate your Platforms strategy and arc will build a tailored content strategy to drive your library."}
+        </p>
+        <Link href={!blueprintComplete ? "/blueprint" : "/platforms"}>
+          <Button className="gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
+            {!blueprintComplete ? "Complete your Blueprint" : "Set up your Platforms"}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // Unlocked, generating the first strategy with nothing stored yet.
+  if (generateStrategy.isPending && !strategy) {
+    return (
+      <div className="mx-auto mt-20 max-w-2xl space-y-8 text-center animate-in fade-in duration-1000">
+        <div className="relative mx-auto mb-6 inline-flex h-24 w-24 items-center justify-center rounded-full border border-primary/10 bg-primary/5 text-primary">
+          <Sparkles className="h-10 w-10 animate-pulse" />
+          <div
+            className="absolute inset-0 animate-spin rounded-full border-t-2 border-primary"
+            style={{ animationDuration: "4s" }}
+          />
+        </div>
+        <h2 className="font-serif text-3xl tracking-tight">Designing your content engine</h2>
+        <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-muted-foreground">
+          arc is translating your Blueprint and platform strategy into a concrete content strategy:
+          cadence, content mix, and repeatable systems. This takes about 15-30 seconds.
+        </p>
+      </div>
+    );
+  }
+
+  // Unlocked but generation failed and nothing stored yet.
+  if (!strategy) {
+    return (
+      <div className="mx-auto mt-20 max-w-2xl space-y-8 text-center animate-in fade-in duration-700">
+        <h1 className="font-serif text-4xl tracking-tight text-foreground">Content</h1>
+        <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-muted-foreground">
+          Your Blueprint and platform strategy are ready. Generate a tailored content strategy.
+        </p>
+        <Button
+          onClick={() => runGenerate(false)}
+          disabled={generateStrategy.isPending}
+          className="gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          {generateStrategy.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          Generate strategy
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-14 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+      <StrategyDashboard
+        strategy={strategy}
+        onRegenerate={() => runGenerate(false)}
+        regenerating={generateStrategy.isPending}
+      />
+      <div className="border-t border-border/50 pt-12">
+        <ContentLibrary />
+      </div>
     </div>
   );
 }

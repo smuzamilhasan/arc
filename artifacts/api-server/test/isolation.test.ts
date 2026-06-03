@@ -22,6 +22,7 @@ import {
   narrativeProfilesTable,
   auditResultsTable,
   platformStrategiesTable,
+  contentStrategiesTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -50,6 +51,9 @@ async function cleanupUser(userId: string) {
   await db
     .delete(platformStrategiesTable)
     .where(eq(platformStrategiesTable.clientId, client.id));
+  await db
+    .delete(contentStrategiesTable)
+    .where(eq(contentStrategiesTable.clientId, client.id));
   await db.delete(clientProfileTable).where(eq(clientProfileTable.id, client.id));
 }
 
@@ -136,6 +140,8 @@ describe("authentication", () => {
     ["post", "/api/narrative/generate"],
     ["get", "/api/platforms"],
     ["post", "/api/platforms/generate"],
+    ["get", "/api/content-strategy"],
+    ["post", "/api/content-strategy/generate"],
     ["post", "/api/onboarding/extract"],
     ["post", "/api/onboarding/generate-bio"],
   ];
@@ -432,6 +438,116 @@ describe("platforms blueprint gate", () => {
 
   it("has no platform strategy yet (404)", async () => {
     await request(app).get("/api/platforms").set(as(USER_P)).expect(404);
+  });
+});
+
+describe("content strategy gate", () => {
+  // The Content panel unlocks only when the blueprint is 100% complete AND a
+  // platform strategy exists. The server enforces this independently of the UI:
+  // an incomplete blueprint, or a complete blueprint with no platform strategy,
+  // both get 403 on generate — never an AI call.
+  const USER_CS = `test-iso-cs-${suffix}`;
+
+  beforeAll(async () => {
+    await cleanupUser(USER_CS);
+    await request(app)
+      .put("/api/client")
+      .set(as(USER_CS))
+      .send({ fullName: "Cleo Stone", headline: "C headline" })
+      .expect(200);
+  });
+
+  afterAll(async () => {
+    await cleanupUser(USER_CS);
+  });
+
+  it("blocks generation with 403 while the blueprint is incomplete", async () => {
+    await request(app).post("/api/content-strategy/generate").set(as(USER_CS)).expect(403);
+  });
+
+  it("has no content strategy yet (404)", async () => {
+    await request(app).get("/api/content-strategy").set(as(USER_CS)).expect(404);
+  });
+
+  it("still 403 with a complete blueprint but no platform strategy", async () => {
+    // Content requires BOTH a complete blueprint AND an existing platform
+    // strategy. Fill every required blueprint field; with no platform strategy
+    // row, generation must still be gated.
+    await request(app)
+      .put("/api/client")
+      .set(as(USER_CS))
+      .send({
+        fullName: "Cleo Stone",
+        headline: "C headline",
+        bio: "C bio",
+        currentRole: "Founder",
+        company: "Acme",
+        industry: "SaaS",
+        positioning: "the go-to person for X",
+        primaryAudience: "founders",
+        brandValues: "candor",
+        personalityTone: "direct",
+        thesis: "X beats Y",
+        coreBeliefs: "ship fast",
+        signatureFrameworks: "the loop",
+        beliefs: "craft matters",
+        frustrations: "noise",
+        desiredChange: "more signal",
+        passions: "building",
+        earlyLife: "small town",
+        professionalJourney: "engineer to founder",
+        signatureAchievements: "scaled to 1M",
+        quantifiableResults: "10x growth",
+        audienceImpact: "helped thousands",
+      })
+      .expect(200);
+
+    await request(app).post("/api/content-strategy/generate").set(as(USER_CS)).expect(403);
+  });
+});
+
+describe("strategy data is purged on reset", () => {
+  // /client/reset and account deletion must remove derived strategy rows, not
+  // just posts/ideas/narrative/audit. Seed both strategy tables directly (an AI
+  // call can't run in tests), reset, and assert the rows are gone.
+  const USER_R = `test-iso-r-${suffix}`;
+
+  beforeAll(async () => {
+    await cleanupUser(USER_R);
+  });
+
+  afterAll(async () => {
+    await cleanupUser(USER_R);
+  });
+
+  it("deletes platform_strategies and content_strategies rows for the caller", async () => {
+    await request(app)
+      .put("/api/client")
+      .set(as(USER_R))
+      .send({ fullName: "Rhea Reset", headline: "R headline" })
+      .expect(200);
+
+    const [client] = await db
+      .select()
+      .from(clientProfileTable)
+      .where(eq(clientProfileTable.userId, USER_R));
+
+    await db.insert(platformStrategiesTable).values({ clientId: client.id });
+    await db.insert(contentStrategiesTable).values({ clientId: client.id });
+
+    await request(app).post("/api/client/reset").set(as(USER_R)).expect(204);
+
+    const platforms = await db
+      .select()
+      .from(platformStrategiesTable)
+      .where(eq(platformStrategiesTable.clientId, client.id));
+    const content = await db
+      .select()
+      .from(contentStrategiesTable)
+      .where(eq(contentStrategiesTable.clientId, client.id));
+
+    expect(platforms).toHaveLength(0);
+    expect(content).toHaveLength(0);
   });
 });
 

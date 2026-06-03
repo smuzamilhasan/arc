@@ -313,6 +313,46 @@ export interface PlatformStrategy {
   updatedAt: string;
 }
 
+export interface PlatformCadence {
+  platform: string;
+  frequency: string;
+  formats: string[];
+  focus: string;
+}
+
+export interface ContentMixItem {
+  type: string;
+  description: string;
+  whyForClient: string;
+  exampleTopics: string[];
+  weight: string;
+}
+
+export interface SignatureSeries {
+  name: string;
+  cadence: string;
+  description: string;
+}
+
+export interface PostFormat {
+  name: string;
+  description: string;
+}
+
+export interface ContentStrategy {
+  id: number;
+  clientId: number;
+  summary: string;
+  platformPlan: PlatformCadence[];
+  contentMix: ContentMixItem[];
+  signatureSeries: SignatureSeries[];
+  postFormats: PostFormat[];
+  repurposing: string;
+  closing: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface NarrativeProfile {
   id: number;
   clientId: number;

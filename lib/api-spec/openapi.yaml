@@ -208,6 +208,40 @@ paths:
         "502":
           description: Generation failed
 
+  /content-strategy:
+    get:
+      operationId: getContentStrategy
+      tags: [contentStrategy]
+      summary: Get the content strategy
+      responses:
+        "200":
+          description: Content strategy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentStrategy"
+        "404":
+          description: Not found
+
+  /content-strategy/generate:
+    post:
+      operationId: generateContentStrategy
+      tags: [contentStrategy]
+      summary: Generate a content strategy from the blueprint and platform strategy
+      responses:
+        "200":
+          description: Generated content strategy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentStrategy"
+        "403":
+          description: Blueprint or platform strategy incomplete
+        "404":
+          description: No client profile yet
+        "502":
+          description: Generation failed
+
   /onboarding/extract:
     post:
       operationId: extractPublicInfo
@@ -1047,6 +1081,106 @@ components:
           $ref: "#/components/schemas/OnlinePresence"
         offline:
           $ref: "#/components/schemas/OfflinePresence"
+        closing:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    PlatformCadence:
+      type: object
+      required: [platform, frequency, formats, focus]
+      properties:
+        platform:
+          type: string
+        frequency:
+          type: string
+        formats:
+          type: array
+          items:
+            type: string
+        focus:
+          type: string
+
+    ContentMixItem:
+      type: object
+      required: [type, description, whyForClient, exampleTopics, weight]
+      properties:
+        type:
+          type: string
+        description:
+          type: string
+        whyForClient:
+          type: string
+        exampleTopics:
+          type: array
+          items:
+            type: string
+        weight:
+          type: string
+
+    SignatureSeries:
+      type: object
+      required: [name, cadence, description]
+      properties:
+        name:
+          type: string
+        cadence:
+          type: string
+        description:
+          type: string
+
+    PostFormat:
+      type: object
+      required: [name, description]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    ContentStrategy:
+      type: object
+      required:
+        [
+          id,
+          clientId,
+          summary,
+          platformPlan,
+          contentMix,
+          signatureSeries,
+          postFormats,
+          repurposing,
+          closing,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        summary:
+          type: string
+        platformPlan:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformCadence"
+        contentMix:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMixItem"
+        signatureSeries:
+          type: array
+          items:
+            $ref: "#/components/schemas/SignatureSeries"
+        postFormats:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostFormat"
+        repurposing:
+          type: string
         closing:
           type: string
         createdAt:

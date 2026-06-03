@@ -24,6 +24,8 @@ import Landing from "@/pages/landing";
 import Entry from "@/pages/entry";
 import Onboard from "@/pages/onboard";
 import Dashboard from "@/pages/dashboard";
+import Blueprint from "@/pages/blueprint";
+import PillarPage from "@/pages/pillar";
 import Audit from "@/pages/audit";
 import Narrative from "@/pages/narrative";
 import Content from "@/pages/content";
@@ -214,6 +216,8 @@ function ClerkProviderWithRoutes() {
                 <Layout>
                   <Switch>
                     <Route path="/dashboard" component={Dashboard} />
+                    <Route path="/blueprint" component={Blueprint} />
+                    <Route path="/blueprint/:pillar" component={PillarPage} />
                     <Route path="/audit" component={Audit} />
                     <Route path="/narrative" component={Narrative} />
                     <Route path="/content" component={Content} />

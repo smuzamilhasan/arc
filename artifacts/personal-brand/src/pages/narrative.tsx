@@ -42,10 +42,27 @@ const joinParts = (...parts: Array<string | undefined>) =>
 // questions so the narrative reflects what the user actually wrote.
 function seedAnswersFromClient(client: ClientProfile): IndustryAnswer[] {
   return [
-    { question: QUESTIONS[0], answer: joinParts(client.frustrations, client.beliefs) },
-    { question: QUESTIONS[1], answer: joinParts(client.audienceImpact, client.desiredChange) },
-    { question: QUESTIONS[2], answer: joinParts(client.passions, client.headline) },
-    { question: QUESTIONS[3], answer: joinParts(client.beliefs) },
+    {
+      question: QUESTIONS[0],
+      answer: joinParts(client.frustrations, client.beliefs, client.thesis),
+    },
+    {
+      question: QUESTIONS[1],
+      answer: joinParts(
+        client.primaryAudience,
+        client.secondaryAudience,
+        client.audienceImpact,
+        client.desiredChange,
+      ),
+    },
+    {
+      question: QUESTIONS[2],
+      answer: joinParts(client.positioning, client.passions, client.headline),
+    },
+    {
+      question: QUESTIONS[3],
+      answer: joinParts(client.beliefs, client.coreBeliefs, client.signatureFrameworks),
+    },
   ].filter((a) => a.answer.length > 0);
 }
 
@@ -57,6 +74,10 @@ function hasCoachMaterial(client: ClientProfile | undefined): client is ClientPr
     client.frustrations,
     client.desiredChange,
     client.audienceImpact,
+    client.positioning,
+    client.primaryAudience,
+    client.thesis,
+    client.coreBeliefs,
   ].some((v) => v?.trim());
 }
 

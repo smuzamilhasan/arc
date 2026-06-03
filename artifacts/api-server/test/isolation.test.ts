@@ -294,6 +294,51 @@ describe("narrative editing", () => {
   });
 });
 
+describe("blueprint fields persistence", () => {
+  it("persists the new identity and worldview fields through PUT /client", async () => {
+    const payload = {
+      fullName: "Bob Brown",
+      headline: "B headline",
+      positioning: "the go-to person for X",
+      primaryAudience: "early-stage founders",
+      secondaryAudience: "operators",
+      geographyCulture: "US + Europe",
+      brandValues: "candor, rigor",
+      nonNegotiables: "no hype",
+      personalityTone: "direct, warm",
+      desiredFeeling: "understood",
+      thesis: "the field over-rates speed",
+      coreBeliefs: "compounding beats heroics",
+      signatureFrameworks: "the Arc Method",
+    };
+
+    const resPut = await request(app)
+      .put("/api/client")
+      .set(as(USER_B))
+      .send(payload)
+      .expect(200);
+
+    // Every new field must round-trip; if any is missing from the route's
+    // values map it is silently dropped and would fail here.
+    for (const [key, value] of Object.entries(payload)) {
+      expect(resPut.body[key]).toBe(value);
+    }
+
+    const resGet = await request(app).get("/api/client").set(as(USER_B)).expect(200);
+    expect(resGet.body.positioning).toBe("the go-to person for X");
+    expect(resGet.body.thesis).toBe("the field over-rates speed");
+    expect(resGet.body.signatureFrameworks).toBe("the Arc Method");
+    // Existing fields are not wiped by the update.
+    expect(resGet.body.headline).toBe("B headline");
+  });
+
+  it("keeps the new fields isolated to the calling user", async () => {
+    const resA = await request(app).get("/api/client").set(as(USER_A)).expect(200);
+    expect(resA.body.positioning).toBe("");
+    expect(resA.body.thesis).toBe("");
+  });
+});
+
 describe("reset isolation", () => {
   it("only deletes the calling user's data", async () => {
     await request(app).post("/api/client/reset").set(as(USER_A)).expect(204);

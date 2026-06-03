@@ -464,7 +464,7 @@ components:
 
     ClientProfile:
       type: object
-      required: [id, fullName, location, headline, currentRole, company, industry, yearsExperience, achievements, goals, bio, placeOfBirth, earlyLife, schooling, university, professionalJourney, signatureAchievements, awards, quantifiableResults, audienceImpact, passions, beliefs, frustrations, desiredChange, extractedInfo, onboardingComplete, createdAt, updatedAt]
+      required: [id, fullName, location, headline, currentRole, company, industry, yearsExperience, achievements, goals, bio, placeOfBirth, earlyLife, schooling, university, professionalJourney, signatureAchievements, awards, quantifiableResults, audienceImpact, passions, beliefs, frustrations, desiredChange, positioning, primaryAudience, secondaryAudience, geographyCulture, brandValues, nonNegotiables, personalityTone, desiredFeeling, thesis, coreBeliefs, signatureFrameworks, extractedInfo, onboardingComplete, createdAt, updatedAt]
       properties:
         id:
           type: integer
@@ -517,6 +517,28 @@ components:
         frustrations:
           type: string
         desiredChange:
+          type: string
+        positioning:
+          type: string
+        primaryAudience:
+          type: string
+        secondaryAudience:
+          type: string
+        geographyCulture:
+          type: string
+        brandValues:
+          type: string
+        nonNegotiables:
+          type: string
+        personalityTone:
+          type: string
+        desiredFeeling:
+          type: string
+        thesis:
+          type: string
+        coreBeliefs:
+          type: string
+        signatureFrameworks:
           type: string
         extractedInfo:
           type: string
@@ -592,6 +614,28 @@ components:
         frustrations:
           type: string
         desiredChange:
+          type: string
+        positioning:
+          type: string
+        primaryAudience:
+          type: string
+        secondaryAudience:
+          type: string
+        geographyCulture:
+          type: string
+        brandValues:
+          type: string
+        nonNegotiables:
+          type: string
+        personalityTone:
+          type: string
+        desiredFeeling:
+          type: string
+        thesis:
+          type: string
+        coreBeliefs:
+          type: string
+        signatureFrameworks:
           type: string
         extractedInfo:
           type: string

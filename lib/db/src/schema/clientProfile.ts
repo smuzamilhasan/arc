@@ -36,6 +36,21 @@ export const clientProfileTable = pgTable("client_profile", {
   frustrations: text("frustrations").notNull().default(""),
   desiredChange: text("desired_change").notNull().default(""),
 
+  // Blueprint pillar: Identity & Positioning
+  positioning: text("positioning").notNull().default(""),
+  primaryAudience: text("primary_audience").notNull().default(""),
+  secondaryAudience: text("secondary_audience").notNull().default(""),
+  geographyCulture: text("geography_culture").notNull().default(""),
+  brandValues: text("brand_values").notNull().default(""),
+  nonNegotiables: text("non_negotiables").notNull().default(""),
+  personalityTone: text("personality_tone").notNull().default(""),
+  desiredFeeling: text("desired_feeling").notNull().default(""),
+
+  // Blueprint pillar: Ideas & Worldview
+  thesis: text("thesis").notNull().default(""),
+  coreBeliefs: text("core_beliefs").notNull().default(""),
+  signatureFrameworks: text("signature_frameworks").notNull().default(""),
+
   // Publicly available info gathered from their links, reviewed/edited by the client
   extractedInfo: text("extracted_info").notNull().default(""),
 

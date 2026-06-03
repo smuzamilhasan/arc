@@ -36,6 +36,17 @@ export interface ClientProfile {
   beliefs: string;
   frustrations: string;
   desiredChange: string;
+  positioning: string;
+  primaryAudience: string;
+  secondaryAudience: string;
+  geographyCulture: string;
+  brandValues: string;
+  nonNegotiables: string;
+  personalityTone: string;
+  desiredFeeling: string;
+  thesis: string;
+  coreBeliefs: string;
+  signatureFrameworks: string;
   extractedInfo: string;
   /** @nullable */
   website?: string | null;
@@ -79,6 +90,17 @@ export interface ClientProfileInput {
   beliefs?: string;
   frustrations?: string;
   desiredChange?: string;
+  positioning?: string;
+  primaryAudience?: string;
+  secondaryAudience?: string;
+  geographyCulture?: string;
+  brandValues?: string;
+  nonNegotiables?: string;
+  personalityTone?: string;
+  desiredFeeling?: string;
+  thesis?: string;
+  coreBeliefs?: string;
+  signatureFrameworks?: string;
   extractedInfo?: string;
   website?: string;
   newsletter?: string;

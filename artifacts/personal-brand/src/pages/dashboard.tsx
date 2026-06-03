@@ -11,8 +11,10 @@ import {
   CircleDashed,
   ArrowUpRight,
   Sparkles,
+  Compass,
 } from "lucide-react";
 import { format } from "date-fns";
+import { overallCompletion, nextPillar } from "@/lib/blueprint";
 
 function ScoreDial({ label, score, hint }: { label: string; score: number | null | undefined; hint: string }) {
   const has = typeof score === "number";
@@ -84,8 +86,11 @@ export default function Dashboard() {
 
   if (!dashboard) return null;
 
+  const blueprint = overallCompletion(client);
+  const next = nextPillar(client);
+
   const stages = [
-    { label: "Onboarding", done: dashboard.onboardingComplete, href: "/onboard", desc: "Tell arc who you are" },
+    { label: "Blueprint", done: blueprint.pct === 100, href: "/blueprint", desc: "Tell arc who you are" },
     { label: "Presence Audit", done: dashboard.auditComplete, href: "/audit", desc: "See how the world finds you" },
     { label: "Narrative", done: dashboard.narrativeComplete, href: "/narrative", desc: "Shape your point of view" },
     { label: "Content", done: dashboard.totalPosts > 0, href: "/content", desc: "Put the story to work" },
@@ -126,6 +131,38 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </section>
+
+      {next && (
+        <Link href={`/blueprint/${next.id}`}>
+          <div className="group flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-5 cursor-pointer transition-all hover:border-primary/40">
+            <div className="flex items-start gap-4 flex-1">
+              <div className="rounded-full bg-primary/10 p-2.5 shrink-0">
+                <Compass className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-serif text-xl text-foreground">
+                    Build out your Blueprint
+                  </h3>
+                  <span className="text-sm font-medium text-muted-foreground shrink-0">
+                    {blueprint.pct}% complete
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Next up: {next.title}. The more arc knows, the sharper your narrative.
+                </p>
+                <div className="mt-3 h-1.5 rounded-full bg-secondary overflow-hidden max-w-md">
+                  <div
+                    className="h-full bg-primary transition-all duration-700 ease-out"
+                    style={{ width: `${blueprint.pct}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+            <ArrowUpRight className="w-5 h-5 text-primary shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </div>
+        </Link>
+      )}
 
       {!dashboard.auditComplete && (
         <Link href="/audit">

@@ -6,6 +6,7 @@ import {
   BookOpen, 
   FileText,
   Lightbulb,
+  Compass,
   CornerDownRight,
   RotateCcw,
   LogOut,
@@ -141,6 +142,7 @@ function UserMenu() {
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
+  { href: "/blueprint", icon: Compass, label: "Blueprint" },
   { href: "/audit", icon: Search, label: "Audit" },
   { href: "/narrative", icon: BookOpen, label: "Narrative" },
   { href: "/content", icon: FileText, label: "Content" },

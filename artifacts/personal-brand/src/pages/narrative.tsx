@@ -1,5 +1,13 @@
-import { useState } from "react";
-import { useGetNarrative, getGetNarrativeQueryKey, useGenerateNarrative, IndustryAnswer } from "@workspace/api-client-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  useGetNarrative,
+  getGetNarrativeQueryKey,
+  useGenerateNarrative,
+  useGetClient,
+  getGetClientQueryKey,
+  IndustryAnswer,
+  ClientProfile,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, ArrowRight, Sparkles, Target, Quote, MessageSquare, Briefcase } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,11 +22,39 @@ const QUESTIONS = [
   "What is your most contrarian belief about your field?"
 ];
 
+const joinParts = (...parts: Array<string | undefined>) =>
+  parts.map((p) => p?.trim()).filter(Boolean).join("\n\n");
+
+// Map the answers already captured during onboarding onto the four synthesis
+// questions so the narrative reflects what the user actually wrote.
+function seedAnswersFromClient(client: ClientProfile): IndustryAnswer[] {
+  return [
+    { question: QUESTIONS[0], answer: joinParts(client.frustrations, client.beliefs) },
+    { question: QUESTIONS[1], answer: joinParts(client.audienceImpact, client.desiredChange) },
+    { question: QUESTIONS[2], answer: joinParts(client.passions, client.headline) },
+    { question: QUESTIONS[3], answer: joinParts(client.beliefs) },
+  ].filter((a) => a.answer.length > 0);
+}
+
+function hasCoachMaterial(client: ClientProfile | undefined): client is ClientProfile {
+  if (!client) return false;
+  return [
+    client.passions,
+    client.beliefs,
+    client.frustrations,
+    client.desiredChange,
+    client.audienceImpact,
+  ].some((v) => v?.trim());
+}
+
 export default function Narrative() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [answers, setAnswers] = useState<string[]>(Array(QUESTIONS.length).fill(""));
   const [step, setStep] = useState(0);
+  const [retake, setRetake] = useState(false);
+  const [autoGenFailed, setAutoGenFailed] = useState(false);
+  const autoGenAttempted = useRef(false);
 
   const { data: narrative, isLoading: isNarrativeLoading } = useGetNarrative({
     query: {
@@ -27,9 +63,49 @@ export default function Narrative() {
     }
   });
 
+  const { data: client, isLoading: isClientLoading } = useGetClient({
+    query: { queryKey: getGetClientQueryKey(), retry: false },
+  });
+
   const generateNarrative = useGenerateNarrative();
 
-  if (isNarrativeLoading) {
+  const canAutoGenerate =
+    !narrative && !retake && !autoGenFailed && hasCoachMaterial(client);
+
+  // Auto-synthesize from onboarding answers instead of re-interviewing the user.
+  useEffect(() => {
+    if (autoGenAttempted.current) return;
+    if (isNarrativeLoading || isClientLoading) return;
+    if (!canAutoGenerate || !client) return;
+
+    autoGenAttempted.current = true;
+    generateNarrative.mutate(
+      { data: { answers: seedAnswersFromClient(client) } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetNarrativeQueryKey() });
+        },
+        onError: () => {
+          setAutoGenFailed(true);
+          toast({
+            title: "Could not synthesize automatically",
+            description: "Answer the questions below to generate your narrative.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  }, [
+    canAutoGenerate,
+    client,
+    isClientLoading,
+    isNarrativeLoading,
+    generateNarrative,
+    queryClient,
+    toast,
+  ]);
+
+  if (isNarrativeLoading || isClientLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
@@ -60,6 +136,8 @@ export default function Narrative() {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetNarrativeQueryKey() });
+          setRetake(false);
+          setAutoGenFailed(false);
           toast({ title: "Narrative generated successfully" });
         },
         onError: () => {
@@ -69,8 +147,14 @@ export default function Narrative() {
     );
   };
 
-  // 1. Loading state for AI generation
-  if (generateNarrative.isPending) {
+  const startRetake = () => {
+    setAnswers(Array(QUESTIONS.length).fill(""));
+    setStep(0);
+    setRetake(true);
+  };
+
+  // 1. Loading state for AI generation (auto or manual)
+  if (generateNarrative.isPending || canAutoGenerate) {
     return (
       <div className="max-w-2xl mx-auto mt-20 space-y-8 text-center animate-in fade-in duration-1000">
         <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/5 text-primary mb-6 border border-primary/10">
@@ -85,8 +169,8 @@ export default function Narrative() {
     );
   }
 
-  // 2. Interview State (No narrative exists yet)
-  if (!narrative) {
+  // 2. Interview State (no narrative yet, or the user chose to retake)
+  if (!narrative || retake) {
     return (
       <div className="max-w-3xl mx-auto mt-10">
         <div className="mb-12 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -255,7 +339,7 @@ export default function Narrative() {
       
       {/* Utility to retake interview (hidden away but useful) */}
       <div className="flex justify-center pt-8">
-        <Button variant="ghost" onClick={() => setAnswers(Array(QUESTIONS.length).fill(""))} className="text-muted-foreground text-xs hover:text-foreground">
+        <Button variant="ghost" onClick={startRetake} className="text-muted-foreground text-xs hover:text-foreground">
           Retake Synthesis Interview
         </Button>
       </div>

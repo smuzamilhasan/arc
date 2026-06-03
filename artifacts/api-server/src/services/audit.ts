@@ -121,6 +121,26 @@ async function summarizeSeo(subject: string, raw: string, results: SeoFinding[])
   return summary || fallback || "No meaningful search-result presence was found for this person.";
 }
 
+async function summarizeGeo(subject: string, models: GeoModelResult[]): Promise<string> {
+  const mentionedCount = models.filter((m) => m.mentioned).length;
+  const fallback = `${mentionedCount} of ${models.length} AI models had real knowledge of you.`;
+  if (models.length === 0) return fallback;
+
+  const modelList = models
+    .map((m) => `- ${m.label}: ${m.mentioned ? "knew the person" : "no knowledge"}, accuracy=${m.accuracy}${m.notes ? `, notes: ${m.notes}` : ""}`)
+    .join("\n");
+
+  const prompt = `You are a personal brand strategist analyzing how AI models perceive someone. Using ONLY the per-model audit data below, write a clean, professional 2-4 sentence analysis of how AI models currently perceive this person. Cover which models knew them, how accurate that knowledge was, and any notable gaps or confusion. Do not invent facts, sources, or details that are not present in the data. Write in polished prose with no bullet points, no URLs, and no markdown.\n\nPerson: ${subject}\n\nPer-model results:\n${modelList}`;
+
+  const resp = await openai.chat.completions.create({
+    model: "gpt-5.4",
+    max_completion_tokens: 8192,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const summary = (resp.choices[0]?.message?.content ?? "").trim();
+  return summary || fallback;
+}
+
 async function askGeoModel(model: (typeof GEO_MODELS)[number]["model"], subject: string): Promise<string> {
   const prompt = `What do you know about ${subject}? Describe their background, work, and notable contributions based only on your training knowledge. If you do not have reliable information about this specific person, clearly say "I do not have information about this person." Do not guess or invent details.`;
 
@@ -248,9 +268,12 @@ export async function runAudit(
   onProgress({ type: "progress", step: "synthesis", status: "running", message: "Scoring your digital presence..." });
   const geoModels = await classifyGeo(subject, rawResponses);
   const mentionedCount = geoModels.filter((m) => m.mentioned).length;
+  const geoSummary = await summarizeGeo(subject, geoModels).catch(
+    () => `${mentionedCount} of ${geoModels.length} AI models had real knowledge of you.`
+  );
   const geoFindings: GeoFindings = {
     models: geoModels,
-    summary: `${mentionedCount} of ${geoModels.length} AI models had real knowledge of you.`,
+    summary: geoSummary,
   };
 
   const seoScore = scoreSeo(seoFindings);

@@ -253,7 +253,7 @@ function scoreSeo(findings: SeoFindings): number {
   return clampScore(score);
 }
 
-function scoreGeo(models: GeoModelResult[]): number {
+export function scoreGeo(models: GeoModelResult[]): number {
   if (models.length === 0) return 0;
   const per = models.map((m) => {
     if (m.accuracy === "accurate") return 100;

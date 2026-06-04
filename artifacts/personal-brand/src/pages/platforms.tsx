@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "wouter";
 import {
   useGetPlatforms,
   getGetPlatformsQueryKey,
@@ -12,7 +11,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
   Sparkles,
-  Lock,
   Globe,
   Radio,
   Users,
@@ -23,13 +21,13 @@ import {
   Zap,
   Mail,
   Megaphone,
-  ArrowRight,
   RotateCcw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { overallCompletion } from "@/lib/blueprint";
+import { overallCompletion, PANEL_GATES, panelGatePrerequisites } from "@/lib/blueprint";
+import { LockedPanel } from "@/components/locked-panel";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -375,23 +373,14 @@ export default function Platforms() {
   // Locked: blueprint not yet fully filled.
   if (!blueprintComplete) {
     return (
-      <div className="mx-auto mt-20 max-w-2xl space-y-8 text-center animate-in fade-in duration-700">
-        <div className="relative mx-auto mb-6 inline-flex h-24 w-24 items-center justify-center rounded-full border border-border bg-secondary/40 text-muted-foreground">
-          <Lock className="h-9 w-9" />
-        </div>
-        <h1 className="font-serif text-4xl tracking-tight text-foreground">
-          Platforms &amp; Presence
-        </h1>
-        <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-muted-foreground">
-          This panel unlocks once your Blueprint is complete. Fill in every section and arc will
-          build a tailored digital and physical presence strategy for you.
-        </p>
-        <Link href="/blueprint">
-          <Button className="gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
-            Complete your Blueprint <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
-      </div>
+      <LockedPanel
+        title={PANEL_GATES.platforms.title}
+        description={PANEL_GATES.platforms.description}
+        prerequisites={panelGatePrerequisites("platforms", {
+          client,
+          hasPlatformStrategy: Boolean(strategy),
+        })}
+      />
     );
   }
 

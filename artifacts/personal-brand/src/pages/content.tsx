@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "wouter";
 import {
   useListPosts,
   useCreatePost,
@@ -31,8 +30,6 @@ import {
   CalendarClock,
   Search,
   FileText,
-  Lock,
-  ArrowRight,
   Sparkles,
   RotateCcw,
   Repeat2,
@@ -49,7 +46,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import type { Post, ContentStrategy, ContentMixItem } from "@workspace/api-client-react";
-import { overallCompletion } from "@/lib/blueprint";
+import { overallCompletion, PANEL_GATES, panelGatePrerequisites } from "@/lib/blueprint";
+import { LockedPanel } from "@/components/locked-panel";
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -739,23 +737,14 @@ export default function Content() {
   // Locked: blueprint and/or platform strategy not yet complete.
   if (!platformsReady) {
     return (
-      <div className="mx-auto mt-20 max-w-2xl space-y-8 text-center animate-in fade-in duration-700">
-        <div className="relative mx-auto mb-6 inline-flex h-24 w-24 items-center justify-center rounded-full border border-border bg-secondary/40 text-muted-foreground">
-          <Lock className="h-9 w-9" />
-        </div>
-        <h1 className="font-serif text-4xl tracking-tight text-foreground">Content</h1>
-        <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-muted-foreground">
-          {!blueprintComplete
-            ? "This panel unlocks once your Blueprint is complete and you have a Platforms strategy. Start by completing your Blueprint."
-            : "Almost there. Generate your Platforms strategy and arc will build a tailored content strategy to drive your library."}
-        </p>
-        <Link href={!blueprintComplete ? "/blueprint" : "/platforms"}>
-          <Button className="gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
-            {!blueprintComplete ? "Complete your Blueprint" : "Set up your Platforms"}
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
-      </div>
+      <LockedPanel
+        title={PANEL_GATES.content.title}
+        description={PANEL_GATES.content.description}
+        prerequisites={panelGatePrerequisites("content", {
+          client,
+          hasPlatformStrategy: Boolean(platformStrategy),
+        })}
+      />
     );
   }
 

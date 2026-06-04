@@ -114,28 +114,32 @@ export default function Blueprint() {
           const isUnlocked = unlocked.has(pillar.id);
 
           if (!isUnlocked) {
+            // Locked cards stay clickable: they open the pillar, which explains
+            // why it's locked and what's left to unlock it. The dashed, muted
+            // treatment and lock badge still signal it's locked.
             return (
-              <Card
-                key={pillar.id}
-                aria-disabled="true"
-                className="h-full border-border border-dashed bg-secondary/20 cursor-not-allowed select-none"
-              >
-                <CardContent className="pt-6 flex flex-col h-full">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="rounded-lg bg-secondary/40 p-2.5">
-                      <pillar.icon className="w-5 h-5 text-muted-foreground/60 stroke-[1.5]" />
+              <Link key={pillar.id} href={`/blueprint/${pillar.id}`}>
+                <Card
+                  aria-label={`${pillar.title} (locked)`}
+                  className="group h-full border-border border-dashed bg-secondary/20 cursor-pointer transition-all hover:border-primary/30 select-none"
+                >
+                  <CardContent className="pt-6 flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="rounded-lg bg-secondary/40 p-2.5">
+                        <pillar.icon className="w-5 h-5 text-muted-foreground/60 stroke-[1.5]" />
+                      </div>
+                      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                        <Lock className="w-3.5 h-3.5" /> Locked
+                      </span>
                     </div>
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                      <Lock className="w-3.5 h-3.5" /> Locked
-                    </span>
-                  </div>
-                  <h3 className="font-serif text-xl text-muted-foreground">{pillar.title}</h3>
-                  <p className="text-sm text-muted-foreground/70 mt-1 flex-1">{pillar.blurb}</p>
-                  <p className="mt-4 text-xs font-medium text-muted-foreground/80">
-                    {unlockHint(pillar.id)}
-                  </p>
-                </CardContent>
-              </Card>
+                    <h3 className="font-serif text-xl text-muted-foreground">{pillar.title}</h3>
+                    <p className="text-sm text-muted-foreground/70 mt-1 flex-1">{pillar.blurb}</p>
+                    <p className="mt-4 text-xs font-medium text-muted-foreground/80">
+                      {unlockHint(pillar.id)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
             );
           }
 

@@ -509,6 +509,106 @@ export function unlockHint(pillarId: string): string {
   return `Complete ${prevTitles.join(" & ")} to unlock`;
 }
 
+// A single unlock prerequisite presented to the user: a human label, whether it
+// is already satisfied, an optional progress detail, and where to go to satisfy
+// it. Every gated surface (locked panels, locked pillar editors) describes its
+// requirements as a list of these so the locked-state UI is uniform everywhere.
+export type Prerequisite = {
+  id: string;
+  label: string;
+  href: string;
+  complete: boolean;
+  detail?: string;
+};
+
+function pillarPrerequisite(
+  pillar: Pillar,
+  client: ClientProfile | undefined,
+): Prerequisite {
+  const progress = pillarCompletion(pillar, client);
+  return {
+    id: pillar.id,
+    label: pillar.title,
+    href: `/blueprint/${pillar.id}`,
+    complete: pillarCoreComplete(pillar, client),
+    detail: `${progress.filled}/${progress.total} core areas`,
+  };
+}
+
+// The prerequisites that make up a complete Blueprint: every pillar's core
+// fields. Used by panels that gate on "Blueprint complete".
+export function blueprintPrerequisites(
+  client: ClientProfile | undefined,
+): Prerequisite[] {
+  return ORDERED_PILLARS.map((pillar) => pillarPrerequisite(pillar, client));
+}
+
+// The prerequisites a locked Blueprint pillar is waiting on: every pillar in the
+// immediately preceding stage. Empty for always-open first-stage pillars.
+export function pillarUnlockPrerequisites(
+  pillarId: string,
+  client: ClientProfile | undefined,
+): Prerequisite[] {
+  const stageIndex = BLUEPRINT_STAGES.findIndex((s) => s.includes(pillarId));
+  if (stageIndex <= 0) return [];
+  return BLUEPRINT_STAGES[stageIndex - 1]
+    .map((id) => getPillar(id))
+    .filter((p): p is Pillar => Boolean(p))
+    .map((pillar) => pillarPrerequisite(pillar, client));
+}
+
+// The product's gated panels, keyed by route slug. Each declares how to label
+// its locked state and how to compute the prerequisites that unlock it. New
+// gated panels register here and automatically get the same explanatory locked
+// UX (the shared LockedPanel component) and a clickable, explained sidebar item.
+export type PanelGateId = "platforms" | "content";
+
+export type PanelGateContext = {
+  client: ClientProfile | undefined;
+  hasPlatformStrategy: boolean;
+};
+
+type PanelGateConfig = {
+  title: string;
+  description: string;
+  prerequisites: (ctx: PanelGateContext) => Prerequisite[];
+};
+
+export const PANEL_GATES: Record<PanelGateId, PanelGateConfig> = {
+  platforms: {
+    title: "Platforms & Presence",
+    description:
+      "arc turns a complete Blueprint into a tailored digital and physical presence strategy. Finish the sections below and this panel opens on its own.",
+    prerequisites: (ctx) => blueprintPrerequisites(ctx.client),
+  },
+  content: {
+    title: "Content",
+    description:
+      "arc builds your content strategy from a complete Blueprint and a Platforms strategy. Finish the sections below and this panel opens on its own.",
+    prerequisites: (ctx) => [
+      ...blueprintPrerequisites(ctx.client),
+      {
+        id: "platforms",
+        label: "Platforms & Presence strategy",
+        href: "/platforms",
+        complete: ctx.hasPlatformStrategy,
+        detail: ctx.hasPlatformStrategy ? undefined : "Generate your platform strategy",
+      },
+    ],
+  },
+};
+
+export function panelGatePrerequisites(
+  gate: PanelGateId,
+  ctx: PanelGateContext,
+): Prerequisite[] {
+  return PANEL_GATES[gate].prerequisites(ctx);
+}
+
+export function isPanelUnlocked(gate: PanelGateId, ctx: PanelGateContext): boolean {
+  return panelGatePrerequisites(gate, ctx).every((p) => p.complete);
+}
+
 // Next-best pillar to work on: the first incomplete, unlocked pillar in the
 // gated order. Locked pillars are skipped.
 export function nextPillar(client: ClientProfile | undefined): Pillar | null {

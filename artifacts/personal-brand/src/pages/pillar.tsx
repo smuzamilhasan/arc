@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useLocation } from "wouter";
+import { LockedPanel } from "@/components/locked-panel";
 import {
   useGetClient,
   getGetClientQueryKey,
@@ -33,6 +34,7 @@ import {
   supportingFields,
   nextPillarAfter,
   isPillarUnlocked,
+  pillarUnlockPrerequisites,
   type Pillar,
   type PillarField,
 } from "@/lib/blueprint";
@@ -99,18 +101,15 @@ function FieldInput({
 function PillarEditor({ pillar }: { pillar: Pillar }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
   const { data: client, isLoading } = useGetClient({
     query: { queryKey: getGetClientQueryKey(), retry: false },
   });
 
-  // Guard the editor route: a locked panel opened directly by URL sends the
-  // client back to the Blueprint. Unlocked and already-filled panels open
-  // normally. Wait for the profile to load before deciding.
+  // Guard the editor route: a locked pillar opened directly by URL shows an
+  // explanation of why it's locked and what's left to unlock it, rather than
+  // silently redirecting. Unlocked and already-filled pillars open normally.
+  // Wait for the profile to load before deciding.
   const locked = !isLoading && !isPillarUnlocked(pillar.id, client);
-  useEffect(() => {
-    if (locked) setLocation("/blueprint", { replace: true });
-  }, [locked, setLocation]);
   const upsertClient = useUpsertClient();
   const extract = useExtractPublicInfo();
   const generateBio = useGenerateBio();
@@ -309,13 +308,30 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
     );
   };
 
-  if (isLoading || locked) {
+  if (isLoading) {
     return (
       <div className="space-y-8 max-w-2xl">
         <Skeleton className="h-10 w-72" />
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  if (locked) {
+    return (
+      <div className="pb-10">
+        <Link href="/blueprint">
+          <div className="mb-2 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground cursor-pointer">
+            <ArrowLeft className="w-4 h-4" /> Back to Blueprint
+          </div>
+        </Link>
+        <LockedPanel
+          title={pillar.title}
+          description={`${pillar.title} unlocks once you've finished the section that comes before it. Complete what's below and it opens on its own.`}
+          prerequisites={pillarUnlockPrerequisites(pillar.id, client)}
+        />
       </div>
     );
   }

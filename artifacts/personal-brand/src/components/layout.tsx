@@ -24,7 +24,7 @@ import {
   useGetPlatforms,
   getGetPlatformsQueryKey,
 } from "@workspace/api-client-react";
-import { overallCompletion } from "@/lib/blueprint";
+import { isPanelUnlocked, type PanelGateId } from "@/lib/blueprint";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -153,8 +153,7 @@ type NavItem = {
   href: string;
   icon: typeof LayoutDashboard;
   label: string;
-  requiresBlueprint?: boolean;
-  requiresPlatforms?: boolean;
+  gate?: PanelGateId;
 };
 
 const navItems: NavItem[] = [
@@ -162,8 +161,8 @@ const navItems: NavItem[] = [
   { href: "/blueprint", icon: Compass, label: "Blueprint" },
   { href: "/audit", icon: Search, label: "Audit" },
   { href: "/narrative", icon: BookOpen, label: "Narrative" },
-  { href: "/platforms", icon: Radio, label: "Platforms", requiresBlueprint: true },
-  { href: "/content", icon: FileText, label: "Content", requiresPlatforms: true },
+  { href: "/platforms", icon: Radio, label: "Platforms", gate: "platforms" },
+  { href: "/content", icon: FileText, label: "Content", gate: "content" },
   { href: "/ideas", icon: Lightbulb, label: "Ideas" },
 ];
 
@@ -178,8 +177,10 @@ export function Layout({ children }: LayoutProps) {
     query: { queryKey: getGetPlatformsQueryKey(), retry: false },
   });
 
-  const blueprintComplete = overallCompletion(client).pct === 100;
-  const platformsReady = blueprintComplete && Boolean(platformStrategy);
+  const gateCtx = {
+    client,
+    hasPlatformStrategy: Boolean(platformStrategy),
+  };
 
   const items: NavItem[] = access?.isAdmin
     ? [...navItems, { href: "/admin", icon: Shield, label: "Admin" }]
@@ -188,26 +189,31 @@ export function Layout({ children }: LayoutProps) {
   const NavLinks = () => (
     <div className="flex flex-col gap-1">
       {items.map((item) => {
-        const locked =
-          (item.requiresBlueprint && !blueprintComplete) ||
-          (item.requiresPlatforms && !platformsReady);
-        const lockHint = item.requiresPlatforms
-          ? "Complete your Blueprint and Platforms to unlock"
-          : "Complete your Blueprint to unlock";
+        const locked = item.gate ? !isPanelUnlocked(item.gate, gateCtx) : false;
 
+        // Locked items stay clickable: they navigate to the panel, which now
+        // explains why it's locked and exactly what's left to unlock it. We keep
+        // the lock icon and a dimmed treatment so it still reads as locked.
         if (locked) {
           return (
-            <div
-              key={item.href}
-              title={lockHint}
-              className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-none border-l-2 border-transparent text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
-            >
-              <span className="flex items-center gap-3">
-                <item.icon className="w-4 h-4 stroke-[1.5]" />
-                {item.label}
-              </span>
-              <Lock className="w-3.5 h-3.5 stroke-[1.5]" />
-            </div>
+            <Link key={item.href} href={item.href}>
+              <div
+                title="Locked — open to see what's needed to unlock it"
+                className={cn(
+                  "flex items-center justify-between gap-3 px-4 py-2.5 rounded-none border-l-2 text-sm font-medium cursor-pointer transition-all duration-300",
+                  location === item.href
+                    ? "text-foreground/70 border-primary/40 bg-primary/5"
+                    : "text-muted-foreground/50 border-transparent hover:text-muted-foreground hover:bg-secondary/20 hover:border-secondary-foreground/20"
+                )}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <span className="flex items-center gap-3">
+                  <item.icon className="w-4 h-4 stroke-[1.5]" />
+                  {item.label}
+                </span>
+                <Lock className="w-3.5 h-3.5 stroke-[1.5]" />
+              </div>
+            </Link>
           );
         }
 

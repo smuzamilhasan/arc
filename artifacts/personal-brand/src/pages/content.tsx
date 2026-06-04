@@ -46,8 +46,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import type { Post, ContentStrategy, ContentMixItem } from "@workspace/api-client-react";
-import { overallCompletion, PANEL_GATES, panelGatePrerequisites } from "@/lib/blueprint";
-import { LockedPanel } from "@/components/locked-panel";
+import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blueprint";
+import { GenerateGate } from "@/components/locked-panel";
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -694,8 +694,8 @@ export default function Content() {
 
   const generateStrategy = useGenerateContentStrategy();
 
-  const blueprintComplete = overallCompletion(client).pct === 100;
-  const platformsReady = blueprintComplete && Boolean(platformStrategy);
+  const gateCtx = { client, hasPlatformStrategy: Boolean(platformStrategy) };
+  const platformsReady = isPanelUnlocked("content", gateCtx);
 
   const runGenerate = (isAuto: boolean) => {
     generateStrategy.mutate(undefined, {
@@ -734,16 +734,18 @@ export default function Content() {
     );
   }
 
-  // Locked: blueprint and/or platform strategy not yet complete.
+  // Locked: blueprint and/or platform strategy not yet complete. Surface the
+  // prerequisite checklist right at the generate action instead of a separate
+  // locked panel.
   if (!platformsReady) {
     return (
-      <LockedPanel
+      <GenerateGate
         title={PANEL_GATES.content.title}
-        description={PANEL_GATES.content.description}
-        prerequisites={panelGatePrerequisites("content", {
-          client,
-          hasPlatformStrategy: Boolean(platformStrategy),
-        })}
+        description="Your Blueprint and platform strategy are ready. Generate a tailored content strategy."
+        lockedDescription={PANEL_GATES.content.description}
+        prerequisites={panelGatePrerequisites("content", gateCtx)}
+        onGenerate={() => runGenerate(false)}
+        generating={generateStrategy.isPending}
       />
     );
   }
@@ -771,24 +773,14 @@ export default function Content() {
   // Unlocked but generation failed and nothing stored yet.
   if (!strategy) {
     return (
-      <div className="mx-auto mt-20 max-w-2xl space-y-8 text-center animate-in fade-in duration-700">
-        <h1 className="font-serif text-4xl tracking-tight text-foreground">Content</h1>
-        <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-muted-foreground">
-          Your Blueprint and platform strategy are ready. Generate a tailored content strategy.
-        </p>
-        <Button
-          onClick={() => runGenerate(false)}
-          disabled={generateStrategy.isPending}
-          className="gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          {generateStrategy.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          Generate strategy
-        </Button>
-      </div>
+      <GenerateGate
+        title={PANEL_GATES.content.title}
+        description="Your Blueprint and platform strategy are ready. Generate a tailored content strategy."
+        lockedDescription={PANEL_GATES.content.description}
+        prerequisites={panelGatePrerequisites("content", gateCtx)}
+        onGenerate={() => runGenerate(false)}
+        generating={generateStrategy.isPending}
+      />
     );
   }
 

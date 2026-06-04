@@ -26,8 +26,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { overallCompletion, PANEL_GATES, panelGatePrerequisites } from "@/lib/blueprint";
-import { LockedPanel } from "@/components/locked-panel";
+import { overallCompletion, PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blueprint";
+import { GenerateGate } from "@/components/locked-panel";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -362,6 +362,9 @@ export default function Platforms() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAutoGenerate, isClientLoading, isStrategyLoading]);
 
+  const gateCtx = { client, hasPlatformStrategy: Boolean(strategy) };
+  const locked = !isPanelUnlocked("platforms", gateCtx);
+
   if (isClientLoading || isStrategyLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -370,16 +373,17 @@ export default function Platforms() {
     );
   }
 
-  // Locked: blueprint not yet fully filled.
-  if (!blueprintComplete) {
+  // Locked: blueprint not yet fully filled. Surface the prerequisite checklist
+  // right at the generate action instead of a separate locked panel.
+  if (locked) {
     return (
-      <LockedPanel
+      <GenerateGate
         title={PANEL_GATES.platforms.title}
-        description={PANEL_GATES.platforms.description}
-        prerequisites={panelGatePrerequisites("platforms", {
-          client,
-          hasPlatformStrategy: Boolean(strategy),
-        })}
+        description="Your Blueprint is complete. Generate a tailored digital and physical presence strategy."
+        lockedDescription={PANEL_GATES.platforms.description}
+        prerequisites={panelGatePrerequisites("platforms", gateCtx)}
+        onGenerate={() => runGenerate(false)}
+        generating={generatePlatforms.isPending}
       />
     );
   }
@@ -407,26 +411,14 @@ export default function Platforms() {
   // Unlocked but generation failed and nothing stored yet.
   if (!strategy) {
     return (
-      <div className="mx-auto mt-20 max-w-2xl space-y-8 text-center animate-in fade-in duration-700">
-        <h1 className="font-serif text-4xl tracking-tight text-foreground">
-          Platforms &amp; Presence
-        </h1>
-        <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-muted-foreground">
-          Your Blueprint is complete. Generate a tailored digital and physical presence strategy.
-        </p>
-        <Button
-          onClick={() => runGenerate(false)}
-          disabled={generatePlatforms.isPending}
-          className="gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          {generatePlatforms.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          Generate strategy
-        </Button>
-      </div>
+      <GenerateGate
+        title={PANEL_GATES.platforms.title}
+        description="Your Blueprint is complete. Generate a tailored digital and physical presence strategy."
+        lockedDescription={PANEL_GATES.platforms.description}
+        prerequisites={panelGatePrerequisites("platforms", gateCtx)}
+        onGenerate={() => runGenerate(false)}
+        generating={generatePlatforms.isPending}
+      />
     );
   }
 

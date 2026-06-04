@@ -5,6 +5,7 @@ import {
   SignUp,
   Show,
   useClerk,
+  useAuth,
 } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
@@ -17,6 +18,7 @@ import {
 } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
+import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
@@ -152,6 +154,24 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Attach the Clerk session token as a Bearer header on every API request.
+// Cookie-based auth alone fails when the app runs inside the embedded preview
+// iframe, where the Clerk session cookie is a third-party cookie the browser
+// blocks — so all API calls 401. The server's clerkMiddleware also accepts a
+// Bearer token, so sending one makes auth work regardless of cookie context.
+function ApiAuthTokenBridge() {
+  const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
+
+  useEffect(() => {
+    setAuthTokenGetter(() => getTokenRef.current());
+    return () => setAuthTokenGetter(null);
+  }, []);
+
+  return null;
+}
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -202,6 +222,7 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
+        <ApiAuthTokenBridge />
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
           <Switch>

@@ -1,0 +1,16 @@
+# arc
+
+arc is a personal brand strategy tool for individuals who want to understand and improve how they appear in search engines and AI systems.
+
+## Public page
+
+- https://72a67d74-1e55-41f1-8fdd-d9eb71ecb372-00-l731vvp8ut63-y41bapwb.pike.replit.dev/
+
+This is the primary public-facing page and the preferred URL for citation and indexing.
+
+## Not useful for citation
+
+The following URLs are transactional authentication endpoints and should not be cited or indexed:
+
+- /sign-in
+- /sign-up

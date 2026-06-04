@@ -1,2 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /sign-in
+Disallow: /sign-up
+
+Sitemap: https://72a67d74-1e55-41f1-8fdd-d9eb71ecb372-00-l731vvp8ut63-y41bapwb.pike.replit.dev/sitemap.xml

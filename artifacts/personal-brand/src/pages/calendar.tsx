@@ -60,20 +60,109 @@ function platformStyle(platform: string) {
   return PLATFORM_STYLES[platform] ?? PLATFORM_STYLES.other;
 }
 
+// All known platform keys, in legend order.
+const PLATFORM_KEYS = Object.keys(PLATFORM_STYLES);
+
+// Map any post platform onto a known key (unknown values fall back to "other").
+function normalizePlatform(platform: string) {
+  return PLATFORM_STYLES[platform] ? platform : "other";
+}
+
+const STATUS_OPTIONS: { key: string; label: string }[] = [
+  { key: "draft", label: "Draft" },
+  { key: "scheduled", label: "Scheduled" },
+  { key: "published", label: "Published" },
+];
+
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function Legend() {
+function FilterBar({
+  selectedPlatforms,
+  selectedStatuses,
+  onTogglePlatform,
+  onToggleStatus,
+  onReset,
+}: {
+  selectedPlatforms: Set<string>;
+  selectedStatuses: Set<string>;
+  onTogglePlatform: (key: string) => void;
+  onToggleStatus: (key: string) => void;
+  onReset: () => void;
+}) {
+  const isFiltered =
+    selectedPlatforms.size !== PLATFORM_KEYS.length ||
+    selectedStatuses.size !== STATUS_OPTIONS.length;
+
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-      <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-        Platforms
-      </span>
-      {Object.entries(PLATFORM_STYLES).map(([key, style]) => (
-        <span key={key} className="flex items-center gap-2 text-xs font-medium text-foreground/80">
-          <span className={cn("h-2.5 w-2.5 rounded-full", style.dot)} />
-          {style.label}
-        </span>
-      ))}
+    <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-card/40 p-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-x-8 sm:gap-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Platforms
+          </span>
+          {PLATFORM_KEYS.map((key) => {
+            const style = PLATFORM_STYLES[key];
+            const active = selectedPlatforms.has(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onTogglePlatform(key)}
+                className={cn(
+                  "flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  active
+                    ? "border-border bg-background text-foreground"
+                    : "border-transparent bg-transparent text-muted-foreground/50 hover:text-muted-foreground",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-2.5 w-2.5 rounded-full transition-opacity",
+                    style.dot,
+                    active ? "opacity-100" : "opacity-30",
+                  )}
+                />
+                {style.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Status
+          </span>
+          {STATUS_OPTIONS.map(({ key, label }) => {
+            const active = selectedStatuses.has(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onToggleStatus(key)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  active
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : "border-transparent bg-transparent text-muted-foreground/50 hover:text-muted-foreground",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {isFiltered && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 self-start rounded-full px-3 text-xs text-muted-foreground hover:text-foreground"
+          onClick={onReset}
+        >
+          Reset filters
+        </Button>
+      )}
     </div>
   );
 }
@@ -161,14 +250,60 @@ function CalendarGrid({
 }) {
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
 
+  // Filters default to "show everything" so the calendar is unfiltered on load.
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(
+    () => new Set(PLATFORM_KEYS),
+  );
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(
+    () => new Set(STATUS_OPTIONS.map((s) => s.key)),
+  );
+
+  const togglePlatform = (key: string) =>
+    setSelectedPlatforms((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const toggleStatus = (key: string) =>
+    setSelectedStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const resetFilters = () => {
+    setSelectedPlatforms(new Set(PLATFORM_KEYS));
+    setSelectedStatuses(new Set(STATUS_OPTIONS.map((s) => s.key)));
+  };
+
   const days = useMemo(() => buildMonthGrid(monthCursor), [monthCursor]);
 
-  // Group scheduled posts by calendar day for quick lookup per cell.
-  const postsByDay = useMemo(() => groupPostsByDay(posts), [posts]);
+  // Apply the active platform/status filters before laying posts on the grid.
+  const filteredPosts = useMemo(
+    () =>
+      posts.filter(
+        (p) =>
+          selectedPlatforms.has(normalizePlatform(p.platform)) &&
+          selectedStatuses.has(p.status),
+      ),
+    [posts, selectedPlatforms, selectedStatuses],
+  );
 
-  const scheduledCount = useMemo(
+  // Group the filtered scheduled posts by calendar day for quick lookup per cell.
+  const postsByDay = useMemo(() => groupPostsByDay(filteredPosts), [filteredPosts]);
+
+  // Scheduled posts in the data vs. those visible after filtering, so we can
+  // tell "nothing scheduled" apart from "everything is filtered out".
+  const totalScheduledCount = useMemo(
     () => posts.filter((p) => p.scheduledAt).length,
     [posts],
+  );
+  const visibleScheduledCount = useMemo(
+    () => filteredPosts.filter((p) => p.scheduledAt).length,
+    [filteredPosts],
   );
 
   return (
@@ -208,7 +343,13 @@ function CalendarGrid({
         </div>
       </div>
 
-      <Legend />
+      <FilterBar
+        selectedPlatforms={selectedPlatforms}
+        selectedStatuses={selectedStatuses}
+        onTogglePlatform={togglePlatform}
+        onToggleStatus={toggleStatus}
+        onReset={resetFilters}
+      />
 
       <div className="overflow-hidden rounded-xl border-l border-t border-border/50 bg-card shadow-sm">
         <div className="grid grid-cols-7 border-b border-border/50 bg-secondary/30">
@@ -235,18 +376,37 @@ function CalendarGrid({
         </div>
       </div>
 
-      {scheduledCount === 0 && (
-        <div className="rounded-xl border border-dashed border-border/60 bg-card/30 py-12 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/5 text-primary">
-            <CalendarDays className="h-7 w-7" />
+      {visibleScheduledCount === 0 &&
+        (totalScheduledCount === 0 ? (
+          <div className="rounded-xl border border-dashed border-border/60 bg-card/30 py-12 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/5 text-primary">
+              <CalendarDays className="h-7 w-7" />
+            </div>
+            <h3 className="font-serif text-xl text-foreground">Nothing scheduled yet</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm font-light text-muted-foreground">
+              Posts with a scheduled date appear here. Open a post in your Content library and set it
+              to scheduled, or use the plus on any day to add one.
+            </p>
           </div>
-          <h3 className="font-serif text-xl text-foreground">Nothing scheduled yet</h3>
-          <p className="mx-auto mt-2 max-w-md text-sm font-light text-muted-foreground">
-            Posts with a scheduled date appear here. Open a post in your Content library and set it
-            to scheduled, or use the plus on any day to add one.
-          </p>
-        </div>
-      )}
+        ) : (
+          <div className="rounded-xl border border-dashed border-border/60 bg-card/30 py-12 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/5 text-primary">
+              <CalendarDays className="h-7 w-7" />
+            </div>
+            <h3 className="font-serif text-xl text-foreground">No posts match your filters</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm font-light text-muted-foreground">
+              Try selecting more platforms or statuses to see your scheduled posts.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-5 rounded-full px-4"
+              onClick={resetFilters}
+            >
+              Reset filters
+            </Button>
+          </div>
+        ))}
     </div>
   );
 }

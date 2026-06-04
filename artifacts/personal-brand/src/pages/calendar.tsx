@@ -8,18 +8,7 @@ import {
   getGetPlatformsQueryKey,
 } from "@workspace/api-client-react";
 import type { Post } from "@workspace/api-client-react";
-import {
-  addMonths,
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isSameDay,
-  isSameMonth,
-  isToday,
-  startOfMonth,
-  startOfWeek,
-} from "date-fns";
+import { addMonths, format, isSameMonth, isToday, startOfMonth } from "date-fns";
 import {
   Loader2,
   ChevronLeft,
@@ -30,6 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blueprint";
+import { buildMonthGrid, groupPostsByDay } from "@/lib/calendar";
+import { dayKey } from "@/lib/schedule";
 import { LockedPanel } from "@/components/locked-panel";
 import { PostEditorDialog } from "@/components/post-editor";
 
@@ -170,34 +161,10 @@ function CalendarGrid({
 }) {
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
 
-  const days = useMemo(() => {
-    const gridStart = startOfWeek(startOfMonth(monthCursor));
-    const gridEnd = endOfWeek(endOfMonth(monthCursor));
-    return eachDayOfInterval({ start: gridStart, end: gridEnd });
-  }, [monthCursor]);
+  const days = useMemo(() => buildMonthGrid(monthCursor), [monthCursor]);
 
   // Group scheduled posts by calendar day for quick lookup per cell.
-  const postsByDay = useMemo(() => {
-    const map = new Map<string, Post[]>();
-    for (const post of posts) {
-      if (!post.scheduledAt) continue;
-      const d = new Date(post.scheduledAt);
-      if (Number.isNaN(d.getTime())) continue;
-      const key = format(d, "yyyy-MM-dd");
-      const list = map.get(key) ?? [];
-      list.push(post);
-      map.set(key, list);
-    }
-    // Keep posts within a day ordered by time.
-    for (const list of map.values()) {
-      list.sort(
-        (a, b) =>
-          new Date(a.scheduledAt as string).getTime() -
-          new Date(b.scheduledAt as string).getTime(),
-      );
-    }
-    return map;
-  }, [posts]);
+  const postsByDay = useMemo(() => groupPostsByDay(posts), [posts]);
 
   const scheduledCount = useMemo(
     () => posts.filter((p) => p.scheduledAt).length,
@@ -260,7 +227,7 @@ function CalendarGrid({
               key={day.toISOString()}
               day={day}
               monthCursor={monthCursor}
-              posts={postsByDay.get(format(day, "yyyy-MM-dd")) ?? []}
+              posts={postsByDay.get(dayKey(day)) ?? []}
               onPostClick={onPostClick}
               onAddPost={onAddPost}
             />

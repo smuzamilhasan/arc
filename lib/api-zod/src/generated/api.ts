@@ -355,6 +355,51 @@ export const GetPlatformsResponse = zod.object({
 
 
 /**
+ * @summary Update the editable text fields of the platform strategy
+ */
+export const UpdatePlatformsBody = zod.object({
+  "summary": zod.string(),
+  "closing": zod.string()
+})
+
+export const UpdatePlatformsResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "summary": zod.string(),
+  "online": zod.object({
+  "primary": zod.array(zod.object({
+  "platform": zod.string(),
+  "reason": zod.string()
+})),
+  "mirror": zod.array(zod.string()),
+  "longForm": zod.object({
+  "recommendation": zod.string(),
+  "platforms": zod.array(zod.string())
+}),
+  "shortForm": zod.object({
+  "recommendation": zod.string(),
+  "platforms": zod.array(zod.string())
+}),
+  "website": zod.object({
+  "recommendation": zod.string(),
+  "elements": zod.array(zod.string())
+}),
+  "newsletter": zod.string()
+}),
+  "offline": zod.object({
+  "intro": zod.string(),
+  "speaking": zod.string(),
+  "workshops": zod.string(),
+  "associations": zod.string(),
+  "teaching": zod.string()
+}),
+  "closing": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
  * @summary Generate a platform strategy from the completed blueprint
  */
 export const GeneratePlatformsResponse = zod.object({
@@ -398,6 +443,48 @@ export const GeneratePlatformsResponse = zod.object({
  * @summary Get the content strategy
  */
 export const GetContentStrategyResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "summary": zod.string(),
+  "platformPlan": zod.array(zod.object({
+  "platform": zod.string(),
+  "frequency": zod.string(),
+  "formats": zod.array(zod.string()),
+  "focus": zod.string()
+})),
+  "contentMix": zod.array(zod.object({
+  "type": zod.string(),
+  "description": zod.string(),
+  "whyForClient": zod.string(),
+  "exampleTopics": zod.array(zod.string()),
+  "weight": zod.string()
+})),
+  "signatureSeries": zod.array(zod.object({
+  "name": zod.string(),
+  "cadence": zod.string(),
+  "description": zod.string()
+})),
+  "postFormats": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "repurposing": zod.string(),
+  "closing": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Update the editable text fields of the content strategy
+ */
+export const UpdateContentStrategyBody = zod.object({
+  "summary": zod.string(),
+  "repurposing": zod.string(),
+  "closing": zod.string()
+})
+
+export const UpdateContentStrategyResponse = zod.object({
   "id": zod.number(),
   "clientId": zod.number(),
   "summary": zod.string(),
@@ -905,6 +992,177 @@ export const GetAdminUserResponse = zod.object({
   "platform": zod.string().nullish(),
   "createdAt": zod.string()
 }))
+})
+
+
+/**
+ * @summary Get the persisted assistant conversation for the client
+ */
+export const GetAssistantMessagesResponseItem = zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string(),
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "createdAt": zod.string()
+})
+export const GetAssistantMessagesResponse = zod.array(GetAssistantMessagesResponseItem)
+
+
+/**
+ * @summary Send a message and get an assistant reply with proposed actions
+ */
+export const SendAssistantMessageBody = zod.object({
+  "content": zod.string()
+})
+
+export const SendAssistantMessageResponse = zod.object({
+  "userMessage": zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string(),
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "createdAt": zod.string()
+}),
+  "assistantMessage": zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string(),
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary Apply a proposed action to the underlying system
+ */
+export const ConfirmAssistantActionParams = zod.object({
+  "actionId": zod.coerce.string()
+})
+
+export const ConfirmAssistantActionResponse = zod.object({
+  "action": zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+}),
+  "assistantMessage": zod.union([zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string(),
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "createdAt": zod.string()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Reject a proposed action, optionally with a comment for revision
+ */
+export const RejectAssistantActionParams = zod.object({
+  "actionId": zod.coerce.string()
+})
+
+export const RejectAssistantActionBody = zod.object({
+  "comment": zod.string().optional()
+})
+
+export const RejectAssistantActionResponse = zod.object({
+  "action": zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+}),
+  "assistantMessage": zod.union([zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string(),
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "createdAt": zod.string()
+}),zod.null()]).optional()
 })
 
 

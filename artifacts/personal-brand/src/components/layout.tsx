@@ -13,7 +13,10 @@ import {
   LogOut,
   Loader2,
   Settings,
-  Shield
+  Shield,
+  Sparkles,
+  MessagesSquare,
+  X
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import {
@@ -43,6 +46,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useResetClient } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { AssistantChat } from "@/components/assistant-chat";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -164,7 +168,45 @@ const navItems: NavItem[] = [
   { href: "/platforms", icon: Radio, label: "Platforms", gate: "platforms" },
   { href: "/content", icon: FileText, label: "Content", gate: "content" },
   { href: "/ideas", icon: Lightbulb, label: "Ideas" },
+  { href: "/assistant", icon: MessagesSquare, label: "Strategist" },
 ];
+
+function AssistantPanel() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button
+          aria-label="Open strategist"
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform duration-300 hover:scale-105"
+        >
+          <Sparkles className="h-6 w-6 stroke-[1.75]" />
+        </button>
+      </SheetTrigger>
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 p-0 sm:max-w-md"
+      >
+        <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="font-serif text-lg tracking-tight text-foreground">Strategist</span>
+          </div>
+          <button
+            onClick={() => setOpen(false)}
+            aria-label="Close strategist"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1">
+          <AssistantChat />
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 export function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
@@ -293,6 +335,8 @@ export function Layout({ children }: LayoutProps) {
           {children}
         </div>
       </main>
+
+      {location !== "/assistant" && <AssistantPanel />}
     </div>
   );
 }

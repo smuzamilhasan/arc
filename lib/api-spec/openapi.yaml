@@ -26,6 +26,8 @@ tags:
     description: Onboarding intake operations
   - name: admin
     description: Admin operations (view all users and their data)
+  - name: assistant
+    description: Master assistant chat that proposes confirm-before-apply edits
 paths:
   /healthz:
     get:
@@ -188,6 +190,25 @@ paths:
                 $ref: "#/components/schemas/PlatformStrategy"
         "404":
           description: Not found
+    put:
+      operationId: updatePlatforms
+      tags: [platforms]
+      summary: Update the editable text fields of the platform strategy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformsUpdateInput"
+      responses:
+        "200":
+          description: Updated platform strategy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStrategy"
+        "404":
+          description: Not found
 
   /platforms/generate:
     post:
@@ -216,6 +237,25 @@ paths:
       responses:
         "200":
           description: Content strategy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentStrategy"
+        "404":
+          description: Not found
+    put:
+      operationId: updateContentStrategy
+      tags: [contentStrategy]
+      summary: Update the editable text fields of the content strategy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentStrategyUpdateInput"
+      responses:
+        "200":
+          description: Updated content strategy
           content:
             application/json:
               schema:
@@ -557,6 +597,100 @@ paths:
           description: Forbidden
         "404":
           description: Not found
+
+  /assistant/messages:
+    get:
+      operationId: getAssistantMessages
+      tags: [assistant]
+      summary: Get the persisted assistant conversation for the client
+      responses:
+        "200":
+          description: Conversation messages in chronological order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssistantMessage"
+        "404":
+          description: No client profile yet
+
+  /assistant/message:
+    post:
+      operationId: sendAssistantMessage
+      tags: [assistant]
+      summary: Send a message and get an assistant reply with proposed actions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantSendInput"
+      responses:
+        "200":
+          description: The persisted user message and the assistant reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantReply"
+        "400":
+          description: Invalid input
+        "404":
+          description: No client profile yet
+        "502":
+          description: Assistant generation failed
+
+  /assistant/actions/{actionId}/confirm:
+    post:
+      operationId: confirmAssistantAction
+      tags: [assistant]
+      summary: Apply a proposed action to the underlying system
+      parameters:
+        - name: actionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The applied action and an optional follow-up message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantActionResult"
+        "400":
+          description: Action could not be applied
+        "404":
+          description: Action not found
+
+  /assistant/actions/{actionId}/reject:
+    post:
+      operationId: rejectAssistantAction
+      tags: [assistant]
+      summary: Reject a proposed action, optionally with a comment for revision
+      parameters:
+        - name: actionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantRejectInput"
+      responses:
+        "200":
+          description: The rejected action and the assistant's revised reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantActionResult"
+        "404":
+          description: Action not found
+        "502":
+          description: Assistant generation failed
 
 components:
   schemas:
@@ -1523,3 +1657,122 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Idea"
+
+    PlatformsUpdateInput:
+      type: object
+      required: [summary, closing]
+      properties:
+        summary:
+          type: string
+        closing:
+          type: string
+
+    ContentStrategyUpdateInput:
+      type: object
+      required: [summary, repurposing, closing]
+      properties:
+        summary:
+          type: string
+        repurposing:
+          type: string
+        closing:
+          type: string
+
+    AssistantDiffItem:
+      type: object
+      required: [label, before, after]
+      properties:
+        label:
+          type: string
+        before:
+          type: string
+        after:
+          type: string
+
+    AssistantAction:
+      type: object
+      required: [id, kind, title, rationale, status, diff]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum:
+            [
+              update_profile,
+              update_narrative,
+              regenerate_narrative,
+              update_content_strategy,
+              update_platforms,
+              create_post,
+              update_post,
+              create_idea,
+              update_idea,
+            ]
+        title:
+          type: string
+        rationale:
+          type: string
+        status:
+          type: string
+          enum: [proposed, applied, rejected]
+        rejectionComment:
+          type: ["string", "null"]
+        diff:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssistantDiffItem"
+        payload:
+          type: ["object", "null"]
+          additionalProperties: true
+
+    AssistantMessage:
+      type: object
+      required: [id, role, content, actions, createdAt]
+      properties:
+        id:
+          type: integer
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssistantAction"
+        createdAt:
+          type: string
+
+    AssistantSendInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+
+    AssistantReply:
+      type: object
+      required: [userMessage, assistantMessage]
+      properties:
+        userMessage:
+          $ref: "#/components/schemas/AssistantMessage"
+        assistantMessage:
+          $ref: "#/components/schemas/AssistantMessage"
+
+    AssistantRejectInput:
+      type: object
+      properties:
+        comment:
+          type: string
+
+    AssistantActionResult:
+      type: object
+      required: [action]
+      properties:
+        action:
+          $ref: "#/components/schemas/AssistantAction"
+        assistantMessage:
+          oneOf:
+            - $ref: "#/components/schemas/AssistantMessage"
+            - type: "null"

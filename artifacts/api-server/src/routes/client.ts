@@ -8,6 +8,7 @@ import {
   ideasTable,
   platformStrategiesTable,
   contentStrategiesTable,
+  assistantMessagesTable,
 } from "@workspace/db";
 import { UpsertClientBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
@@ -31,6 +32,9 @@ async function deleteClientData(clientId: number) {
     await tx
       .delete(platformStrategiesTable)
       .where(eq(platformStrategiesTable.clientId, clientId));
+    await tx
+      .delete(assistantMessagesTable)
+      .where(eq(assistantMessagesTable.clientId, clientId));
     await tx.delete(clientProfileTable).where(eq(clientProfileTable.id, clientId));
   });
 }

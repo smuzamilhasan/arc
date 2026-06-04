@@ -23,10 +23,16 @@ import type {
   AdminAccess,
   AdminUserDetail,
   AdminUserSummary,
+  AssistantActionResult,
+  AssistantMessage,
+  AssistantRejectInput,
+  AssistantReply,
+  AssistantSendInput,
   AuditResult,
   ClientProfile,
   ClientProfileInput,
   ContentStrategy,
+  ContentStrategyUpdateInput,
   DashboardSummary,
   DraftPillarInput,
   DraftPillarResult,
@@ -45,6 +51,7 @@ import type {
   NarrativeProfile,
   NarrativeUpdateInput,
   PlatformStrategy,
+  PlatformsUpdateInput,
   Post,
   PostInput,
   PostUpdate
@@ -873,6 +880,77 @@ export function useGetPlatforms<TData = Awaited<ReturnType<typeof getPlatforms>>
 
 
 
+export const getUpdatePlatformsUrl = () => {
+
+
+
+
+  return `/api/platforms`
+}
+
+/**
+ * @summary Update the editable text fields of the platform strategy
+ */
+export const updatePlatforms = async (platformsUpdateInput: PlatformsUpdateInput, options?: RequestInit): Promise<PlatformStrategy> => {
+
+  return customFetch<PlatformStrategy>(getUpdatePlatformsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      platformsUpdateInput,)
+  }
+);}
+
+
+
+
+export const getUpdatePlatformsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatforms>>, TError,{data: BodyType<PlatformsUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePlatforms>>, TError,{data: BodyType<PlatformsUpdateInput>}, TContext> => {
+
+const mutationKey = ['updatePlatforms'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePlatforms>>, {data: BodyType<PlatformsUpdateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updatePlatforms(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePlatformsMutationResult = NonNullable<Awaited<ReturnType<typeof updatePlatforms>>>
+    export type UpdatePlatformsMutationBody = BodyType<PlatformsUpdateInput>
+    export type UpdatePlatformsMutationError = ErrorType<void>
+
+    /**
+ * @summary Update the editable text fields of the platform strategy
+ */
+export const useUpdatePlatforms = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatforms>>, TError,{data: BodyType<PlatformsUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePlatforms>>,
+        TError,
+        {data: BodyType<PlatformsUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePlatformsMutationOptions(options));
+    }
+
 export const getGeneratePlatformsUrl = () => {
 
 
@@ -1019,6 +1097,77 @@ export function useGetContentStrategy<TData = Awaited<ReturnType<typeof getConte
 
 
 
+
+export const getUpdateContentStrategyUrl = () => {
+
+
+
+
+  return `/api/content-strategy`
+}
+
+/**
+ * @summary Update the editable text fields of the content strategy
+ */
+export const updateContentStrategy = async (contentStrategyUpdateInput: ContentStrategyUpdateInput, options?: RequestInit): Promise<ContentStrategy> => {
+
+  return customFetch<ContentStrategy>(getUpdateContentStrategyUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      contentStrategyUpdateInput,)
+  }
+);}
+
+
+
+
+export const getUpdateContentStrategyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateContentStrategy>>, TError,{data: BodyType<ContentStrategyUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateContentStrategy>>, TError,{data: BodyType<ContentStrategyUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateContentStrategy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateContentStrategy>>, {data: BodyType<ContentStrategyUpdateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateContentStrategy(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateContentStrategyMutationResult = NonNullable<Awaited<ReturnType<typeof updateContentStrategy>>>
+    export type UpdateContentStrategyMutationBody = BodyType<ContentStrategyUpdateInput>
+    export type UpdateContentStrategyMutationError = ErrorType<void>
+
+    /**
+ * @summary Update the editable text fields of the content strategy
+ */
+export const useUpdateContentStrategy = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateContentStrategy>>, TError,{data: BodyType<ContentStrategyUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateContentStrategy>>,
+        TError,
+        {data: BodyType<ContentStrategyUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateContentStrategyMutationOptions(options));
+    }
 
 export const getGenerateContentStrategyUrl = () => {
 
@@ -2345,4 +2494,294 @@ export function useGetAdminUser<TData = Awaited<ReturnType<typeof getAdminUser>>
 
 
 
+
+export const getGetAssistantMessagesUrl = () => {
+
+
+
+
+  return `/api/assistant/messages`
+}
+
+/**
+ * @summary Get the persisted assistant conversation for the client
+ */
+export const getAssistantMessages = async ( options?: RequestInit): Promise<AssistantMessage[]> => {
+
+  return customFetch<AssistantMessage[]>(getGetAssistantMessagesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAssistantMessagesQueryKey = () => {
+    return [
+    `/api/assistant/messages`
+    ] as const;
+    }
+
+
+export const getGetAssistantMessagesQueryOptions = <TData = Awaited<ReturnType<typeof getAssistantMessages>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAssistantMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAssistantMessagesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAssistantMessages>>> = ({ signal }) => getAssistantMessages({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAssistantMessages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAssistantMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof getAssistantMessages>>>
+export type GetAssistantMessagesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the persisted assistant conversation for the client
+ */
+
+export function useGetAssistantMessages<TData = Awaited<ReturnType<typeof getAssistantMessages>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAssistantMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAssistantMessagesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSendAssistantMessageUrl = () => {
+
+
+
+
+  return `/api/assistant/message`
+}
+
+/**
+ * @summary Send a message and get an assistant reply with proposed actions
+ */
+export const sendAssistantMessage = async (assistantSendInput: AssistantSendInput, options?: RequestInit): Promise<AssistantReply> => {
+
+  return customFetch<AssistantReply>(getSendAssistantMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantSendInput,)
+  }
+);}
+
+
+
+
+export const getSendAssistantMessageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAssistantMessage>>, TError,{data: BodyType<AssistantSendInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendAssistantMessage>>, TError,{data: BodyType<AssistantSendInput>}, TContext> => {
+
+const mutationKey = ['sendAssistantMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendAssistantMessage>>, {data: BodyType<AssistantSendInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendAssistantMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendAssistantMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendAssistantMessage>>>
+    export type SendAssistantMessageMutationBody = BodyType<AssistantSendInput>
+    export type SendAssistantMessageMutationError = ErrorType<void>
+
+    /**
+ * @summary Send a message and get an assistant reply with proposed actions
+ */
+export const useSendAssistantMessage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAssistantMessage>>, TError,{data: BodyType<AssistantSendInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendAssistantMessage>>,
+        TError,
+        {data: BodyType<AssistantSendInput>},
+        TContext
+      > => {
+      return useMutation(getSendAssistantMessageMutationOptions(options));
+    }
+
+export const getConfirmAssistantActionUrl = (actionId: string,) => {
+
+
+
+
+  return `/api/assistant/actions/${actionId}/confirm`
+}
+
+/**
+ * @summary Apply a proposed action to the underlying system
+ */
+export const confirmAssistantAction = async (actionId: string, options?: RequestInit): Promise<AssistantActionResult> => {
+
+  return customFetch<AssistantActionResult>(getConfirmAssistantActionUrl(actionId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getConfirmAssistantActionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAssistantAction>>, TError,{actionId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAssistantAction>>, TError,{actionId: string}, TContext> => {
+
+const mutationKey = ['confirmAssistantAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAssistantAction>>, {actionId: string}> = (props) => {
+          const {actionId} = props ?? {};
+
+          return  confirmAssistantAction(actionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAssistantActionMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAssistantAction>>>
+
+    export type ConfirmAssistantActionMutationError = ErrorType<void>
+
+    /**
+ * @summary Apply a proposed action to the underlying system
+ */
+export const useConfirmAssistantAction = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAssistantAction>>, TError,{actionId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAssistantAction>>,
+        TError,
+        {actionId: string},
+        TContext
+      > => {
+      return useMutation(getConfirmAssistantActionMutationOptions(options));
+    }
+
+export const getRejectAssistantActionUrl = (actionId: string,) => {
+
+
+
+
+  return `/api/assistant/actions/${actionId}/reject`
+}
+
+/**
+ * @summary Reject a proposed action, optionally with a comment for revision
+ */
+export const rejectAssistantAction = async (actionId: string,
+    assistantRejectInput?: AssistantRejectInput, options?: RequestInit): Promise<AssistantActionResult> => {
+
+  return customFetch<AssistantActionResult>(getRejectAssistantActionUrl(actionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantRejectInput,)
+  }
+);}
+
+
+
+
+export const getRejectAssistantActionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectAssistantAction>>, TError,{actionId: string;data?: BodyType<AssistantRejectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectAssistantAction>>, TError,{actionId: string;data?: BodyType<AssistantRejectInput>}, TContext> => {
+
+const mutationKey = ['rejectAssistantAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectAssistantAction>>, {actionId: string;data?: BodyType<AssistantRejectInput>}> = (props) => {
+          const {actionId,data} = props ?? {};
+
+          return  rejectAssistantAction(actionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectAssistantActionMutationResult = NonNullable<Awaited<ReturnType<typeof rejectAssistantAction>>>
+    export type RejectAssistantActionMutationBody = BodyType<AssistantRejectInput> | undefined
+    export type RejectAssistantActionMutationError = ErrorType<void>
+
+    /**
+ * @summary Reject a proposed action, optionally with a comment for revision
+ */
+export const useRejectAssistantAction = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectAssistantAction>>, TError,{actionId: string;data?: BodyType<AssistantRejectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rejectAssistantAction>>,
+        TError,
+        {actionId: string;data?: BodyType<AssistantRejectInput>},
+        TContext
+      > => {
+      return useMutation(getRejectAssistantActionMutationOptions(options));
+    }
 

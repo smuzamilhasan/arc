@@ -10,6 +10,7 @@ import ideasRouter from "./ideas";
 import dashboardRouter from "./dashboard";
 import onboardingRouter from "./onboarding";
 import adminRouter from "./admin";
+import assistantRouter from "./assistant";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
@@ -27,5 +28,6 @@ router.use(ideasRouter);
 router.use(dashboardRouter);
 router.use(onboardingRouter);
 router.use(adminRouter);
+router.use(assistantRouter);
 
 export default router;

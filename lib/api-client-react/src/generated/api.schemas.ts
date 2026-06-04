@@ -569,6 +569,99 @@ export interface AdminUserDetail {
   ideas: Idea[];
 }
 
+export interface PlatformsUpdateInput {
+  summary: string;
+  closing: string;
+}
+
+export interface ContentStrategyUpdateInput {
+  summary: string;
+  repurposing: string;
+  closing: string;
+}
+
+export interface AssistantDiffItem {
+  label: string;
+  before: string;
+  after: string;
+}
+
+export type AssistantActionKind = typeof AssistantActionKind[keyof typeof AssistantActionKind];
+
+
+export const AssistantActionKind = {
+  update_profile: 'update_profile',
+  update_narrative: 'update_narrative',
+  regenerate_narrative: 'regenerate_narrative',
+  update_content_strategy: 'update_content_strategy',
+  update_platforms: 'update_platforms',
+  create_post: 'create_post',
+  update_post: 'update_post',
+  create_idea: 'create_idea',
+  update_idea: 'update_idea',
+} as const;
+
+export type AssistantActionStatus = typeof AssistantActionStatus[keyof typeof AssistantActionStatus];
+
+
+export const AssistantActionStatus = {
+  proposed: 'proposed',
+  applied: 'applied',
+  rejected: 'rejected',
+} as const;
+
+/**
+ * @nullable
+ */
+export type AssistantActionPayload = { [key: string]: unknown } | null;
+
+export interface AssistantAction {
+  id: string;
+  kind: AssistantActionKind;
+  title: string;
+  rationale: string;
+  status: AssistantActionStatus;
+  /** @nullable */
+  rejectionComment?: string | null;
+  diff: AssistantDiffItem[];
+  /** @nullable */
+  payload?: AssistantActionPayload;
+}
+
+export type AssistantMessageRole = typeof AssistantMessageRole[keyof typeof AssistantMessageRole];
+
+
+export const AssistantMessageRole = {
+  user: 'user',
+  assistant: 'assistant',
+} as const;
+
+export interface AssistantMessage {
+  id: number;
+  role: AssistantMessageRole;
+  content: string;
+  actions: AssistantAction[];
+  createdAt: string;
+}
+
+export interface AssistantSendInput {
+  content: string;
+}
+
+export interface AssistantReply {
+  userMessage: AssistantMessage;
+  assistantMessage: AssistantMessage;
+}
+
+export interface AssistantRejectInput {
+  comment?: string;
+}
+
+export interface AssistantActionResult {
+  action: AssistantAction;
+  assistantMessage?: AssistantMessage | null;
+}
+
 export type ListPostsParams = {
 platform?: string;
 status?: string;

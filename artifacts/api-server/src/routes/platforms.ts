@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db, platformStrategiesTable } from "@workspace/db";
+import { UpdatePlatformsBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
 import { getClientForUser } from "./client";
 import { generatePlatformStrategy, isBlueprintComplete } from "../services/platforms";
@@ -78,6 +79,39 @@ router.post("/platforms/generate", async (req, res) => {
     req.log.error({ err }, "Failed to generate platform strategy");
     res.status(502).json({ error: "Platform strategy generation failed. Please try again." });
   }
+});
+
+router.put("/platforms", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const parsed = UpdatePlatformsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid platform strategy input" });
+    return;
+  }
+  const [existing] = await db
+    .select()
+    .from(platformStrategiesTable)
+    .where(eq(platformStrategiesTable.clientId, client.id))
+    .orderBy(desc(platformStrategiesTable.id))
+    .limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "No platform strategy yet" });
+    return;
+  }
+  const [strategy] = await db
+    .update(platformStrategiesTable)
+    .set({
+      summary: parsed.data.summary,
+      closing: parsed.data.closing,
+      updatedAt: new Date(),
+    })
+    .where(eq(platformStrategiesTable.id, existing.id))
+    .returning();
+  res.json(serializePlatformStrategy(strategy));
 });
 
 export default router;

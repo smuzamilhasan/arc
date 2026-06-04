@@ -5,3 +5,4 @@ export * from "./platformStrategies";
 export * from "./contentStrategies";
 export * from "./posts";
 export * from "./ideas";
+export * from "./assistantMessages";

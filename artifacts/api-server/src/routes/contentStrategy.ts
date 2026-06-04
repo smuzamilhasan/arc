@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db, contentStrategiesTable, platformStrategiesTable } from "@workspace/db";
+import { UpdateContentStrategyBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
 import { getClientForUser } from "./client";
 import { isBlueprintComplete } from "../services/platforms";
@@ -99,6 +100,40 @@ router.post("/content-strategy/generate", async (req, res) => {
     req.log.error({ err }, "Failed to generate content strategy");
     res.status(502).json({ error: "Content strategy generation failed. Please try again." });
   }
+});
+
+router.put("/content-strategy", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const parsed = UpdateContentStrategyBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid content strategy input" });
+    return;
+  }
+  const [existing] = await db
+    .select()
+    .from(contentStrategiesTable)
+    .where(eq(contentStrategiesTable.clientId, client.id))
+    .orderBy(desc(contentStrategiesTable.id))
+    .limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "No content strategy yet" });
+    return;
+  }
+  const [strategy] = await db
+    .update(contentStrategiesTable)
+    .set({
+      summary: parsed.data.summary,
+      repurposing: parsed.data.repurposing,
+      closing: parsed.data.closing,
+      updatedAt: new Date(),
+    })
+    .where(eq(contentStrategiesTable.id, existing.id))
+    .returning();
+  res.json(serializeContentStrategy(strategy));
 });
 
 export default router;

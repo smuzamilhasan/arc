@@ -34,6 +34,7 @@ import Narrative from "@/pages/narrative";
 import Platforms from "@/pages/platforms";
 import Content from "@/pages/content";
 import Ideas from "@/pages/ideas";
+import Assistant from "@/pages/assistant";
 import Account from "@/pages/account";
 import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
@@ -247,6 +248,7 @@ function ClerkProviderWithRoutes() {
                     <Route path="/platforms" component={Platforms} />
                     <Route path="/content" component={Content} />
                     <Route path="/ideas" component={Ideas} />
+                    <Route path="/assistant" component={Assistant} />
                     <Route path="/account" component={Account} />
                     <Route path="/admin" component={Admin} />
                     <Route component={NotFound} />

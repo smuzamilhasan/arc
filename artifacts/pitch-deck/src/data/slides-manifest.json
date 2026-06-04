@@ -1,0 +1,58 @@
+[
+  {
+    "id": "b1f7c3a2-5d8e-4a91-9c0a-1e2f3a4b5c61",
+    "position": 1,
+    "filepath": "src/pages/slides/Title.tsx",
+    "title": "arc",
+    "description": "Title slide with the arc logo lockup and positioning headline.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "c2a8d4b3-6e9f-4b02-8d1b-2f3a4b5c6d72",
+    "position": 2,
+    "filepath": "src/pages/slides/Problem.tsx",
+    "title": "Two surfaces, no strategy",
+    "description": "The problem: how people show up across Google search (SEO) and AI models (GEO).",
+    "speakerNotes": ""
+  },
+  {
+    "id": "d3b9e5c4-7f0a-4c13-9e2c-3a4b5c6d7e83",
+    "position": 3,
+    "filepath": "src/pages/slides/Flow.tsx",
+    "title": "How arc works",
+    "description": "The arc flow: onboarding, audit, narrative, content.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "e4c0f6d5-8a1b-4d24-8f3d-4b5c6d7e8f94",
+    "position": 4,
+    "filepath": "src/pages/slides/Audit.tsx",
+    "title": "The presence audit",
+    "description": "SEO and GEO scores 0-100 with findings and recommendations.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "f5d1a7e6-9b2c-4e35-9a4e-5c6d7e8f9a05",
+    "position": 5,
+    "filepath": "src/pages/slides/Narrative.tsx",
+    "title": "From narrative to content",
+    "description": "Narrative synthesis into positioning and themes, driving content.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a6e2b8f7-0c3d-4f46-8b5f-6d7e8f9a0b16",
+    "position": 6,
+    "filepath": "src/pages/slides/Value.tsx",
+    "title": "Why arc",
+    "description": "Value proposition: single-client depth, search plus AI, strategy not just scores.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "b7f3c9a8-1d4e-4a57-9c60-7e8f9a0b1c27",
+    "position": 7,
+    "filepath": "src/pages/slides/Closing.tsx",
+    "title": "Closing",
+    "description": "Closing slide with the arc logo lockup and tagline.",
+    "speakerNotes": ""
+  }
+]

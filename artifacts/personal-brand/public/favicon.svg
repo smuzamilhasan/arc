@@ -1,6 +1,14 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="180" height="180" rx="40" fill="hsl(20 80% 45%)"/>
-  <g stroke="hsl(42 25% 98%)" stroke-width="20" stroke-linecap="round" fill="none">
+  <style>
+    .tile { fill: hsl(20 80% 45%); }
+    .arc { stroke: hsl(42 25% 98%); }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: hsl(20 80% 55%); }
+      .arc { stroke: hsl(220 30% 8%); }
+    }
+  </style>
+  <rect class="tile" width="180" height="180" rx="40"/>
+  <g class="arc" stroke-width="20" stroke-linecap="round" fill="none">
     <path d="M38 105 A52 52 0 0 1 142 105"/>
     <path d="M32 127 H148"/>
   </g>

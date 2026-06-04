@@ -23,9 +23,26 @@ publicDir = "artifacts/personal-brand/dist/public"
 serve = "static"
 
 [[services.production.rewrites]]
+from = "/sign-in"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/sign-in/*"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/sign-up"
+to = "/sign-up.html"
+
+[[services.production.rewrites]]
+from = "/sign-up/*"
+to = "/sign-up.html"
+
+[[services.production.rewrites]]
 from = "/*"
 to = "/index.html"
 
 [services.env]
 PORT = "23384"
 BASE_PATH = "/"
+VITE_APP_URL = "https://arc.replit.app"

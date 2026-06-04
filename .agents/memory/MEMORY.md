@@ -1,4 +1,5 @@
 - [Adding a client_profile field](client-field-add-flow.md) — schema+openapi+codegen isn't enough; the PUT /client `values` map must list the new field or it's silently dropped.
+- [No null render on query failure](no-null-render-on-query-failure.md) — pages returning null on a failed query = white screen; QueryClient swallows errors with no global 401 handler, so render an explicit error/sign-in state.
 - [Per-client table cleanup](feature-gate-cleanup.md) — any new clientId-keyed table must be added to deleteClientData (backs reset + account-delete) or its rows leak after deletion.
 - [wouter catch-all routing](wouter-catchall-routing.md) — `/:rest*` only matches ONE segment; use `/*` for multi-segment catch-all. Blank screen, no error = unmatched route.
 - [Narrative generation source](narrative-generation.md) — narrative auto-synthesizes from onboarding coach fields on the Narrative page; the 4-question interview is only a fallback/retake.

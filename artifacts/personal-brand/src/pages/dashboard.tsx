@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { useGetDashboard, getGetDashboardQueryKey, useGetClient, getGetClientQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
   Search,
   BookOpen,
@@ -12,6 +13,8 @@ import {
   ArrowUpRight,
   Sparkles,
   Compass,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { overallCompletion, nextPillar } from "@/lib/blueprint";
@@ -56,8 +59,21 @@ function ScoreDial({ label, score, hint }: { label: string; score: number | null
 }
 
 export default function Dashboard() {
-  const { data: dashboard, isLoading } = useGetDashboard({
-    query: { queryKey: getGetDashboardQueryKey() },
+  const {
+    data: dashboard,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useGetDashboard({
+    query: {
+      queryKey: getGetDashboardQueryKey(),
+      retry: (failureCount, err) => {
+        if ((err as { status?: number } | null)?.status === 401) return false;
+        return failureCount < 3;
+      },
+    },
   });
   const { data: client } = useGetClient({
     query: { queryKey: getGetClientQueryKey(), retry: false },
@@ -84,7 +100,39 @@ export default function Dashboard() {
     );
   }
 
-  if (!dashboard) return null;
+  if (isError || !dashboard) {
+    const status = (error as { status?: number } | null)?.status;
+    const isAuthError = status === 401;
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="max-w-md text-center">
+          <div className="bg-secondary/40 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5">
+            <AlertTriangle className="w-7 h-7 text-muted-foreground" />
+          </div>
+          <h1 className="font-serif text-2xl text-foreground">
+            {isAuthError ? "Your session expired" : "We couldn't load your overview"}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            {isAuthError
+              ? "Sign in again to pick up where you left off."
+              : "Something went wrong reaching arc. This is usually temporary."}
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            {isAuthError ? (
+              <Link href="/sign-in">
+                <Button>Sign in</Button>
+              </Link>
+            ) : (
+              <Button onClick={() => refetch()} disabled={isFetching}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+                {isFetching ? "Retrying" : "Try again"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const blueprint = overallCompletion(client);
   const next = nextPillar(client);

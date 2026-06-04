@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   useListPosts,
-  useCreatePost,
-  useUpdatePost,
   useDeletePost,
+  useUpdatePost,
   useScheduleBatchPosts,
   getListPostsQueryKey,
   useGetClient,
@@ -18,9 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -50,23 +47,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
 import type { Post, ContentStrategy, ContentMixItem } from "@workspace/api-client-react";
 import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blueprint";
 import { rescheduleToDay, shiftByDays } from "@/lib/schedule";
 import { GenerateGate } from "@/components/locked-panel";
-
-const postSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  content: z.string().min(1, "Content is required"),
-  platform: z.enum(["linkedin", "twitter", "instagram", "blog", "other"]),
-  status: z.enum(["draft", "scheduled", "published"]),
-  scheduledAt: z.string().optional(),
-});
-
-type PostFormValues = z.infer<typeof postSchema>;
+import { PostEditorDialog } from "@/components/post-editor";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -325,20 +310,9 @@ function ContentLibrary() {
     query: { queryKey: getListPostsQueryKey() },
   });
 
-  const createPost = useCreatePost();
-  const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
+  const updatePost = useUpdatePost();
   const scheduleBatch = useScheduleBatchPosts();
-
-  const form = useForm<PostFormValues>({
-    resolver: zodResolver(postSchema),
-    defaultValues: {
-      title: "",
-      content: "",
-      platform: "linkedin",
-      status: "draft",
-    },
-  });
 
   const filteredPosts = posts.filter((post) => {
     if (platformFilter !== "all" && post.platform !== platformFilter) return false;
@@ -472,54 +446,10 @@ function ContentLibrary() {
     }
   };
 
-  const handleOpenEditor = (post?: Post) => {
-    if (post) {
-      setEditingPost(post);
-      form.reset({
-        title: post.title,
-        content: post.content,
-        platform: post.platform,
-        status: post.status,
-        scheduledAt: post.scheduledAt || undefined,
-      });
-    } else {
-      setEditingPost(null);
-      form.reset({
-        title: "",
-        content: "",
-        platform: "linkedin",
-        status: "draft",
-      });
-    }
-    setIsEditorOpen(true);
-  };
 
-  const onSubmit = (data: PostFormValues) => {
-    if (editingPost) {
-      updatePost.mutate(
-        { id: editingPost.id, data },
-        {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
-            toast({ title: "Post updated", description: "Changes have been saved." });
-            setIsEditorOpen(false);
-          },
-          onError: () => toast({ title: "Error updating post", variant: "destructive" })
-        }
-      );
-    } else {
-      createPost.mutate(
-        { data },
-        {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
-            toast({ title: "Post created", description: "New content added to your library." });
-            setIsEditorOpen(false);
-          },
-          onError: () => toast({ title: "Error creating post", variant: "destructive" })
-        }
-      );
-    }
+  const handleOpenEditor = (post?: Post) => {
+    setEditingPost(post ?? null);
+    setIsEditorOpen(true);
   };
 
   const handleDelete = () => {
@@ -715,129 +645,7 @@ function ContentLibrary() {
       )}
 
       {/* Editor Dialog */}
-      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-        <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 overflow-hidden border-border/50 rounded-xl shadow-2xl">
-          <DialogHeader className="p-8 pb-4 border-b border-border/50 shrink-0 bg-card">
-            <DialogTitle className="font-serif text-3xl font-normal">
-              {editingPost ? "Edit Post" : "Compose Post"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-background">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-muted-foreground font-medium text-xs uppercase tracking-widest">The Hook / Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Grab their attention..." className="text-xl font-serif h-14 bg-card border-border/50 px-4 placeholder:font-sans placeholder:font-light" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="platform"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-muted-foreground font-medium text-xs uppercase tracking-widest">Platform</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-11 bg-card border-border/50">
-                              <SelectValue placeholder="Select platform" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="linkedin">LinkedIn</SelectItem>
-                            <SelectItem value="twitter">X (Twitter)</SelectItem>
-                            <SelectItem value="instagram">Instagram</SelectItem>
-                            <SelectItem value="blog">Blog</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-muted-foreground font-medium text-xs uppercase tracking-widest">Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-11 bg-card border-border/50">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="draft">Draft</SelectItem>
-                            <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="published">Published</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.watch("status") === "scheduled" && (
-                    <FormField
-                      control={form.control}
-                      name="scheduledAt"
-                      render={({ field }) => (
-                        <FormItem className="animate-in fade-in zoom-in-95 duration-200">
-                          <FormLabel className="text-muted-foreground font-medium text-xs uppercase tracking-widest">Schedule Date</FormLabel>
-                          <FormControl>
-                            <Input type="datetime-local" className="h-11 bg-card border-border/50" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="content"
-                  render={({ field }) => (
-                    <FormItem className="flex-1 flex flex-col min-h-[300px]">
-                      <FormLabel className="text-muted-foreground font-medium text-xs uppercase tracking-widest">The Content</FormLabel>
-                      <FormControl className="flex-1">
-                        <Textarea
-                          placeholder="Tell the story..."
-                          className="flex-1 resize-none bg-card border-border/50 p-4 text-base leading-relaxed font-light focus-visible:ring-primary/20"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="p-6 border-t border-border/50 bg-card shrink-0 flex justify-between items-center">
-                <Button type="button" variant="ghost" onClick={() => setIsEditorOpen(false)} className="text-muted-foreground hover:text-foreground">
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createPost.isPending || updatePost.isPending} className="gap-2 rounded-full px-8 bg-primary hover:bg-primary/90 h-11">
-                  {(createPost.isPending || updatePost.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingPost ? "Save Changes" : "Save to Library"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <PostEditorDialog open={isEditorOpen} onOpenChange={setIsEditorOpen} post={editingPost} />
 
       {/* Delete Confirmation */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

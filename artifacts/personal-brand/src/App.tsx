@@ -32,6 +32,7 @@ import PillarPage from "@/pages/pillar";
 import Audit from "@/pages/audit";
 import Narrative from "@/pages/narrative";
 import Platforms from "@/pages/platforms";
+import Calendar from "@/pages/calendar";
 import Content from "@/pages/content";
 import Ideas from "@/pages/ideas";
 import Assistant from "@/pages/assistant";
@@ -246,6 +247,7 @@ function ClerkProviderWithRoutes() {
                     <Route path="/audit" component={Audit} />
                     <Route path="/narrative" component={Narrative} />
                     <Route path="/platforms" component={Platforms} />
+                    <Route path="/calendar" component={Calendar} />
                     <Route path="/content" component={Content} />
                     <Route path="/ideas" component={Ideas} />
                     <Route path="/assistant" component={Assistant} />

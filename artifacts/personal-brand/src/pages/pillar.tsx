@@ -36,6 +36,7 @@ import {
   nextPillarAfter,
   isPillarUnlocked,
   pillarUnlockPrerequisites,
+  resolveFieldExample,
   type Pillar,
   type PillarField,
 } from "@/lib/blueprint";
@@ -62,7 +63,7 @@ function FieldInput({
   exampleOverride?: string;
 }) {
   const [showExample, setShowExample] = useState(false);
-  const example = exampleOverride?.trim() ? exampleOverride : field.example;
+  const example = resolveFieldExample(field, exampleOverride);
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">

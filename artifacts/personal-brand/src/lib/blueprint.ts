@@ -353,6 +353,18 @@ export function supportingFields(pillar: Pillar): PillarField[] {
   return pillar.fields.filter((f) => !pillar.countFields.includes(f.name));
 }
 
+// Resolve which example to show for a field. An industry-tailored sample
+// (`exampleOverride`) is preferred when present and non-empty; otherwise we fall
+// back to the field's static example. Whitespace-only overrides count as empty
+// so a blank AI result never blanks out the static fallback. Returns undefined
+// when neither is available (the "See an example" affordance is then hidden).
+export function resolveFieldExample(
+  field: PillarField,
+  exampleOverride?: string,
+): string | undefined {
+  return exampleOverride?.trim() ? exampleOverride : field.example;
+}
+
 export function fieldValue(
   client: ClientProfile | undefined,
   name: string,

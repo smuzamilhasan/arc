@@ -16,7 +16,9 @@ import {
   pillarUnlockPrerequisites,
   panelGatePrerequisites,
   isPanelUnlocked,
+  resolveFieldExample,
   type Pillar,
+  type PillarField,
   type PanelGateContext,
 } from "./blueprint";
 
@@ -501,5 +503,45 @@ describe("CORE_FIELDS fixture stays in sync with PILLARS", () => {
         expect(CORE_FIELDS[id]).toEqual(pillar(id).countFields);
       }
     }
+  });
+});
+
+// FieldInput resolves which example to show via resolveFieldExample. The static
+// example in blueprint.ts must always be the safety net: a missing, empty, or
+// whitespace-only industry override must never blank out the static fallback.
+describe("resolveFieldExample (industry-example fallback)", () => {
+  const field = (example?: string): PillarField => ({
+    name: "positioning",
+    label: "How do you want to be positioned?",
+    placeholder: "",
+    example,
+  });
+
+  const STATIC = "I turn founder expertise into investor-ready stories.";
+  const OVERRIDE = "I help boutique law firms win complex appellate cases.";
+
+  it("prefers the industry override when present and non-empty", () => {
+    expect(resolveFieldExample(field(STATIC), OVERRIDE)).toBe(OVERRIDE);
+  });
+
+  it("falls back to the static example when the override is undefined", () => {
+    expect(resolveFieldExample(field(STATIC), undefined)).toBe(STATIC);
+  });
+
+  it("falls back to the static example when the override is an empty string", () => {
+    expect(resolveFieldExample(field(STATIC), "")).toBe(STATIC);
+  });
+
+  it("falls back to the static example when the override is whitespace only", () => {
+    expect(resolveFieldExample(field(STATIC), "   \n\t ")).toBe(STATIC);
+  });
+
+  it("returns undefined when neither override nor static example exists", () => {
+    expect(resolveFieldExample(field(undefined), undefined)).toBeUndefined();
+    expect(resolveFieldExample(field(undefined), "")).toBeUndefined();
+  });
+
+  it("uses a valid override even when there is no static example", () => {
+    expect(resolveFieldExample(field(undefined), OVERRIDE)).toBe(OVERRIDE);
   });
 });

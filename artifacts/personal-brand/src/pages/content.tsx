@@ -42,6 +42,9 @@ import {
   Flame,
   BookOpen,
   Users,
+  GripVertical,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -399,6 +402,68 @@ function ContentLibrary() {
     );
   };
 
+  // Move a single post to a different calendar day, preserving its time of day.
+  const handleReschedule = (post: Post, newDayKey: string) => {
+    if (!post.scheduledAt) return;
+    const existing = new Date(post.scheduledAt);
+    if (format(existing, "yyyy-MM-dd") === newDayKey) return;
+    const [y, m, d] = newDayKey.split("-").map(Number);
+    const newDate = new Date(
+      y,
+      m - 1,
+      d,
+      existing.getHours(),
+      existing.getMinutes(),
+      0,
+      0,
+    );
+    updatePost.mutate(
+      { id: post.id, data: { scheduledAt: newDate.toISOString() } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+          toast({
+            title: "Post rescheduled",
+            description: `Moved to ${format(newDate, "EEEE, MMM d")}.`,
+          });
+        },
+        onError: () =>
+          toast({ title: "Could not reschedule post", variant: "destructive" }),
+      },
+    );
+  };
+
+  // Shift every post on a given day forward/back by a number of days.
+  const handleShiftDay = async (
+    dayPosts: Post[],
+    deltaDays: number,
+  ) => {
+    const movable = dayPosts.filter((p) => p.scheduledAt);
+    if (movable.length === 0 || deltaDays === 0) return;
+    try {
+      await Promise.all(
+        movable.map((post) => {
+          const existing = new Date(post.scheduledAt!);
+          const shifted = new Date(existing);
+          shifted.setDate(shifted.getDate() + deltaDays);
+          return updatePost.mutateAsync({
+            id: post.id,
+            data: { scheduledAt: shifted.toISOString() },
+          });
+        }),
+      );
+      queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+      const direction = deltaDays > 0 ? "later" : "earlier";
+      const magnitude = Math.abs(deltaDays);
+      toast({
+        title: "Day rescheduled",
+        description: `${movable.length} ${movable.length === 1 ? "post" : "posts"} moved ${magnitude} ${magnitude === 1 ? "day" : "days"} ${direction}.`,
+      });
+    } catch {
+      toast({ title: "Could not shift posts", variant: "destructive" });
+    }
+  };
+
   const handleOpenEditor = (post?: Post) => {
     if (post) {
       setEditingPost(post);
@@ -521,6 +586,9 @@ function ContentLibrary() {
           onSelect={handleOpenEditor}
           onPlan={openPlanner}
           canPlan={schedulablePosts.length > 0}
+          onReschedule={handleReschedule}
+          onShiftDay={handleShiftDay}
+          isUpdating={updatePost.isPending}
         />
       ) : (
       <>
@@ -905,13 +973,22 @@ function ScheduleCalendar({
   onSelect,
   onPlan,
   canPlan,
+  onReschedule,
+  onShiftDay,
+  isUpdating,
 }: {
   posts: Post[];
   isLoading: boolean;
   onSelect: (post: Post) => void;
   onPlan: () => void;
   canPlan: boolean;
+  onReschedule: (post: Post, newDayKey: string) => void;
+  onShiftDay: (dayPosts: Post[], deltaDays: number) => void;
+  isUpdating: boolean;
 }) {
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -962,28 +1039,95 @@ function ScheduleCalendar({
 
   return (
     <div className="space-y-8">
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <GripVertical className="h-3.5 w-3.5" />
+        Drag a post onto another day to reschedule it, or shift a whole day with the arrows.
+      </p>
       {orderedDays.map((day) => {
         const dayDate = new Date(`${day}T00:00:00`);
+        const dayPosts = groups.get(day)!;
+        const isDropTarget = dragOverDay === day;
         return (
           <div key={day} className="relative pl-6">
             <div className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
             <div className="absolute left-[4.5px] top-4 bottom-0 w-px bg-border/60" />
-            <div className="mb-3 flex items-baseline gap-3">
+            <div className="mb-3 flex items-center gap-3">
               <h3 className="font-serif text-xl text-foreground">{format(dayDate, "EEEE, MMM d")}</h3>
               <span className="text-xs uppercase tracking-widest text-muted-foreground">
-                {groups.get(day)!.length} {groups.get(day)!.length === 1 ? "post" : "posts"}
+                {dayPosts.length} {dayPosts.length === 1 ? "post" : "posts"}
               </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={isUpdating}
+                  onClick={() => onShiftDay(dayPosts, -1)}
+                  className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                  title="Shift this day one day earlier"
+                  aria-label="Shift this day one day earlier"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={isUpdating}
+                  onClick={() => onShiftDay(dayPosts, 1)}
+                  className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                  title="Shift this day one day later"
+                  aria-label="Shift this day one day later"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {groups.get(day)!.map((post) => (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (dragOverDay !== day) setDragOverDay(day);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOverDay((prev) => (prev === day ? null : prev));
+                }
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const id = Number(e.dataTransfer.getData("text/plain"));
+                const post = posts.find((p) => p.id === id);
+                setDragOverDay(null);
+                setDraggingId(null);
+                if (post) onReschedule(post, day);
+              }}
+              className={`grid grid-cols-1 gap-3 rounded-xl sm:grid-cols-2 lg:grid-cols-3 ${
+                isDropTarget
+                  ? "outline-dashed outline-2 outline-primary/40 outline-offset-4"
+                  : ""
+              }`}
+            >
+              {dayPosts.map((post) => (
                 <Card
                   key={post.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", String(post.id));
+                    e.dataTransfer.effectAllowed = "move";
+                    setDraggingId(post.id);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingId(null);
+                    setDragOverDay(null);
+                  }}
                   onClick={() => onSelect(post)}
-                  className="cursor-pointer border-border/50 bg-card shadow-sm transition-all hover:border-primary/20 hover:shadow-md"
+                  className={`group cursor-pointer border-border/50 bg-card shadow-sm transition-all hover:border-primary/20 hover:shadow-md ${
+                    draggingId === post.id ? "opacity-40" : ""
+                  }`}
                 >
                   <CardContent className="p-4">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                        <GripVertical className="h-3.5 w-3.5 cursor-grab text-muted-foreground/50 group-hover:text-muted-foreground active:cursor-grabbing" />
                         <CalendarClock className="h-3.5 w-3.5" />
                         {format(new Date(post.scheduledAt!), "h:mm a")}
                       </span>

@@ -33,6 +33,7 @@ import {
   clientToInput,
   coreFields,
   supportingFields,
+  nextPillar,
   nextPillarAfter,
   isPillarUnlocked,
   pillarUnlockPrerequisites,
@@ -113,6 +114,7 @@ function FieldInput({
 
 function PillarEditor({ pillar }: { pillar: Pillar }) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { data: client, isLoading } = useGetClient({
     query: { queryKey: getGetClientQueryKey(), retry: false },
@@ -220,11 +222,26 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetClientQueryKey() });
           setInitial({ ...values });
-          // Compute the next pillar to nudge toward from the just-saved state,
-          // so the suggestion reflects what the user actually filled in.
           const merged = { ...client, ...values } as typeof client;
-          setNudge(nextPillarAfter(merged, pillar.id));
-          toast({ title: "Saved", description: `${pillar.title} updated.` });
+          // The whole Blueprint is done only when no unlocked pillar (including
+          // this one) is still incomplete. nextPillar() considers the current
+          // pillar, unlike nextPillarAfter(), so it won't falsely report "done"
+          // when the user saved a still-incomplete single-pillar stage.
+          if (nextPillar(merged) === null) {
+            // Send the user to the Overview so they can move on to the audit,
+            // narrative, and the rest of their next steps instead of being
+            // stranded on the last pillar.
+            toast({
+              title: "Blueprint complete",
+              description: "Here's your Overview and what to do next.",
+            });
+            setLocation("/dashboard");
+          } else {
+            // Compute the next pillar to nudge toward from the just-saved state,
+            // so the suggestion reflects what the user actually filled in.
+            setNudge(nextPillarAfter(merged, pillar.id));
+            toast({ title: "Saved", description: `${pillar.title} updated.` });
+          }
         },
         onError: () => {
           toast({

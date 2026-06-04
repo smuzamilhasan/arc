@@ -3,6 +3,7 @@
 - [Web API auth bearer bridge](web-api-auth-bearer-bridge.md) — authed endpoints 401 only in the preview iframe = blocked third-party cookie, not a route bug; app sends a Clerk Bearer token to fix it (SSE audit excluded).
 - [Per-client table cleanup](feature-gate-cleanup.md) — any new clientId-keyed table must be added to deleteClientData (backs reset + account-delete) or its rows leak after deletion.
 - [wouter catch-all routing](wouter-catchall-routing.md) — `/:rest*` only matches ONE segment; use `/*` for multi-segment catch-all. Blank screen, no error = unmatched route.
+- [Blueprint completion check](blueprint-completion-check.md) — use nextPillar()===null for "is the whole Blueprint done"; nextPillarAfter() skips the current pillar and falsely reports done on incomplete single-pillar stages.
 - [Narrative generation source](narrative-generation.md) — narrative auto-synthesizes from onboarding coach fields on the Narrative page; the 4-question interview is only a fallback/retake.
 - [Admin access model](admin-access.md) — admins set via ADMIN_EMAILS env var, checked against Clerk email in requireAdmin; the only cross-user view in an otherwise per-user app.
 - [Clerk principal resolution](clerk-principal-resolution.md) — derive the auth user id from `getAuth(req).userId` only, never `sessionClaims.userId`, or per-user scoping can run as the wrong user.

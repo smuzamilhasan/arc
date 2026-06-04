@@ -692,6 +692,52 @@ paths:
         "502":
           description: Assistant generation failed
 
+  /assistant/actions/confirm-batch:
+    post:
+      operationId: confirmAssistantActions
+      tags: [assistant]
+      summary: Apply several proposed actions at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantBatchInput"
+      responses:
+        "200":
+          description: The updated actions after applying
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantBatchResult"
+        "400":
+          description: Invalid input
+        "404":
+          description: No client profile yet
+
+  /assistant/actions/reject-batch:
+    post:
+      operationId: rejectAssistantActions
+      tags: [assistant]
+      summary: Reject several proposed actions at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantBatchInput"
+      responses:
+        "200":
+          description: The updated actions after rejecting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantBatchResult"
+        "400":
+          description: Invalid input
+        "404":
+          description: No client profile yet
+
 components:
   schemas:
     HealthStatus:
@@ -1776,3 +1822,21 @@ components:
           oneOf:
             - $ref: "#/components/schemas/AssistantMessage"
             - type: "null"
+
+    AssistantBatchInput:
+      type: object
+      required: [actionIds]
+      properties:
+        actionIds:
+          type: array
+          items:
+            type: string
+
+    AssistantBatchResult:
+      type: object
+      required: [actions]
+      properties:
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssistantAction"

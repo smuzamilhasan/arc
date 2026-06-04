@@ -662,6 +662,14 @@ export interface AssistantActionResult {
   assistantMessage?: AssistantMessage | null;
 }
 
+export interface AssistantBatchInput {
+  actionIds: string[];
+}
+
+export interface AssistantBatchResult {
+  actions: AssistantAction[];
+}
+
 export type ListPostsParams = {
 platform?: string;
 status?: string;

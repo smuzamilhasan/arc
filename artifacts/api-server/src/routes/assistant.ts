@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import {
   db,
   assistantMessagesTable,
@@ -354,6 +354,95 @@ router.post("/assistant/actions/:actionId/confirm", async (req, res) => {
     status: "applied",
   });
   res.json({ action: next, assistantMessage: null });
+});
+
+// Apply or reject many proposed actions in one request. Actions are grouped by
+// their owning message row so each row's JSON `actions` array is read and
+// written exactly once, avoiding the lost-update races that parallel
+// single-action requests on the same row would cause.
+async function resolveBatchScoped(
+  req: Request,
+  client: ClientProfile,
+  actionIds: string[],
+  mode: "confirm" | "reject",
+): Promise<AssistantAction[]> {
+  const rows = await db
+    .select()
+    .from(assistantMessagesTable)
+    .where(eq(assistantMessagesTable.clientId, client.id))
+    .orderBy(asc(assistantMessagesTable.id));
+
+  const wanted = new Set(actionIds);
+  const updatedById = new Map<string, AssistantAction>();
+
+  for (const row of rows) {
+    let rowChanged = false;
+    const nextActions = row.actions.slice();
+
+    for (let idx = 0; idx < nextActions.length; idx++) {
+      const action = nextActions[idx];
+      if (!wanted.has(action.id) || action.status !== "proposed") continue;
+
+      if (mode === "confirm") {
+        try {
+          await applyAction(client, action.kind, action.payload);
+        } catch (err) {
+          req.log.error({ err }, "Failed to apply assistant action in batch");
+          continue;
+        }
+        const next = { ...action, status: "applied" as const };
+        nextActions[idx] = next;
+        updatedById.set(action.id, next);
+        rowChanged = true;
+      } else {
+        const next = { ...action, status: "rejected" as const, rejectionComment: null };
+        nextActions[idx] = next;
+        updatedById.set(action.id, next);
+        rowChanged = true;
+      }
+    }
+
+    if (rowChanged) {
+      await db
+        .update(assistantMessagesTable)
+        .set({ actions: nextActions })
+        .where(eq(assistantMessagesTable.id, row.id));
+    }
+  }
+
+  return actionIds.map((id) => updatedById.get(id)).filter((a): a is AssistantAction => !!a);
+}
+
+router.post("/assistant/actions/confirm-batch", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const raw = req.body?.actionIds;
+  const actionIds = Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [];
+  if (actionIds.length === 0) {
+    res.status(400).json({ error: "actionIds is required" });
+    return;
+  }
+  const actions = await resolveBatchScoped(req, client, actionIds, "confirm");
+  res.json({ actions });
+});
+
+router.post("/assistant/actions/reject-batch", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const raw = req.body?.actionIds;
+  const actionIds = Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [];
+  if (actionIds.length === 0) {
+    res.status(400).json({ error: "actionIds is required" });
+    return;
+  }
+  const actions = await resolveBatchScoped(req, client, actionIds, "reject");
+  res.json({ actions });
 });
 
 router.post("/assistant/actions/:actionId/reject", async (req, res) => {

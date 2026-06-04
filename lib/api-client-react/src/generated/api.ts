@@ -24,6 +24,8 @@ import type {
   AdminUserDetail,
   AdminUserSummary,
   AssistantActionResult,
+  AssistantBatchInput,
+  AssistantBatchResult,
   AssistantMessage,
   AssistantRejectInput,
   AssistantReply,
@@ -2783,5 +2785,147 @@ export const useRejectAssistantAction = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRejectAssistantActionMutationOptions(options));
+    }
+
+export const getConfirmAssistantActionsUrl = () => {
+
+
+
+
+  return `/api/assistant/actions/confirm-batch`
+}
+
+/**
+ * @summary Apply several proposed actions at once
+ */
+export const confirmAssistantActions = async (assistantBatchInput: AssistantBatchInput, options?: RequestInit): Promise<AssistantBatchResult> => {
+
+  return customFetch<AssistantBatchResult>(getConfirmAssistantActionsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantBatchInput,)
+  }
+);}
+
+
+
+
+export const getConfirmAssistantActionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAssistantActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAssistantActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext> => {
+
+const mutationKey = ['confirmAssistantActions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAssistantActions>>, {data: BodyType<AssistantBatchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmAssistantActions(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAssistantActionsMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAssistantActions>>>
+    export type ConfirmAssistantActionsMutationBody = BodyType<AssistantBatchInput>
+    export type ConfirmAssistantActionsMutationError = ErrorType<void>
+
+    /**
+ * @summary Apply several proposed actions at once
+ */
+export const useConfirmAssistantActions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAssistantActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAssistantActions>>,
+        TError,
+        {data: BodyType<AssistantBatchInput>},
+        TContext
+      > => {
+      return useMutation(getConfirmAssistantActionsMutationOptions(options));
+    }
+
+export const getRejectAssistantActionsUrl = () => {
+
+
+
+
+  return `/api/assistant/actions/reject-batch`
+}
+
+/**
+ * @summary Reject several proposed actions at once
+ */
+export const rejectAssistantActions = async (assistantBatchInput: AssistantBatchInput, options?: RequestInit): Promise<AssistantBatchResult> => {
+
+  return customFetch<AssistantBatchResult>(getRejectAssistantActionsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantBatchInput,)
+  }
+);}
+
+
+
+
+export const getRejectAssistantActionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectAssistantActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectAssistantActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext> => {
+
+const mutationKey = ['rejectAssistantActions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectAssistantActions>>, {data: BodyType<AssistantBatchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rejectAssistantActions(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectAssistantActionsMutationResult = NonNullable<Awaited<ReturnType<typeof rejectAssistantActions>>>
+    export type RejectAssistantActionsMutationBody = BodyType<AssistantBatchInput>
+    export type RejectAssistantActionsMutationError = ErrorType<void>
+
+    /**
+ * @summary Reject several proposed actions at once
+ */
+export const useRejectAssistantActions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectAssistantActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rejectAssistantActions>>,
+        TError,
+        {data: BodyType<AssistantBatchInput>},
+        TContext
+      > => {
+      return useMutation(getRejectAssistantActionsMutationOptions(options));
     }
 

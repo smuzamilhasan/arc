@@ -14,6 +14,8 @@ export * from './assistantActionKind';
 export * from './assistantActionPayload';
 export * from './assistantActionResult';
 export * from './assistantActionStatus';
+export * from './assistantBatchInput';
+export * from './assistantBatchResult';
 export * from './assistantDiffItem';
 export * from './assistantMessage';
 export * from './assistantMessageRole';

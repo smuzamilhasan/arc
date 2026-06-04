@@ -1166,3 +1166,53 @@ export const RejectAssistantActionResponse = zod.object({
 })
 
 
+/**
+ * @summary Apply several proposed actions at once
+ */
+export const ConfirmAssistantActionsBody = zod.object({
+  "actionIds": zod.array(zod.string())
+})
+
+export const ConfirmAssistantActionsResponse = zod.object({
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+}))
+})
+
+
+/**
+ * @summary Reject several proposed actions at once
+ */
+export const RejectAssistantActionsBody = zod.object({
+  "actionIds": zod.array(zod.string())
+})
+
+export const RejectAssistantActionsResponse = zod.object({
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+}))
+})
+
+

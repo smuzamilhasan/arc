@@ -6,6 +6,8 @@ import {
   useSendAssistantMessage,
   useConfirmAssistantAction,
   useRejectAssistantAction,
+  useConfirmAssistantActions,
+  useRejectAssistantActions,
   getGetClientQueryKey,
   getGetNarrativeQueryKey,
   getGetPlatformsQueryKey,
@@ -60,12 +62,29 @@ function queryKeysForKind(kind: AssistantActionKind): readonly (readonly unknown
   }
 }
 
+async function invalidateForKinds(
+  queryClient: ReturnType<typeof useQueryClient>,
+  kinds: AssistantActionKind[],
+) {
+  const keys = new Map<string, readonly unknown[]>();
+  for (const kind of kinds) {
+    for (const key of queryKeysForKind(kind)) {
+      keys.set(JSON.stringify(key), key);
+    }
+  }
+  for (const key of keys.values()) {
+    await queryClient.invalidateQueries({ queryKey: key });
+  }
+}
+
 function DiffCard({
   action,
   messageId,
+  groupBusy = false,
 }: {
   action: AssistantAction;
   messageId: number;
+  groupBusy?: boolean;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -76,7 +95,7 @@ function DiffCard({
   const confirm = useConfirmAssistantAction();
   const reject = useRejectAssistantAction();
 
-  const busy = confirm.isPending || reject.isPending;
+  const busy = confirm.isPending || reject.isPending || groupBusy;
   const resolved = action.status !== "proposed";
 
   const refreshAfterApply = async () => {
@@ -243,6 +262,109 @@ function DiffCard({
   );
 }
 
+function ActionGroup({
+  actions,
+  messageId,
+}: {
+  actions: AssistantAction[];
+  messageId: number;
+}) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const messagesKey = getGetAssistantMessagesQueryKey();
+  const confirmAll = useConfirmAssistantActions();
+  const rejectAll = useRejectAssistantActions();
+
+  const proposed = actions.filter((a) => a.status === "proposed");
+  const showGroup = proposed.length >= 2;
+  const busy = confirmAll.isPending || rejectAll.isPending;
+
+  const handleConfirmAll = () => {
+    const ids = proposed.map((a) => a.id);
+    if (ids.length === 0) return;
+    confirmAll.mutate(
+      { data: { actionIds: ids } },
+      {
+        onSuccess: async (result) => {
+          await queryClient.invalidateQueries({ queryKey: messagesKey });
+          await invalidateForKinds(
+            queryClient,
+            result.actions.map((a) => a.kind),
+          );
+          const applied = result.actions.filter((a) => a.status === "applied").length;
+          toast({
+            title: "Changes applied",
+            description:
+              applied === ids.length
+                ? `All ${applied} changes applied.`
+                : `${applied} of ${ids.length} applied; the rest could not be.`,
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Could not apply",
+            description: "These changes could not be applied. Please try again.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  const handleRejectAll = () => {
+    const ids = proposed.map((a) => a.id);
+    if (ids.length === 0) return;
+    rejectAll.mutate(
+      { data: { actionIds: ids } },
+      {
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({ queryKey: messagesKey });
+        },
+        onError: () => {
+          toast({
+            title: "Could not dismiss",
+            description: "Something went wrong. Please try again.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="w-full max-w-[95%]">
+      {showGroup && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/60 px-3 py-2">
+          <span className="text-xs font-medium text-muted-foreground">
+            {proposed.length} proposed changes
+          </span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={handleConfirmAll} disabled={busy}>
+              {confirmAll.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5" />
+              )}
+              Confirm all
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleRejectAll} disabled={busy}>
+              {rejectAll.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <X className="h-3.5 w-3.5" />
+              )}
+              Reject all
+            </Button>
+          </div>
+        </div>
+      )}
+      {actions.map((action) => (
+        <DiffCard key={action.id} action={action} messageId={messageId} groupBusy={busy} />
+      ))}
+    </div>
+  );
+}
+
 function MessageBubble({ message }: { message: AssistantMessage }) {
   const isUser = message.role === "user";
   return (
@@ -257,12 +379,9 @@ function MessageBubble({ message }: { message: AssistantMessage }) {
       >
         <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
       </div>
-      {!isUser &&
-        message.actions.map((action) => (
-          <div key={action.id} className="w-full max-w-[95%]">
-            <DiffCard action={action} messageId={message.id} />
-          </div>
-        ))}
+      {!isUser && message.actions.length > 0 && (
+        <ActionGroup actions={message.actions} messageId={message.id} />
+      )}
     </div>
   );
 }

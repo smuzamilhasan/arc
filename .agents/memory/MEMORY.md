@@ -11,3 +11,4 @@
 - [e2e testing an authed page](e2e-authed-page-testing.md) — runTest a Clerk-gated page: sign in, read `window.Clerk.user.id`, seed client_profile+deps via [DB], then exercise UI (deterministic, no AI).
 - [Feature-gate server enforcement](feature-gate-server-enforcement.md) — a UI lock on a gated panel must be mirrored by a server-side 403 on its generate/write route, or it's bypassable.
 - [client_profile 500 = dev DB drift](db-drift-500.md) — a 500 on /api/client select means a missing column; run `pnpm --filter @workspace/db run push`, don't blame app code.
+- [Assistant batch confirm/reject](assistant-batch-actions.md) — bulk "Confirm all" must use the batch endpoints, not parallel single-action calls, or same-row JSON actions lost-update.

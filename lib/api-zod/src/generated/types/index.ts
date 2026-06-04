@@ -30,6 +30,7 @@ export * from './generatePillarExamplesResultFields';
 export * from './geoFindings';
 export * from './geoModelResult';
 export * from './geoModelResultAccuracy';
+export * from './geoSource';
 export * from './healthStatus';
 export * from './idea';
 export * from './ideaInput';

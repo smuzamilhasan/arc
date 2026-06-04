@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GeoModelResult } from './geoModelResult';
+import type { GeoSource } from './geoSource';
 
 export interface GeoFindings {
   models: GeoModelResult[];
   summary: string;
+  sources?: GeoSource[];
 }

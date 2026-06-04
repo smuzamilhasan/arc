@@ -975,6 +975,15 @@ components:
         notes:
           type: string
 
+    GeoSource:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+
     GeoFindings:
       type: object
       required: [models, summary]
@@ -985,6 +994,10 @@ components:
             $ref: "#/components/schemas/GeoModelResult"
         summary:
           type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeoSource"
 
     AuditResult:
       type: object

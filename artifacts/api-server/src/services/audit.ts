@@ -7,6 +7,7 @@ import type {
   SeoFinding,
   GeoFindings,
   GeoModelResult,
+  GeoSource,
 } from "@workspace/db";
 import { parseJsonLoose, clampScore } from "./json";
 
@@ -123,14 +124,14 @@ async function summarizeSeo(subject: string, raw: string, results: SeoFinding[])
 
 async function summarizeGeo(subject: string, models: GeoModelResult[]): Promise<string> {
   const mentionedCount = models.filter((m) => m.mentioned).length;
-  const fallback = `${mentionedCount} of ${models.length} AI models had real knowledge of you.`;
+  const fallback = `${mentionedCount} of ${models.length} AI models represented you using current web information.`;
   if (models.length === 0) return fallback;
 
   const modelList = models
-    .map((m) => `- ${m.label}: ${m.mentioned ? "knew the person" : "no knowledge"}, accuracy=${m.accuracy}${m.notes ? `, notes: ${m.notes}` : ""}`)
+    .map((m) => `- ${m.label}: ${m.mentioned ? "represented the person" : "surfaced no information"}, accuracy=${m.accuracy}${m.notes ? `, notes: ${m.notes}` : ""}`)
     .join("\n");
 
-  const prompt = `You are a personal brand strategist analyzing how AI models perceive someone. Using ONLY the per-model audit data below, write a clean, professional 2-4 sentence analysis of how AI models currently perceive this person. Cover which models knew them, how accurate that knowledge was, and any notable gaps or confusion. Do not invent facts, sources, or details that are not present in the data. Write in polished prose with no bullet points, no URLs, and no markdown.\n\nPerson: ${subject}\n\nPer-model results:\n${modelList}`;
+  const prompt = `You are a personal brand strategist analyzing how AI engines represent someone when they answer using current public web information. Using ONLY the per-model audit data below, write a clean, professional 2-4 sentence analysis of how AI models currently surface this person from the live web. Cover which models represented them well, how accurate that coverage was, and any notable gaps or confusion. Do not invent facts, sources, or details that are not present in the data. Write in polished prose with no bullet points, no URLs, and no markdown.\n\nPerson: ${subject}\n\nPer-model results:\n${modelList}`;
 
   const resp = await openai.chat.completions.create({
     model: "gpt-5.4",
@@ -141,8 +142,44 @@ async function summarizeGeo(subject: string, models: GeoModelResult[]): Promise<
   return summary || fallback;
 }
 
-async function askGeoModel(model: (typeof GEO_MODELS)[number]["model"], subject: string): Promise<string> {
-  const prompt = `What do you know about ${subject}? Describe their background, work, and notable contributions based only on your training knowledge. If you do not have reliable information about this specific person, clearly say "I do not have information about this person." Do not guess or invent details.`;
+async function gatherWebContext(
+  subject: string
+): Promise<{ text: string; sources: GeoSource[] }> {
+  const prompt = `Search the web for current, public information about this person and write a thorough, factual briefing about who they are. Cover their background, current role and work, notable achievements, and any documented contributions.\n\nPerson: ${subject}\n\nBase everything strictly on what is currently published on the web. Do not invent details. If little or nothing can be found about this specific person, say so plainly.`;
+
+  let text = "";
+  const sources: GeoSource[] = [];
+  try {
+    const resp = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { tools: [{ googleSearch: {} }] },
+    });
+    text = resp.text ?? "";
+    const chunks = resp.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+    for (const c of chunks) {
+      const uri = c.web?.uri ?? "";
+      // Gemini grounding chunk URIs are vertex redirect URLs; the real source
+      // domain is exposed in `title`, so surface that as the source label.
+      const title = (c.web?.title ?? "").replace(/^www\./, "");
+      if (!uri || !title) continue;
+      sources.push({ title, url: uri });
+    }
+  } catch (err) {
+    text = `Web search unavailable: ${(err as Error).message}`;
+  }
+
+  const dedupedSources = Array.from(new Map(sources.map((s) => [s.url, s])).values()).slice(0, 12);
+  return { text, sources: dedupedSources };
+}
+
+async function askGeoModel(
+  model: (typeof GEO_MODELS)[number]["model"],
+  subject: string,
+  webContext: string
+): Promise<string> {
+  const context = webContext.trim() || "(no web information was retrieved)";
+  const prompt = `You are an AI engine answering a user who asked about a person. Below is current public information gathered from the live web about them. Using ONLY this web information, describe ${subject}'s background, work, and notable contributions, as you would surface them to a user. Be specific and factual. If the web information clearly does not contain meaningful information about this specific person, clearly say "I do not have information about this person." Do not invent details beyond what the web information supports.\n\nCurrent public web information:\n${context.slice(0, 6000)}`;
 
   if (model === "chatgpt") {
     const resp = await openai.chat.completions.create({
@@ -161,18 +198,23 @@ async function askGeoModel(model: (typeof GEO_MODELS)[number]["model"], subject:
     const block = resp.content.find((b) => b.type === "text");
     return block && block.type === "text" ? block.text : "";
   }
+  // Gemini can browse the live web itself via Google Search grounding, in
+  // addition to the shared web context.
   const resp = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: prompt,
+    config: { tools: [{ googleSearch: {} }] },
   });
   return resp.text ?? "";
 }
 
 async function classifyGeo(
   subject: string,
+  webContext: string,
   responses: { model: string; label: string; response: string }[]
 ): Promise<GeoModelResult[]> {
-  const prompt = `You are auditing whether AI models know about a specific person.\n\nPerson: ${subject}\n\nBelow are responses from different AI models when asked what they know about this person. For each, judge:\n- mentioned: true if the model demonstrated real knowledge of THIS specific person, false if it said it has no information or clearly described someone else.\n- accuracy: "accurate" (detailed and correct), "partial" (some real but limited knowledge), "none" (no knowledge), or "incorrect" (confused them with someone else / hallucinated).\n- notes: one short sentence explaining the judgement.\n\nResponses:\n${responses.map((r) => `### ${r.label} (id: ${r.model})\n${r.response.slice(0, 1500)}`).join("\n\n")}\n\nReturn ONLY JSON in this exact shape:\n{"models":[{"model":"<id>","mentioned":true|false,"accuracy":"accurate|partial|none|incorrect","notes":"..."}]}`;
+  const truth = webContext.trim().slice(0, 6000) || "(no web information was retrieved)";
+  const prompt = `You are auditing how well AI engines represent a specific person using current public web information. Each model was given the same live web context and asked to describe this person.\n\nPerson: ${subject}\n\nGround-truth web context (what is actually published about this person):\n${truth}\n\nBelow are the model responses. Judge each STRICTLY against the ground-truth web context and the specific person:\n- mentioned: true if the response demonstrates real, specific knowledge of THIS person; false if it said it has no information or described someone else.\n- accuracy: "accurate" (substantial, specific, and correct coverage that matches the web context), "partial" (some correct but limited or generic coverage), "none" (no real information / declined), or "incorrect" (confused them with someone else or contradicts the web context).\n- notes: one short sentence explaining the judgement.\n\nDo not award "accurate" for vague or generic descriptions; reserve it for responses with specific, correct details supported by the web context.\n\nResponses:\n${responses.map((r) => `### ${r.label} (id: ${r.model})\n${r.response.slice(0, 1500)}`).join("\n\n")}\n\nReturn ONLY JSON in this exact shape:\n{"models":[{"model":"<id>","mentioned":true|false,"accuracy":"accurate|partial|none|incorrect","notes":"..."}]}`;
 
   const resp = await openai.chat.completions.create({
     model: "gpt-5.4",
@@ -255,25 +297,28 @@ export async function runAudit(
     message: `Found ${seoFindings.resultCount} reference${seoFindings.resultCount === 1 ? "" : "s"} online`,
   });
 
-  onProgress({ type: "progress", step: "geo", status: "running", message: "Asking ChatGPT, Claude, and Gemini about you..." });
+  onProgress({ type: "progress", step: "geo", status: "running", message: "Gathering current web information about you..." });
+  const { text: webContext, sources: geoSources } = await gatherWebContext(subject);
+  onProgress({ type: "progress", step: "geo", status: "running", message: "Asking ChatGPT, Claude, and Gemini what the web says about you..." });
   const rawResponses = await Promise.all(
     GEO_MODELS.map(async (m) => ({
       model: m.model,
       label: m.label,
-      response: await askGeoModel(m.model, subject).catch((e) => `Error querying model: ${(e as Error).message}`),
+      response: await askGeoModel(m.model, subject, webContext).catch((e) => `Error querying model: ${(e as Error).message}`),
     }))
   );
   onProgress({ type: "progress", step: "geo", status: "done", message: "Collected responses from all three models" });
 
   onProgress({ type: "progress", step: "synthesis", status: "running", message: "Scoring your digital presence..." });
-  const geoModels = await classifyGeo(subject, rawResponses);
+  const geoModels = await classifyGeo(subject, webContext, rawResponses);
   const mentionedCount = geoModels.filter((m) => m.mentioned).length;
   const geoSummary = await summarizeGeo(subject, geoModels).catch(
-    () => `${mentionedCount} of ${geoModels.length} AI models had real knowledge of you.`
+    () => `${mentionedCount} of ${geoModels.length} AI models represented you using current web information.`
   );
   const geoFindings: GeoFindings = {
     models: geoModels,
     summary: geoSummary,
+    sources: geoSources,
   };
 
   const seoScore = scoreSeo(seoFindings);

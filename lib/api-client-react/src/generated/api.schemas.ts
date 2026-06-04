@@ -242,9 +242,15 @@ export interface GeoModelResult {
   notes: string;
 }
 
+export interface GeoSource {
+  title: string;
+  url: string;
+}
+
 export interface GeoFindings {
   models: GeoModelResult[];
   summary: string;
+  sources?: GeoSource[];
 }
 
 export interface AuditResult {

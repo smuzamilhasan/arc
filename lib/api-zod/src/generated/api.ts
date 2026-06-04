@@ -199,7 +199,11 @@ export const GetLatestAuditResponse = zod.object({
   "response": zod.string(),
   "notes": zod.string()
 })),
-  "summary": zod.string()
+  "summary": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string()
+})).optional()
 }),zod.null()]).optional(),
   "recommendations": zod.array(zod.string()),
   "status": zod.string(),
@@ -851,7 +855,11 @@ export const GetAdminUserResponse = zod.object({
   "response": zod.string(),
   "notes": zod.string()
 })),
-  "summary": zod.string()
+  "summary": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string()
+})).optional()
 }),zod.null()]).optional(),
   "recommendations": zod.array(zod.string()),
   "status": zod.string(),

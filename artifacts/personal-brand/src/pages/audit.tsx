@@ -255,7 +255,7 @@ export default function Audit() {
           <CardContent className="text-center pb-8 z-10">
             <div className="text-8xl font-serif text-primary tracking-tighter mb-2 drop-shadow-sm">{averageScore}</div>
             <p className="text-muted-foreground text-sm max-w-[200px] mx-auto">
-              Combined score across traditional search and generative AI engines.
+              Combined score across Google search and how AI engines represent you using current public web information.
             </p>
           </CardContent>
         </Card>
@@ -339,6 +339,9 @@ export default function Audit() {
               </div>
               <div className="text-3xl font-serif text-primary">{activeAudit?.geoScore}</div>
             </div>
+            <p className="text-xs text-muted-foreground font-light leading-relaxed mb-3">
+              How AI engines represent you when answering with current public web information. Each model was given the same live web context and asked to describe you.
+            </p>
             <p className="text-muted-foreground text-sm font-light leading-relaxed">
               {activeAudit?.geoFindings?.summary || "No summary available."}
             </p>
@@ -371,6 +374,24 @@ export default function Audit() {
                 </div>
               )}
             </Accordion>
+            {activeAudit?.geoFindings?.sources && activeAudit.geoFindings.sources.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-border/50">
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-widest mb-4">Web Sources</h4>
+                <div className="flex flex-wrap gap-2">
+                  {activeAudit.geoFindings.sources.map((source, i) => (
+                    <a
+                      key={i}
+                      href={source.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors border border-border/50 rounded-full px-3 py-1"
+                    >
+                      {source.title} <ExternalLink className="w-3 h-3 shrink-0" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

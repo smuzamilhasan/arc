@@ -25,9 +25,15 @@ export type GeoModelResult = {
   notes: string;
 };
 
+export type GeoSource = {
+  title: string;
+  url: string;
+};
+
 export type GeoFindings = {
   models: GeoModelResult[];
   summary: string;
+  sources?: GeoSource[];
 };
 
 export const auditResultsTable = pgTable("audit_results", {

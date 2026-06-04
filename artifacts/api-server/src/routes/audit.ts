@@ -3,6 +3,7 @@ import { db, auditResultsTable } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import { getClientForUser } from "./client";
 import { runAudit, type AuditProgress } from "../services/audit";
+import { auditRateLimit, auditConcurrencyLimit } from "../middlewares/aiRateLimit";
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.get("/audit/latest", async (req, res) => {
   res.json(serializeAudit(audit));
 });
 
-router.post("/audit/run", async (req, res) => {
+router.post("/audit/run", auditRateLimit, auditConcurrencyLimit, async (req, res) => {
   const client = await getClientForUser(req.userId!);
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });

@@ -25,6 +25,9 @@ import {
   type ProposedAction,
 } from "../services/assistant";
 import { generateNarrative } from "../services/narrative";
+import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
+
+const ASSISTANT_MESSAGE_MAX_LENGTH = 4000;
 
 const router = Router();
 
@@ -117,7 +120,7 @@ router.get("/assistant/messages", async (req, res) => {
   res.json(rows.map(serializeMessage));
 });
 
-router.post("/assistant/message", async (req, res) => {
+router.post("/assistant/message", aiGenerationRateLimit, async (req, res) => {
   const client = await getClientForUser(req.userId!);
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
@@ -126,6 +129,10 @@ router.post("/assistant/message", async (req, res) => {
   const content = typeof req.body?.content === "string" ? req.body.content.trim() : "";
   if (!content) {
     res.status(400).json({ error: "Message content is required" });
+    return;
+  }
+  if (content.length > ASSISTANT_MESSAGE_MAX_LENGTH) {
+    res.status(400).json({ error: `Message must be ${ASSISTANT_MESSAGE_MAX_LENGTH} characters or fewer.` });
     return;
   }
 
@@ -342,7 +349,7 @@ router.post("/assistant/actions/:actionId/confirm", async (req, res) => {
     res.status(404).json({ error: "No client profile yet" });
     return;
   }
-  const found = await findAction(client.id, req.params.actionId);
+  const found = await findAction(client.id, String(req.params.actionId));
   if (!found) {
     res.status(404).json({ error: "Action not found" });
     return;
@@ -456,13 +463,13 @@ router.post("/assistant/actions/reject-batch", async (req, res) => {
   res.json({ actions });
 });
 
-router.post("/assistant/actions/:actionId/reject", async (req, res) => {
+router.post("/assistant/actions/:actionId/reject", aiGenerationRateLimit, async (req, res) => {
   const client = await getClientForUser(req.userId!);
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
   }
-  const found = await findAction(client.id, req.params.actionId);
+  const found = await findAction(client.id, String(req.params.actionId));
   if (!found) {
     res.status(404).json({ error: "Action not found" });
     return;

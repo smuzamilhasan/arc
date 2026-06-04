@@ -4,6 +4,7 @@ import { GenerateNarrativeBody, UpdateNarrativeBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
 import { getClientForUser } from "./client";
 import { generateNarrative } from "../services/narrative";
+import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
 
 const router = Router();
 
@@ -74,7 +75,7 @@ router.put("/narrative", async (req, res) => {
   res.json(serializeNarrative(narrative));
 });
 
-router.post("/narrative/generate", async (req, res) => {
+router.post("/narrative/generate", aiGenerationRateLimit, async (req, res) => {
   const client = await getClientForUser(req.userId!);
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });

@@ -4,6 +4,7 @@ import { UpdatePlatformsBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
 import { getClientForUser } from "./client";
 import { generatePlatformStrategy, isBlueprintComplete } from "../services/platforms";
+import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.get("/platforms", async (req, res) => {
   res.json(serializePlatformStrategy(strategy));
 });
 
-router.post("/platforms/generate", async (req, res) => {
+router.post("/platforms/generate", aiGenerationRateLimit, async (req, res) => {
   const client = await getClientForUser(req.userId!);
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });

@@ -5,6 +5,7 @@ import { desc, eq } from "drizzle-orm";
 import { getClientForUser } from "./client";
 import { isBlueprintComplete } from "../services/platforms";
 import { generateContentStrategy } from "../services/contentStrategy";
+import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
 
 const router = Router();
 
@@ -45,7 +46,7 @@ router.get("/content-strategy", async (req, res) => {
   res.json(serializeContentStrategy(strategy));
 });
 
-router.post("/content-strategy/generate", async (req, res) => {
+router.post("/content-strategy/generate", aiGenerationRateLimit, async (req, res) => {
   const client = await getClientForUser(req.userId!);
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });

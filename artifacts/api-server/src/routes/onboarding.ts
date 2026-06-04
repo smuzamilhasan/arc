@@ -11,10 +11,11 @@ import {
   draftPillar,
   generatePillarExamples,
 } from "../services/profile";
+import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
 
 const router = Router();
 
-router.post("/onboarding/extract", async (req, res) => {
+router.post("/onboarding/extract", aiGenerationRateLimit, async (req, res) => {
   const parsed = ExtractPublicInfoBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });
@@ -29,7 +30,7 @@ router.post("/onboarding/extract", async (req, res) => {
   }
 });
 
-router.post("/onboarding/generate-bio", async (req, res) => {
+router.post("/onboarding/generate-bio", aiGenerationRateLimit, async (req, res) => {
   const parsed = GenerateBioBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });
@@ -44,7 +45,7 @@ router.post("/onboarding/generate-bio", async (req, res) => {
   }
 });
 
-router.post("/onboarding/draft-pillar", async (req, res) => {
+router.post("/onboarding/draft-pillar", aiGenerationRateLimit, async (req, res) => {
   const parsed = DraftPillarBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });
@@ -59,7 +60,7 @@ router.post("/onboarding/draft-pillar", async (req, res) => {
   }
 });
 
-router.post("/onboarding/pillar-examples", async (req, res) => {
+router.post("/onboarding/pillar-examples", aiGenerationRateLimit, async (req, res) => {
   const parsed = GeneratePillarExamplesBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });

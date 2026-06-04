@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { ClientProfile } from "@workspace/api-client-react";
 import {
   BLUEPRINT_STAGES,
+  ORDERED_PILLARS,
   getPillar,
   pillarHasData,
   pillarCoreComplete,
@@ -11,7 +12,12 @@ import {
   unlockHint,
   nextPillar,
   nextPillarAfter,
+  blueprintPrerequisites,
+  pillarUnlockPrerequisites,
+  panelGatePrerequisites,
+  isPanelUnlocked,
   type Pillar,
+  type PanelGateContext,
 } from "./blueprint";
 
 // Core (counted) fields per pillar, kept in sync with PILLARS.countFields.
@@ -278,6 +284,213 @@ describe("nextPillarAfter", () => {
       ),
     );
     expect(nextPillarAfter(data, "conviction")).toBeNull();
+  });
+});
+
+describe("blueprintPrerequisites", () => {
+  it("lists every pillar in gated order", () => {
+    const prereqs = blueprintPrerequisites(profile({}));
+    expect(prereqs.map((p) => p.id)).toEqual(
+      ORDERED_PILLARS.map((p) => p.id),
+    );
+  });
+
+  it("labels and links each prerequisite to its pillar editor", () => {
+    const prereqs = blueprintPrerequisites(profile({}));
+    for (const prereq of prereqs) {
+      const p = pillar(prereq.id);
+      expect(prereq.label).toBe(p.title);
+      expect(prereq.href).toBe(`/blueprint/${p.id}`);
+    }
+  });
+
+  it("marks none complete for an empty profile with a 0/total detail", () => {
+    const prereqs = blueprintPrerequisites(profile({}));
+    for (const prereq of prereqs) {
+      const p = pillar(prereq.id);
+      expect(prereq.complete).toBe(false);
+      expect(prereq.detail).toBe(`0/${p.countFields.length} core areas`);
+    }
+  });
+
+  it("marks none complete for an undefined client", () => {
+    const prereqs = blueprintPrerequisites(undefined);
+    expect(prereqs.every((p) => !p.complete)).toBe(true);
+  });
+
+  it("reflects per-pillar completion in the done flag and detail", () => {
+    // Basics fully complete; story has one of its two core fields filled.
+    const data = profile({
+      ...withCoreComplete("basics"),
+      earlyLife: "x",
+    });
+    const prereqs = blueprintPrerequisites(data);
+    const basics = prereqs.find((p) => p.id === "basics")!;
+    const story = prereqs.find((p) => p.id === "story")!;
+
+    expect(basics.complete).toBe(true);
+    expect(basics.detail).toBe(
+      `${pillar("basics").countFields.length}/${pillar("basics").countFields.length} core areas`,
+    );
+
+    expect(story.complete).toBe(false);
+    expect(story.detail).toBe(`1/${pillar("story").countFields.length} core areas`);
+  });
+
+  it("marks every prerequisite complete once all pillars are done", () => {
+    const data = profile(
+      withCoreComplete(
+        "basics",
+        "story",
+        "credibility",
+        "identity",
+        "worldview",
+        "conviction",
+      ),
+    );
+    const prereqs = blueprintPrerequisites(data);
+    expect(prereqs.every((p) => p.complete)).toBe(true);
+    for (const prereq of prereqs) {
+      const total = pillar(prereq.id).countFields.length;
+      expect(prereq.detail).toBe(`${total}/${total} core areas`);
+    }
+  });
+});
+
+describe("pillarUnlockPrerequisites", () => {
+  it("is empty for an always-open first-stage pillar", () => {
+    expect(pillarUnlockPrerequisites("basics", profile({}))).toEqual([]);
+  });
+
+  it("is empty for an unknown pillar id", () => {
+    expect(pillarUnlockPrerequisites("nope", profile({}))).toEqual([]);
+  });
+
+  it("returns the single preceding pillar for a one-pillar gate", () => {
+    const prereqs = pillarUnlockPrerequisites("story", profile({}));
+    expect(prereqs.map((p) => p.id)).toEqual(["basics"]);
+    expect(prereqs[0].label).toBe(pillar("basics").title);
+    expect(prereqs[0].href).toBe("/blueprint/basics");
+    expect(prereqs[0].complete).toBe(false);
+    expect(prereqs[0].detail).toBe(
+      `0/${pillar("basics").countFields.length} core areas`,
+    );
+  });
+
+  it("returns the preceding stage for a final-group pillar", () => {
+    // identity/worldview/conviction are gated behind the single Credibility pillar.
+    const prereqs = pillarUnlockPrerequisites("identity", profile({}));
+    expect(prereqs.map((p) => p.id)).toEqual(["credibility"]);
+  });
+
+  it("reflects the completion of the preceding pillar", () => {
+    const partial = profile({ currentRole: "Founder" });
+    const prereqs = pillarUnlockPrerequisites("story", partial);
+    const basics = prereqs[0];
+    expect(basics.complete).toBe(false);
+    const total = pillar("basics").countFields.length;
+    expect(basics.detail).toBe(`1/${total} core areas`);
+
+    const done = pillarUnlockPrerequisites(
+      "story",
+      profile(withCoreComplete("basics")),
+    );
+    expect(done[0].complete).toBe(true);
+  });
+});
+
+describe("panelGatePrerequisites", () => {
+  const empty: PanelGateContext = {
+    client: profile({}),
+    hasPlatformStrategy: false,
+  };
+
+  it("gates Platforms on the full Blueprint", () => {
+    const prereqs = panelGatePrerequisites("platforms", empty);
+    expect(prereqs.map((p) => p.id)).toEqual(
+      blueprintPrerequisites(empty.client).map((p) => p.id),
+    );
+  });
+
+  it("gates Content on the full Blueprint plus a platform strategy", () => {
+    const prereqs = panelGatePrerequisites("content", empty);
+    expect(prereqs.map((p) => p.id)).toEqual([
+      ...ORDERED_PILLARS.map((p) => p.id),
+      "platforms",
+    ]);
+
+    const platforms = prereqs.find((p) => p.id === "platforms")!;
+    expect(platforms.label).toBe("Platforms & Presence strategy");
+    expect(platforms.href).toBe("/platforms");
+    expect(platforms.complete).toBe(false);
+    expect(platforms.detail).toBe("Generate your platform strategy");
+  });
+
+  it("clears the platform-strategy detail once it exists", () => {
+    const ctx: PanelGateContext = {
+      client: profile({}),
+      hasPlatformStrategy: true,
+    };
+    const platforms = panelGatePrerequisites("content", ctx).find(
+      (p) => p.id === "platforms",
+    )!;
+    expect(platforms.complete).toBe(true);
+    expect(platforms.detail).toBeUndefined();
+  });
+});
+
+describe("isPanelUnlocked", () => {
+  const allPillarsComplete = profile(
+    withCoreComplete(
+      "basics",
+      "story",
+      "credibility",
+      "identity",
+      "worldview",
+      "conviction",
+    ),
+  );
+
+  it("keeps Platforms locked until the Blueprint is complete", () => {
+    expect(
+      isPanelUnlocked("platforms", {
+        client: profile({}),
+        hasPlatformStrategy: false,
+      }),
+    ).toBe(false);
+    expect(
+      isPanelUnlocked("platforms", {
+        client: profile(withCoreComplete("basics")),
+        hasPlatformStrategy: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("unlocks Platforms once every pillar's core is complete", () => {
+    expect(
+      isPanelUnlocked("platforms", {
+        client: allPillarsComplete,
+        hasPlatformStrategy: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps Content locked when the Blueprint is done but no platform strategy exists", () => {
+    expect(
+      isPanelUnlocked("content", {
+        client: allPillarsComplete,
+        hasPlatformStrategy: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("unlocks Content only with a complete Blueprint and a platform strategy", () => {
+    expect(
+      isPanelUnlocked("content", {
+        client: allPillarsComplete,
+        hasPlatformStrategy: true,
+      }),
+    ).toBe(true);
   });
 });
 

@@ -36,6 +36,7 @@ const ACTION_LABELS: Record<AssistantActionKind, string> = {
   update_platforms: "Update platform strategy",
   create_post: "Create post",
   update_post: "Update post",
+  schedule_posts: "Schedule posts",
   create_idea: "Create idea",
   update_idea: "Update idea",
 };
@@ -53,6 +54,7 @@ function queryKeysForKind(kind: AssistantActionKind): readonly (readonly unknown
       return [getGetPlatformsQueryKey()];
     case "create_post":
     case "update_post":
+    case "schedule_posts":
       return [getListPostsQueryKey(), getGetDashboardQueryKey()];
     case "create_idea":
     case "update_idea":

@@ -1,4 +1,5 @@
 - [Adding a client_profile field](client-field-add-flow.md) — schema+openapi+codegen isn't enough; the PUT /client `values` map must list the new field or it's silently dropped.
+- [Adding an assistant action kind](assistant-action-kind-add-flow.md) — a new AssistantAction kind must be wired in db union, openapi enum, service (ALL_KINDS/validate/diff/prompt), route applyAction, and the web label+invalidation maps.
 - [No null render on query failure](no-null-render-on-query-failure.md) — pages returning null on a failed query = white screen; QueryClient swallows errors with no global 401 handler, so render an explicit error/sign-in state.
 - [Web API auth bearer bridge](web-api-auth-bearer-bridge.md) — authed endpoints 401 only in the preview iframe = blocked third-party cookie, not a route bug; app sends a Clerk Bearer token to fix it (SSE audit excluded).
 - [Per-client table cleanup](feature-gate-cleanup.md) — any new clientId-keyed table must be added to deleteClientData (backs reset + account-delete) or its rows leak after deletion.

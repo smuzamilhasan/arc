@@ -16,6 +16,7 @@ import {
 import { asc, desc, eq, and } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { getClientForUser } from "./client";
+import { scheduleClientPosts } from "./posts";
 import {
   generateAssistantReply,
   buildDiff,
@@ -297,6 +298,16 @@ async function applyAction(
         .where(and(eq(postsTable.id, id as number), eq(postsTable.clientId, client.id)))
         .returning();
       if (updated.length === 0) throw new Error("Post not found");
+      return;
+    }
+    case "schedule_posts": {
+      const p = payload ?? {};
+      await scheduleClientPosts(client.id, {
+        postIds: (p.postIds as number[]) ?? [],
+        startDate: p.startDate as string,
+        intervalDays: p.intervalDays as number | undefined,
+        time: p.time as string | undefined,
+      });
       return;
     }
     case "create_idea": {

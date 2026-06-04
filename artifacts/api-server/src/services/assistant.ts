@@ -132,6 +132,16 @@ const updatePostPayloadSchema = z
   })
   .refine((o: Record<string, unknown>) => Object.keys(o).length > 1, "empty post update payload");
 
+const schedulePostsPayloadSchema = z.object({
+  postIds: z.array(z.number().int()).min(1),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  intervalDays: z.number().int().positive().optional(),
+  time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
+});
+
 const createIdeaPayloadSchema = z.object({
   title: z.string().min(1),
   notes: z.string().optional(),
@@ -155,6 +165,7 @@ const ALL_KINDS: AssistantActionKind[] = [
   "update_platforms",
   "create_post",
   "update_post",
+  "schedule_posts",
   "create_idea",
   "update_idea",
 ];
@@ -181,6 +192,8 @@ export function validatePayload(
       return safe(createPostPayloadSchema, p);
     case "update_post":
       return safe(updatePostPayloadSchema, p);
+    case "schedule_posts":
+      return safe(schedulePostsPayloadSchema, p);
     case "create_idea":
       return safe(createIdeaPayloadSchema, p);
     case "update_idea":
@@ -243,6 +256,37 @@ function summarizeObject(v: unknown): string {
   if ("title" in o && "description" in o) return `${o.title}: ${o.description}`;
   if ("platform" in o && "reason" in o) return `${o.platform}: ${o.reason}`;
   return JSON.stringify(o);
+}
+
+// Compute the concrete dates a schedule_posts action will assign, mirroring the
+// spreading logic in scheduleClientPosts (start date + i * interval). Used for
+// the proposal card preview so the client sees exactly which dates they confirm.
+export function computeSchedulePlan(
+  startDate: string,
+  count: number,
+  intervalDays?: number,
+  time?: string,
+): Date[] {
+  const [year, month, day] = (startDate ?? "").split("-").map(Number);
+  const [hour, minute] = (time ?? "09:00").split(":").map(Number);
+  if (!year || !month || !day || Number.isNaN(hour) || Number.isNaN(minute)) return [];
+  const step = intervalDays && intervalDays > 0 ? intervalDays : 1;
+  const dates: Date[] = [];
+  for (let i = 0; i < count; i++) {
+    dates.push(new Date(year, month - 1, day + i * step, hour, minute, 0, 0));
+  }
+  return dates;
+}
+
+function formatScheduleDate(d: Date): string {
+  return d.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export function buildDiff(
@@ -314,6 +358,33 @@ export function buildDiff(
       if ("tags" in p) add("Tags", cur?.tags, p.tags);
       return diff;
     }
+    case "schedule_posts": {
+      const p = payload ?? {};
+      const ids = Array.isArray(p.postIds) ? (p.postIds as number[]) : [];
+      const dates = computeSchedulePlan(
+        p.startDate as string,
+        ids.length,
+        p.intervalDays as number | undefined,
+        p.time as string | undefined,
+      );
+      // De-duplicate while preserving order so the displayed cadence matches
+      // what scheduleClientPosts will actually apply.
+      const seen = new Set<number>();
+      let slot = 0;
+      for (const id of ids) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const post = ctx.posts.find((x) => x.id === id);
+        const label = post ? post.title : `Post #${id}`;
+        const before = post?.scheduledAt
+          ? `${formatScheduleDate(new Date(post.scheduledAt))} (${post.status})`
+          : "Unscheduled";
+        const after = dates[slot] ? formatScheduleDate(dates[slot]) : "(date unavailable)";
+        add(label, before, after);
+        slot++;
+      }
+      return diff;
+    }
     case "create_idea": {
       const p = payload ?? {};
       add("Title", "(new idea)", p.title);
@@ -347,7 +418,9 @@ export function buildSystemContext(ctx: SystemContext): string {
   const c = ctx.client;
   const parts: Array<string | null> = [];
 
-  parts.push("=== CLIENT PROFILE ===");
+  parts.push(`=== TODAY ===\n${new Date().toISOString().slice(0, 10)}`);
+
+  parts.push("\n=== CLIENT PROFILE ===");
   parts.push(line("Full name", c.fullName));
   parts.push(line("Headline", c.headline));
   parts.push(line("Location", c.location));
@@ -405,6 +478,12 @@ export function buildSystemContext(ctx: SystemContext): string {
   if (ctx.contentStrategy) {
     parts.push("\n=== CONTENT STRATEGY ===");
     parts.push(line("Summary", ctx.contentStrategy.summary));
+    if (ctx.contentStrategy.platformPlan?.length) {
+      parts.push("Posting cadence by platform:");
+      for (const pc of ctx.contentStrategy.platformPlan) {
+        parts.push(`- ${pc.platform}: ${pc.frequency}`);
+      }
+    }
     parts.push(line("Repurposing", ctx.contentStrategy.repurposing));
     parts.push(line("Closing", ctx.contentStrategy.closing));
   } else {
@@ -414,7 +493,10 @@ export function buildSystemContext(ctx: SystemContext): string {
   parts.push("\n=== POSTS ===");
   if (ctx.posts.length === 0) parts.push("(none)");
   for (const p of ctx.posts.slice(0, 30)) {
-    parts.push(`- [#${p.id}] (${p.platform}/${p.status}) ${p.title}`);
+    const sched = p.scheduledAt
+      ? ` scheduled ${new Date(p.scheduledAt).toISOString().slice(0, 10)}`
+      : "";
+    parts.push(`- [#${p.id}] (${p.platform}/${p.status}) ${p.title}${sched}`);
   }
 
   parts.push("\n=== IDEAS ===");
@@ -442,6 +524,7 @@ You can propose these action kinds via the "actions" array:
 - update_platforms: payload may include summary, closing (strings).
 - create_post: payload { title, content, platform: linkedin|twitter|instagram|blog|other, status: draft|scheduled|published, tags?: string[] }.
 - update_post: payload { id: number, ...any of title, content, platform, status, tags }.
+- schedule_posts: payload { postIds: number[] (IDs of EXISTING posts, in the order they should publish), startDate: "YYYY-MM-DD", intervalDays?: number (days between consecutive posts; defaults to 1), time?: "HH:MM" 24h (defaults to 09:00) }. Spreads the chosen existing posts across dates at a fixed cadence and marks them scheduled. Use this when the client asks you to schedule, lay out, or build a calendar of their posts (e.g. "schedule my next two weeks of posts"). Only use post IDs that appear in the POSTS list above — never invent IDs or schedule posts that do not exist yet. Choose startDate on or after TODAY. Choose intervalDays to honor the posting cadence in CONTENT STRATEGY (e.g. ~3 posts/week is every 2 days, daily is 1). If the posts span platforms with different cadences, propose ONE schedule_posts action per platform group, each with the postIds and intervalDays for that platform.
 - create_idea: payload { title, notes?, platform? }.
 - update_idea: payload { id: number, ...any of title, notes, platform }.
 

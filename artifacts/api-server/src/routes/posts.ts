@@ -70,6 +70,60 @@ router.post("/posts", async (req, res) => {
   res.status(201).json(serializePost(post));
 });
 
+export type ScheduleClientPostsInput = {
+  postIds: number[];
+  startDate: string;
+  intervalDays?: number;
+  time?: string;
+};
+
+// Spread a set of the client's existing posts across dates from a start date by
+// a fixed day interval, marking each as scheduled. Shared by the
+// /posts/schedule-batch route and the assistant's schedule_posts action so both
+// apply identical per-client scheduling. Throws on invalid input or when none
+// of the given posts belong to the client.
+export async function scheduleClientPosts(
+  clientId: number,
+  input: ScheduleClientPostsInput,
+): Promise<(typeof postsTable.$inferSelect)[]> {
+  const [year, month, day] = input.startDate.split("-").map(Number);
+  const [hour, minute] = (input.time ?? "09:00").split(":").map(Number);
+  if (!year || !month || !day || Number.isNaN(hour) || Number.isNaN(minute)) {
+    throw new Error("Invalid date or time");
+  }
+  const step = input.intervalDays && input.intervalDays > 0 ? input.intervalDays : 1;
+
+  // De-duplicate while preserving order so the cadence stays even.
+  const orderedIds = Array.from(new Set(input.postIds));
+
+  // Only schedule posts that actually belong to this client.
+  const owned = await db
+    .select({ id: postsTable.id })
+    .from(postsTable)
+    .where(and(eq(postsTable.clientId, clientId), inArray(postsTable.id, orderedIds)));
+  const ownedSet = new Set(owned.map((p) => p.id));
+  const scheduleIds = orderedIds.filter((id) => ownedSet.has(id));
+
+  if (scheduleIds.length === 0) {
+    throw new Error("No matching posts to schedule");
+  }
+
+  const now = new Date();
+  for (let i = 0; i < scheduleIds.length; i++) {
+    const scheduledAt = new Date(year, month - 1, day + i * step, hour, minute, 0, 0);
+    await db
+      .update(postsTable)
+      .set({ scheduledAt, status: "scheduled", updatedAt: now })
+      .where(and(eq(postsTable.id, scheduleIds[i]), eq(postsTable.clientId, clientId)));
+  }
+
+  return db
+    .select()
+    .from(postsTable)
+    .where(and(eq(postsTable.clientId, clientId), inArray(postsTable.id, scheduleIds)))
+    .orderBy(postsTable.scheduledAt);
+}
+
 router.post("/posts/schedule-batch", async (req, res) => {
   const client = await getClientForUser(req.userId!);
   if (!client) {
@@ -83,45 +137,17 @@ router.post("/posts/schedule-batch", async (req, res) => {
   }
   const { postIds, startDate, intervalDays, time } = parsed.data;
 
-  const [year, month, day] = startDate.split("-").map(Number);
-  const [hour, minute] = (time ?? "09:00").split(":").map(Number);
-  if (!year || !month || !day || Number.isNaN(hour) || Number.isNaN(minute)) {
-    res.status(400).json({ error: "Invalid date or time" });
-    return;
+  try {
+    const updated = await scheduleClientPosts(client.id, {
+      postIds,
+      startDate,
+      intervalDays,
+      time,
+    });
+    res.json(updated.map(serializePost));
+  } catch {
+    res.status(400).json({ error: "Invalid input" });
   }
-  const step = intervalDays && intervalDays > 0 ? intervalDays : 1;
-
-  // De-duplicate while preserving order so the cadence stays even.
-  const orderedIds = Array.from(new Set(postIds));
-
-  // Only schedule posts that actually belong to this client.
-  const owned = await db
-    .select({ id: postsTable.id })
-    .from(postsTable)
-    .where(and(eq(postsTable.clientId, client.id), inArray(postsTable.id, orderedIds)));
-  const ownedSet = new Set(owned.map((p) => p.id));
-  const scheduleIds = orderedIds.filter((id) => ownedSet.has(id));
-
-  if (scheduleIds.length === 0) {
-    res.status(400).json({ error: "No matching posts to schedule" });
-    return;
-  }
-
-  const now = new Date();
-  for (let i = 0; i < scheduleIds.length; i++) {
-    const scheduledAt = new Date(year, month - 1, day + i * step, hour, minute, 0, 0);
-    await db
-      .update(postsTable)
-      .set({ scheduledAt, status: "scheduled", updatedAt: now })
-      .where(and(eq(postsTable.id, scheduleIds[i]), eq(postsTable.clientId, client.id)));
-  }
-
-  const updated = await db
-    .select()
-    .from(postsTable)
-    .where(and(eq(postsTable.clientId, client.id), inArray(postsTable.id, scheduleIds)))
-    .orderBy(postsTable.scheduledAt);
-  res.json(updated.map(serializePost));
 });
 
 router.get("/posts/:id", async (req, res) => {

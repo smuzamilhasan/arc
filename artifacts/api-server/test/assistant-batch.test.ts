@@ -76,6 +76,22 @@ function proposedIdea(title: string): AssistantAction {
   };
 }
 
+function proposedSchedule(
+  title: string,
+  payload: { postIds: number[]; startDate: string; intervalDays?: number; time?: string },
+): AssistantAction {
+  return {
+    id: randomUUID(),
+    kind: "schedule_posts",
+    title,
+    rationale: "",
+    status: "proposed",
+    rejectionComment: null,
+    diff: [],
+    payload,
+  };
+}
+
 // Seed an assistant message with proposed actions and return their ids.
 async function seedProposals(clientId: number, actions: AssistantAction[]): Promise<string[]> {
   await db.insert(assistantMessagesTable).values({
@@ -173,6 +189,44 @@ describe("assistant batch confirm/reject", () => {
       .from(postsTable)
       .where(eq(postsTable.clientId, clientId));
     expect(posts.filter((p) => p.title === "Once only")).toHaveLength(1);
+  });
+
+  it("confirming a schedule_posts action spreads existing posts across dates", async () => {
+    const clientId = await clientIdFor(USER_A);
+    const [p1] = await db
+      .insert(postsTable)
+      .values({ clientId, title: "Sched A", content: "", platform: "linkedin", status: "draft" })
+      .returning();
+    const [p2] = await db
+      .insert(postsTable)
+      .values({ clientId, title: "Sched B", content: "", platform: "linkedin", status: "draft" })
+      .returning();
+
+    const [id] = await seedProposals(clientId, [
+      proposedSchedule("Schedule two posts", {
+        postIds: [p1.id, p2.id],
+        startDate: "2099-01-10",
+        intervalDays: 3,
+        time: "09:00",
+      }),
+    ]);
+
+    const res = await request(app)
+      .post(`/api/assistant/actions/${id}/confirm`)
+      .set(as(USER_A))
+      .expect(200);
+    expect(res.body.action.status).toBe("applied");
+
+    const [first] = await db.select().from(postsTable).where(eq(postsTable.id, p1.id));
+    const [second] = await db.select().from(postsTable).where(eq(postsTable.id, p2.id));
+    expect(first.status).toBe("scheduled");
+    expect(second.status).toBe("scheduled");
+    expect(first.scheduledAt).toBeTruthy();
+    expect(second.scheduledAt).toBeTruthy();
+    // Second post lands intervalDays (3) after the first.
+    const gapDays =
+      (second.scheduledAt!.getTime() - first.scheduledAt!.getTime()) / (1000 * 60 * 60 * 24);
+    expect(Math.round(gapDays)).toBe(3);
   });
 
   it("reject-batch dismisses every proposed action without creating rows", async () => {

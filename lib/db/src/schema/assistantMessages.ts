@@ -15,6 +15,7 @@ export type AssistantActionKind =
   | "update_platforms"
   | "create_post"
   | "update_post"
+  | "schedule_posts"
   | "create_idea"
   | "update_idea";
 

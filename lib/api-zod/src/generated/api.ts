@@ -1029,7 +1029,7 @@ export const GetAssistantMessagesResponseItem = zod.object({
   "content": zod.string(),
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1060,7 +1060,7 @@ export const SendAssistantMessageResponse = zod.object({
   "content": zod.string(),
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1080,7 +1080,7 @@ export const SendAssistantMessageResponse = zod.object({
   "content": zod.string(),
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1107,7 +1107,7 @@ export const ConfirmAssistantActionParams = zod.object({
 export const ConfirmAssistantActionResponse = zod.object({
   "action": zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1125,7 +1125,7 @@ export const ConfirmAssistantActionResponse = zod.object({
   "content": zod.string(),
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1156,7 +1156,7 @@ export const RejectAssistantActionBody = zod.object({
 export const RejectAssistantActionResponse = zod.object({
   "action": zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1174,7 +1174,7 @@ export const RejectAssistantActionResponse = zod.object({
   "content": zod.string(),
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1201,7 +1201,7 @@ export const ConfirmAssistantActionsBody = zod.object({
 export const ConfirmAssistantActionsResponse = zod.object({
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1226,7 +1226,7 @@ export const RejectAssistantActionsBody = zod.object({
 export const RejectAssistantActionsResponse = zod.object({
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),

@@ -20,3 +20,9 @@ user picked. The same reasoning applies on the web side when previewing the per-
 **How to apply:** any future "spread across dates" feature (ideas, reminders, campaigns) must
 follow the same part-based construction and must filter `postIds` to rows the caller owns before
 writing (per-client scoping), mirroring the other posts routes.
+
+**Planner preview must not throw:** the per-post date chip in the Plan-schedule dialog renders on
+every keystroke of a controlled date input, so it sees transiently empty/invalid start values.
+Computing it with `new Date("...")` + `format(...)` throws "Invalid time value" and crashes the
+whole page (Vite error overlay). Always parse the `YYYY-MM-DD` start with a regex, return null on
+no-match, and skip rendering the chip when null — same part-based build as the server.

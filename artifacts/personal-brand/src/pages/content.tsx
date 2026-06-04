@@ -359,6 +359,25 @@ function ContentLibrary() {
     );
   };
 
+  // The scheduled date for the post at a given position in the plan, built from
+  // numeric Y/M/D parts (matching the server) so it never drifts by a timezone
+  // and never throws on a transiently empty/invalid start date as the user types.
+  const previewDate = (order: number): Date | null => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(planStartDate);
+    if (!m) return null;
+    const [, y, mo, d] = m;
+    const [hh, mm] = (planTime || "09:00").split(":");
+    const step = Math.max(1, Number(planInterval) || 1);
+    const date = new Date(
+      Number(y),
+      Number(mo) - 1,
+      Number(d) + order * step,
+      Number(hh) || 0,
+      Number(mm) || 0,
+    );
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
   const openPlanner = () => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -895,6 +914,7 @@ function ContentLibrary() {
                 schedulablePosts.map((post) => {
                   const checked = selectedIds.includes(post.id);
                   const order = selectedIds.indexOf(post.id);
+                  const scheduledOn = checked && order >= 0 ? previewDate(order) : null;
                   return (
                     <button
                       type="button"
@@ -910,15 +930,9 @@ function ContentLibrary() {
                         </div>
                         <p className="mt-0.5 line-clamp-1 text-xs font-light text-muted-foreground">{post.content}</p>
                       </div>
-                      {checked && order >= 0 && (
+                      {scheduledOn && (
                         <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
-                          {format(
-                            new Date(
-                              `${planStartDate}T${(planTime || "09:00")}:00`,
-                            ).getTime() +
-                              order * Math.max(1, Number(planInterval) || 1) * 86400000,
-                            "MMM d",
-                          )}
+                          {format(scheduledOn, "MMM d")}
                         </span>
                       )}
                     </button>

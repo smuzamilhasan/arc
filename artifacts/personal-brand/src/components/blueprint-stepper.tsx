@@ -8,39 +8,39 @@ import type { BlueprintStageView } from "@/lib/blueprint";
 // agree.
 export function BlueprintStepper({ stages }: { stages: BlueprintStageView[] }) {
   return (
-    <ol className="flex flex-col gap-4 md:flex-row md:items-start md:gap-0">
+    <ol className="flex flex-col gap-6 md:flex-row md:items-start md:gap-0">
       {stages.map((stage, i) => {
         const last = i === stages.length - 1;
+        const lineColor =
+          stage.status === "complete" ? "bg-primary" : "bg-border";
         return (
           <li
             key={stage.index}
-            className="relative flex items-start gap-3 md:flex-1 md:flex-col md:items-center md:gap-3 md:text-center"
+            className="relative flex items-start gap-4 md:flex-1 md:flex-col md:items-center md:gap-3 md:text-center"
           >
-            <div className="flex flex-col items-center md:w-full md:flex-row md:items-center">
-              {/* spacer keeps the desktop node centered over its column */}
-              <span className="hidden md:block md:flex-1" aria-hidden="true" />
-              <StepNode index={i} status={stage.status} />
-              {!last && (
+            {/* connector running from this node to the next one */}
+            {!last && (
+              <>
+                {/* mobile: vertical */}
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "hidden md:block md:h-px md:flex-1",
-                    stage.status === "complete" ? "bg-primary" : "bg-border",
+                    "absolute left-4 top-4 -translate-x-1/2 w-px h-[calc(100%+1.5rem)] md:hidden",
+                    lineColor,
                   )}
                 />
-              )}
-            </div>
-
-            {/* vertical connector on mobile */}
-            {!last && (
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "absolute left-[15px] top-9 h-[calc(100%-12px)] w-px md:hidden",
-                  stage.status === "complete" ? "bg-primary" : "bg-border",
-                )}
-              />
+                {/* desktop: horizontal */}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "hidden md:block absolute top-4 left-1/2 -translate-y-1/2 h-px w-full",
+                    lineColor,
+                  )}
+                />
+              </>
             )}
+
+            <StepNode index={i} status={stage.status} />
 
             <div className="pb-1 md:px-2 md:pb-0">
               <p

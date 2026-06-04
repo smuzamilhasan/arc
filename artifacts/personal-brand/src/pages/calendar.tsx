@@ -8,7 +8,20 @@ import {
   getGetPlatformsQueryKey,
 } from "@workspace/api-client-react";
 import type { Post } from "@workspace/api-client-react";
-import { addMonths, format, isSameMonth, isToday, startOfMonth } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameMonth,
+  isToday,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
 import {
   Loader2,
   ChevronLeft,
@@ -17,10 +30,10 @@ import {
   Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blueprint";
-import { buildMonthGrid, groupPostsByDay } from "@/lib/calendar";
-import { dayKey } from "@/lib/schedule";
+import { groupPostsByDay } from "@/lib/calendar";
 import { LockedPanel } from "@/components/locked-panel";
 import { PostEditorDialog } from "@/components/post-editor";
 
@@ -75,6 +88,8 @@ const STATUS_OPTIONS: { key: string; label: string }[] = [
 ];
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+type CalendarView = "month" | "week" | "day";
 
 function FilterBar({
   selectedPlatforms,
@@ -185,7 +200,63 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
   );
 }
 
-function DayCell({
+// A richer card used in week/day views where there is room for the time + platform.
+function PostRow({ post, onClick }: { post: Post; onClick: () => void }) {
+  const style = platformStyle(post.platform);
+  const at = post.scheduledAt ? new Date(post.scheduledAt) : null;
+  const time = at && !Number.isNaN(at.getTime()) ? format(at, "h:mm a") : null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={post.title}
+      className={cn(
+        "flex w-full flex-col gap-1 rounded-md border px-2.5 py-2 text-left transition-colors",
+        style.card,
+      )}
+    >
+      <div className="flex items-center gap-1.5">
+        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
+        <span className="truncate text-xs font-semibold leading-tight">{post.title}</span>
+      </div>
+      <div className="flex items-center gap-2 pl-3 text-[10px] font-medium uppercase tracking-wide opacity-80">
+        <span>{style.label}</span>
+        {time && (
+          <>
+            <span aria-hidden>·</span>
+            <span className="normal-case tracking-normal">{time}</span>
+          </>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function AddButton({
+  day,
+  onAddPost,
+  className,
+}: {
+  day: Date;
+  onAddPost: (day: Date) => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`Add post on ${format(day, "MMMM d")}`}
+      onClick={() => onAddPost(day)}
+      className={cn(
+        "flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+        className,
+      )}
+    >
+      <Plus className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+function MonthDayCell({
   day,
   monthCursor,
   posts,
@@ -221,14 +292,11 @@ function DayCell({
         >
           {format(day, "d")}
         </span>
-        <button
-          type="button"
-          aria-label={`Add post on ${format(day, "MMMM d")}`}
-          onClick={() => onAddPost(day)}
-          className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-opacity hover:bg-secondary hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
+        <AddButton
+          day={day}
+          onAddPost={onAddPost}
+          className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+        />
       </div>
       <div className="flex flex-col gap-1 overflow-hidden">
         {posts.map((post) => (
@@ -239,7 +307,189 @@ function DayCell({
   );
 }
 
-function CalendarGrid({
+function MonthView({
+  cursor,
+  postsByDay,
+  onPostClick,
+  onAddPost,
+}: {
+  cursor: Date;
+  postsByDay: Map<string, Post[]>;
+  onPostClick: (post: Post) => void;
+  onAddPost: (day: Date) => void;
+}) {
+  const days = useMemo(() => {
+    const gridStart = startOfWeek(startOfMonth(cursor));
+    const gridEnd = endOfWeek(endOfMonth(cursor));
+    return eachDayOfInterval({ start: gridStart, end: gridEnd });
+  }, [cursor]);
+
+  return (
+    <div className="overflow-hidden rounded-xl border-l border-t border-border/50 bg-card shadow-sm">
+      <div className="grid grid-cols-7 border-b border-border/50 bg-secondary/30">
+        {WEEKDAYS.map((wd) => (
+          <div
+            key={wd}
+            className="border-r border-border/50 px-2 py-2 text-center text-[11px] font-medium uppercase tracking-widest text-muted-foreground"
+          >
+            {wd}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {days.map((day) => (
+          <MonthDayCell
+            key={day.toISOString()}
+            day={day}
+            monthCursor={cursor}
+            posts={postsByDay.get(format(day, "yyyy-MM-dd")) ?? []}
+            onPostClick={onPostClick}
+            onAddPost={onAddPost}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WeekView({
+  cursor,
+  postsByDay,
+  onPostClick,
+  onAddPost,
+}: {
+  cursor: Date;
+  postsByDay: Map<string, Post[]>;
+  onPostClick: (post: Post) => void;
+  onAddPost: (day: Date) => void;
+}) {
+  const days = useMemo(() => {
+    const start = startOfWeek(cursor);
+    return eachDayOfInterval({ start, end: endOfWeek(cursor) });
+  }, [cursor]);
+
+  return (
+    <div className="overflow-hidden rounded-xl border-l border-t border-border/50 bg-card shadow-sm">
+      <div className="grid grid-cols-7">
+        {days.map((day) => {
+          const today = isToday(day);
+          const posts = postsByDay.get(format(day, "yyyy-MM-dd")) ?? [];
+          return (
+            <div
+              key={day.toISOString()}
+              className="group flex min-h-[24rem] flex-col border-b border-r border-border/50"
+            >
+              <div
+                className={cn(
+                  "flex items-center justify-between border-b border-border/50 px-2 py-2",
+                  today ? "bg-primary/5" : "bg-secondary/30",
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                    {format(day, "EEE")}
+                  </span>
+                  <span
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
+                      today ? "bg-primary text-primary-foreground" : "text-foreground",
+                    )}
+                  >
+                    {format(day, "d")}
+                  </span>
+                </div>
+                <AddButton
+                  day={day}
+                  onAddPost={onAddPost}
+                  className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+                />
+              </div>
+              <div className="flex flex-1 flex-col gap-1.5 p-1.5">
+                {posts.length === 0 ? (
+                  <span className="px-1 py-2 text-[11px] font-light text-muted-foreground/50">
+                    No posts
+                  </span>
+                ) : (
+                  posts.map((post) => (
+                    <PostRow key={post.id} post={post} onClick={() => onPostClick(post)} />
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DayView({
+  cursor,
+  postsByDay,
+  onPostClick,
+  onAddPost,
+}: {
+  cursor: Date;
+  postsByDay: Map<string, Post[]>;
+  onPostClick: (post: Post) => void;
+  onAddPost: (day: Date) => void;
+}) {
+  const posts = postsByDay.get(format(cursor, "yyyy-MM-dd")) ?? [];
+  const today = isToday(cursor);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm">
+      <div
+        className={cn(
+          "flex items-center justify-between border-b border-border/50 px-4 py-3",
+          today ? "bg-primary/5" : "bg-secondary/30",
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium",
+              today ? "bg-primary text-primary-foreground" : "text-foreground",
+            )}
+          >
+            {format(cursor, "d")}
+          </span>
+          <span className="text-sm font-medium text-foreground">{format(cursor, "EEEE")}</span>
+          {today && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+              Today
+            </span>
+          )}
+        </div>
+        <AddButton day={cursor} onAddPost={onAddPost} />
+      </div>
+      <div className="flex flex-col gap-2 p-4">
+        {posts.length === 0 ? (
+          <div className="py-12 text-center">
+            <p className="text-sm font-light text-muted-foreground">
+              Nothing scheduled for this day.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4 gap-2 rounded-full"
+              onClick={() => onAddPost(cursor)}
+            >
+              <Plus className="h-4 w-4" />
+              Add a post
+            </Button>
+          </div>
+        ) : (
+          posts.map((post) => (
+            <PostRow key={post.id} post={post} onClick={() => onPostClick(post)} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CalendarBoard({
   posts,
   onPostClick,
   onAddPost,
@@ -248,7 +498,8 @@ function CalendarGrid({
   onPostClick: (post: Post) => void;
   onAddPost: (day: Date) => void;
 }) {
-  const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
+  const [view, setView] = useState<CalendarView>("month");
+  const [cursor, setCursor] = useState(() => startOfDay(new Date()));
 
   // Filters default to "show everything" so the calendar is unfiltered on load.
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(
@@ -279,8 +530,6 @@ function CalendarGrid({
     setSelectedStatuses(new Set(STATUS_OPTIONS.map((s) => s.key)));
   };
 
-  const days = useMemo(() => buildMonthGrid(monthCursor), [monthCursor]);
-
   // Apply the active platform/status filters before laying posts on the grid.
   const filteredPosts = useMemo(
     () =>
@@ -306,40 +555,86 @@ function CalendarGrid({
     [filteredPosts],
   );
 
+  // The label + navigation step both depend on the active view.
+  const title = useMemo(() => {
+    if (view === "month") return format(cursor, "MMMM yyyy");
+    if (view === "day") return format(cursor, "EEEE, MMMM d, yyyy");
+    const start = startOfWeek(cursor);
+    const end = endOfWeek(cursor);
+    if (isSameMonth(start, end)) {
+      return `${format(start, "MMM d")} – ${format(end, "d, yyyy")}`;
+    }
+    return `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`;
+  }, [view, cursor]);
+
+  const step = (dir: 1 | -1) => {
+    setCursor((c) => {
+      if (view === "month") return addMonths(c, dir);
+      if (view === "week") return addWeeks(c, dir);
+      return addDays(c, dir);
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <h2 className="font-serif text-2xl tracking-tight text-foreground">
-            {format(monthCursor, "MMMM yyyy")}
-          </h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 rounded-full"
-            aria-label="Previous month"
-            onClick={() => setMonthCursor((c) => startOfMonth(addMonths(c, -1)))}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <h2 className="font-serif text-2xl tracking-tight text-foreground">{title}</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <ToggleGroup
+            type="single"
+            value={view}
+            onValueChange={(v) => v && setView(v as CalendarView)}
+            className="rounded-full border border-border/50 bg-card p-1"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            className="h-9 rounded-full px-4"
-            onClick={() => setMonthCursor(startOfMonth(new Date()))}
-          >
-            Today
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 rounded-full"
-            aria-label="Next month"
-            onClick={() => setMonthCursor((c) => startOfMonth(addMonths(c, 1)))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+            <ToggleGroupItem
+              value="month"
+              aria-label="Month view"
+              className="h-7 rounded-full px-4 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              Month
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="week"
+              aria-label="Week view"
+              className="h-7 rounded-full px-4 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              Week
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="day"
+              aria-label="Day view"
+              className="h-7 rounded-full px-4 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              Day
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 rounded-full"
+              aria-label={`Previous ${view}`}
+              onClick={() => step(-1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className="h-9 rounded-full px-4"
+              onClick={() => setCursor(startOfDay(new Date()))}
+            >
+              Today
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 rounded-full"
+              aria-label={`Next ${view}`}
+              onClick={() => step(1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -351,30 +646,30 @@ function CalendarGrid({
         onReset={resetFilters}
       />
 
-      <div className="overflow-hidden rounded-xl border-l border-t border-border/50 bg-card shadow-sm">
-        <div className="grid grid-cols-7 border-b border-border/50 bg-secondary/30">
-          {WEEKDAYS.map((wd) => (
-            <div
-              key={wd}
-              className="border-r border-border/50 px-2 py-2 text-center text-[11px] font-medium uppercase tracking-widest text-muted-foreground"
-            >
-              {wd}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7">
-          {days.map((day) => (
-            <DayCell
-              key={day.toISOString()}
-              day={day}
-              monthCursor={monthCursor}
-              posts={postsByDay.get(dayKey(day)) ?? []}
-              onPostClick={onPostClick}
-              onAddPost={onAddPost}
-            />
-          ))}
-        </div>
-      </div>
+      {view === "month" && (
+        <MonthView
+          cursor={cursor}
+          postsByDay={postsByDay}
+          onPostClick={onPostClick}
+          onAddPost={onAddPost}
+        />
+      )}
+      {view === "week" && (
+        <WeekView
+          cursor={cursor}
+          postsByDay={postsByDay}
+          onPostClick={onPostClick}
+          onAddPost={onAddPost}
+        />
+      )}
+      {view === "day" && (
+        <DayView
+          cursor={cursor}
+          postsByDay={postsByDay}
+          onPostClick={onPostClick}
+          onAddPost={onAddPost}
+        />
+      )}
 
       {visibleScheduledCount === 0 &&
         (totalScheduledCount === 0 ? (
@@ -467,9 +762,10 @@ export default function Calendar() {
     <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
       <header className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-widest text-primary">Content Calendar</p>
-        <h1 className="font-serif text-4xl tracking-tight text-foreground">Your month at a glance</h1>
+        <h1 className="font-serif text-4xl tracking-tight text-foreground">Plan your content</h1>
         <p className="text-lg font-light leading-relaxed text-muted-foreground">
-          See how your scheduled posts spread across platforms and time. Click any post to edit it.
+          See how your scheduled posts spread across platforms and time. Switch between month, week,
+          and day views, and click any post to edit it.
         </p>
       </header>
 
@@ -478,7 +774,7 @@ export default function Calendar() {
           <Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" />
         </div>
       ) : (
-        <CalendarGrid posts={posts} onPostClick={handlePostClick} onAddPost={handleAddPost} />
+        <CalendarBoard posts={posts} onPostClick={handlePostClick} onAddPost={handleAddPost} />
       )}
 
       <PostEditorDialog

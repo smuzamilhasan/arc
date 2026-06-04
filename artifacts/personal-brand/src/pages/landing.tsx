@@ -1,14 +1,11 @@
 import { Link } from "wouter";
-import { CornerDownRight } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 export default function Landing() {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background selection:bg-primary/20 selection:text-primary">
       <header className="flex items-center justify-between px-6 md:px-12 py-6">
-        <div className="flex items-end gap-1">
-          <span className="font-serif text-3xl tracking-tight text-foreground">arc</span>
-          <CornerDownRight className="w-5 h-5 text-primary mb-1 stroke-[2.5]" />
-        </div>
+        <Logo className="text-3xl" />
         <Link href="/sign-in">
           <button className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-300">
             Sign in
@@ -46,9 +43,10 @@ export default function Landing() {
         </div>
       </main>
 
-      <footer className="px-6 md:px-12 py-8 text-center">
+      <footer className="px-6 md:px-12 py-8 flex flex-col items-center gap-2">
+        <Logo className="text-xl" />
         <span className="text-xs font-medium text-muted-foreground tracking-widest uppercase">
-          arc — story arc
+          story arc
         </span>
       </footer>
     </div>

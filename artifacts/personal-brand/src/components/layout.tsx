@@ -9,7 +9,6 @@ import {
   Compass,
   Radio,
   Lock,
-  CornerDownRight,
   RotateCcw,
   LogOut,
   Loader2,
@@ -25,6 +24,7 @@ import {
   getGetPlatformsQueryKey,
 } from "@workspace/api-client-react";
 import { isPanelUnlocked, type PanelGateId } from "@/lib/blueprint";
+import { Logo } from "@/components/logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -243,9 +243,7 @@ export function Layout({ children }: LayoutProps) {
       <aside className="hidden md:flex w-64 flex-col border-r border-border/50 bg-background shrink-0">
         <div className="p-8 pb-4">
           <div className="flex flex-col gap-1 mb-10">
-            <span className="font-serif text-3xl tracking-tight text-foreground flex items-end gap-1">
-              arc <CornerDownRight className="w-5 h-5 text-primary mb-1 stroke-[2.5]" />
-            </span>
+            <Logo className="text-3xl" />
             <span className="text-xs font-medium text-muted-foreground tracking-widest uppercase">Strategist</span>
           </div>
         </div>
@@ -262,10 +260,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Mobile Header & Sidebar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 border-b border-border/50 bg-background/80 backdrop-blur-md z-50 flex items-center justify-between px-6">
-        <div className="flex items-center gap-1">
-          <span className="font-serif text-2xl tracking-tight text-foreground">arc</span>
-          <CornerDownRight className="w-4 h-4 text-primary mt-1 stroke-[2.5]" />
-        </div>
+        <Logo className="text-2xl" />
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
@@ -275,9 +270,7 @@ export function Layout({ children }: LayoutProps) {
           <SheetContent side="left" className="w-64 p-0 bg-background border-r-border/50">
             <div className="p-8 pb-4">
               <div className="flex flex-col gap-1 mb-10">
-                <span className="font-serif text-3xl tracking-tight text-foreground flex items-end gap-1">
-                  arc <CornerDownRight className="w-5 h-5 text-primary mb-1 stroke-[2.5]" />
-                </span>
+                <Logo className="text-3xl" />
                 <span className="text-xs font-medium text-muted-foreground tracking-widest uppercase">Strategist</span>
               </div>
             </div>

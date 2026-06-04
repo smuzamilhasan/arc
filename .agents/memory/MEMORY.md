@@ -12,3 +12,4 @@
 - [Feature-gate server enforcement](feature-gate-server-enforcement.md) — a UI lock on a gated panel must be mirrored by a server-side 403 on its generate/write route, or it's bypassable.
 - [client_profile 500 = dev DB drift](db-drift-500.md) — a 500 on /api/client select means a missing column; run `pnpm --filter @workspace/db run push`, don't blame app code.
 - [Assistant batch confirm/reject](assistant-batch-actions.md) — bulk "Confirm all" must use the batch endpoints, not parallel single-action calls, or same-row JSON actions lost-update.
+- [Batch post scheduling dates](batch-schedule-dates.md) — spread scheduledAt from y/m/d parts, not new Date("YYYY-MM-DD"), to avoid a TZ off-by-one day.

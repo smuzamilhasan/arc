@@ -4,6 +4,7 @@ import {
   useCreatePost,
   useUpdatePost,
   useDeletePost,
+  useScheduleBatchPosts,
   getListPostsQueryKey,
   useGetClient,
   getGetClientQueryKey,
@@ -28,6 +29,8 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   CalendarClock,
+  CalendarDays,
+  LayoutGrid,
   Search,
   FileText,
   Sparkles,
@@ -40,6 +43,8 @@ import {
   BookOpen,
   Users,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -303,17 +308,23 @@ function ContentLibrary() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState<number | null>(null);
+  const [view, setView] = useState<"library" | "calendar">("library");
+  const [isPlanOpen, setIsPlanOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [planStartDate, setPlanStartDate] = useState("");
+  const [planInterval, setPlanInterval] = useState("1");
+  const [planTime, setPlanTime] = useState("09:00");
 
-  const { data: posts = [], isLoading } = useListPosts({
-    platform: platformFilter !== "all" ? platformFilter : undefined,
-    status: statusFilter !== "all" ? statusFilter : undefined,
-  }, {
-    query: { queryKey: getListPostsQueryKey({ platform: platformFilter !== "all" ? platformFilter : undefined, status: statusFilter !== "all" ? statusFilter : undefined }) }
+  // Always load the full library (unfiltered) so the calendar and the batch
+  // planner see every post regardless of the active filters.
+  const { data: posts = [], isLoading } = useListPosts(undefined, {
+    query: { queryKey: getListPostsQueryKey() },
   });
 
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
+  const scheduleBatch = useScheduleBatchPosts();
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
@@ -325,10 +336,68 @@ function ContentLibrary() {
     },
   });
 
-  const filteredPosts = posts.filter(post =>
-    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPosts = posts.filter((post) => {
+    if (platformFilter !== "all" && post.platform !== platformFilter) return false;
+    if (statusFilter !== "all" && post.status !== statusFilter) return false;
+    const q = searchQuery.toLowerCase();
+    return post.title.toLowerCase().includes(q) || post.content.toLowerCase().includes(q);
+  });
+
+  const scheduledPosts = posts
+    .filter((p) => p.scheduledAt)
+    .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime());
+
+  const schedulablePosts = posts.filter((p) => p.status !== "published");
+
+  const toggleSelected = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const openPlanner = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    setPlanStartDate(`${yyyy}-${mm}-${dd}`);
+    setPlanInterval("1");
+    setPlanTime("09:00");
+    setSelectedIds(schedulablePosts.filter((p) => p.status === "draft").map((p) => p.id));
+    setIsPlanOpen(true);
+  };
+
+  const handleScheduleBatch = () => {
+    if (selectedIds.length === 0 || !planStartDate) return;
+    // Schedule in the order the posts appear in the library list.
+    const orderedIds = schedulablePosts
+      .filter((p) => selectedIds.includes(p.id))
+      .map((p) => p.id);
+    scheduleBatch.mutate(
+      {
+        data: {
+          postIds: orderedIds,
+          startDate: planStartDate,
+          intervalDays: Math.max(1, Number(planInterval) || 1),
+          time: planTime || "09:00",
+        },
+      },
+      {
+        onSuccess: (updated) => {
+          queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+          toast({
+            title: "Schedule planned",
+            description: `${updated.length} ${updated.length === 1 ? "post" : "posts"} laid out on the calendar.`,
+          });
+          setIsPlanOpen(false);
+          setSelectedIds([]);
+          setView("calendar");
+        },
+        onError: () =>
+          toast({ title: "Could not schedule posts", variant: "destructive" }),
+      },
+    );
+  };
 
   const handleOpenEditor = (post?: Post) => {
     if (post) {
@@ -412,11 +481,49 @@ function ContentLibrary() {
           <h2 className="text-3xl font-serif text-foreground tracking-tight">Content Library</h2>
           <p className="text-muted-foreground text-lg font-light">Draft, schedule, and publish your ideas.</p>
         </header>
-        <Button onClick={() => handleOpenEditor()} className="shrink-0 rounded-full bg-primary hover:bg-primary/90 gap-2 h-11 px-6 shadow-sm">
-          <Plus className="w-4 h-4" /> New Post
-        </Button>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center rounded-full border border-border/50 bg-card/50 p-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setView("library")}
+              className={`gap-1.5 rounded-full px-4 ${view === "library" ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Library
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setView("calendar")}
+              className={`gap-1.5 rounded-full px-4 ${view === "calendar" ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              <CalendarDays className="h-3.5 w-3.5" /> Calendar
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            onClick={openPlanner}
+            disabled={schedulablePosts.length === 0}
+            className="rounded-full gap-2 h-11 px-5"
+          >
+            <CalendarClock className="w-4 h-4" /> Plan schedule
+          </Button>
+          <Button onClick={() => handleOpenEditor()} className="rounded-full bg-primary hover:bg-primary/90 gap-2 h-11 px-6 shadow-sm">
+            <Plus className="w-4 h-4" /> New Post
+          </Button>
+        </div>
       </div>
 
+      {view === "calendar" ? (
+        <ScheduleCalendar
+          posts={scheduledPosts}
+          isLoading={isLoading}
+          onSelect={handleOpenEditor}
+          onPlan={openPlanner}
+          canPlan={schedulablePosts.length > 0}
+        />
+      ) : (
+      <>
       <div className="flex flex-col md:flex-row gap-4 items-center bg-card/50 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-sm">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -527,6 +634,8 @@ function ContentLibrary() {
             </Card>
           ))}
         </div>
+      )}
+      </>
       )}
 
       {/* Editor Dialog */}
@@ -672,6 +781,230 @@ function ContentLibrary() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Batch schedule planner */}
+      <Dialog open={isPlanOpen} onOpenChange={setIsPlanOpen}>
+        <DialogContent className="max-w-2xl max-h-[88vh] flex flex-col p-0 overflow-hidden border-border/50 rounded-xl shadow-2xl">
+          <DialogHeader className="p-7 pb-4 border-b border-border/50 shrink-0 bg-card">
+            <DialogTitle className="font-serif text-2xl font-normal">Plan a schedule</DialogTitle>
+            <DialogDescription className="text-sm font-light">
+              Pick the posts you want to publish, choose a start date and cadence, and arc will lay them out across the calendar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-7 pb-4 border-b border-border/50 bg-background shrink-0">
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground font-medium text-xs uppercase tracking-widest">Start date</Label>
+                <Input
+                  type="date"
+                  value={planStartDate}
+                  onChange={(e) => setPlanStartDate(e.target.value)}
+                  className="h-11 bg-card border-border/50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground font-medium text-xs uppercase tracking-widest">Every</Label>
+                <Select value={planInterval} onValueChange={setPlanInterval}>
+                  <SelectTrigger className="h-11 bg-card border-border/50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 day</SelectItem>
+                    <SelectItem value="2">2 days</SelectItem>
+                    <SelectItem value="3">3 days</SelectItem>
+                    <SelectItem value="7">1 week</SelectItem>
+                    <SelectItem value="14">2 weeks</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground font-medium text-xs uppercase tracking-widest">Time</Label>
+                <Input
+                  type="time"
+                  value={planTime}
+                  onChange={(e) => setPlanTime(e.target.value)}
+                  className="h-11 bg-card border-border/50"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-7 space-y-2 bg-background">
+              {schedulablePosts.length === 0 ? (
+                <p className="text-sm text-muted-foreground font-light py-8 text-center">
+                  No draft or scheduled posts available to plan.
+                </p>
+              ) : (
+                schedulablePosts.map((post) => {
+                  const checked = selectedIds.includes(post.id);
+                  const order = selectedIds.indexOf(post.id);
+                  return (
+                    <button
+                      type="button"
+                      key={post.id}
+                      onClick={() => toggleSelected(post.id)}
+                      className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors ${checked ? "border-primary/40 bg-primary/5" : "border-border/50 bg-card hover:border-border"}`}
+                    >
+                      <Checkbox checked={checked} className="mt-0.5 pointer-events-none" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-medium text-foreground">{post.title}</span>
+                          <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">{post.platform}</span>
+                        </div>
+                        <p className="mt-0.5 line-clamp-1 text-xs font-light text-muted-foreground">{post.content}</p>
+                      </div>
+                      {checked && order >= 0 && (
+                        <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+                          {format(
+                            new Date(
+                              `${planStartDate}T${(planTime || "09:00")}:00`,
+                            ).getTime() +
+                              order * Math.max(1, Number(planInterval) || 1) * 86400000,
+                            "MMM d",
+                          )}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            <DialogFooter className="p-5 border-t border-border/50 bg-card shrink-0 sm:justify-between items-center">
+              <span className="text-xs text-muted-foreground">
+                {selectedIds.length} selected
+              </span>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setIsPlanOpen(false)} className="text-muted-foreground">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleScheduleBatch}
+                  disabled={selectedIds.length === 0 || !planStartDate || scheduleBatch.isPending}
+                  className="rounded-full gap-2 px-6"
+                >
+                  {scheduleBatch.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CalendarClock className="h-4 w-4" />
+                  )}
+                  Schedule {selectedIds.length > 0 ? selectedIds.length : ""}
+                </Button>
+              </div>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function ScheduleCalendar({
+  posts,
+  isLoading,
+  onSelect,
+  onPlan,
+  canPlan,
+}: {
+  posts: Post[];
+  isLoading: boolean;
+  onSelect: (post: Post) => void;
+  onPlan: () => void;
+  canPlan: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="text-center py-24 bg-card/30 rounded-xl border border-border/50 border-dashed">
+        <div className="bg-primary/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
+          <CalendarDays className="w-8 h-8" />
+        </div>
+        <h3 className="text-2xl font-serif mb-2 text-foreground">Nothing scheduled yet</h3>
+        <p className="text-muted-foreground font-light max-w-md mx-auto mb-8">
+          Lay out a batch of drafts across the next days or weeks to turn your content plan into a real schedule.
+        </p>
+        {canPlan && (
+          <Button onClick={onPlan} className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2 px-6">
+            <CalendarClock className="w-4 h-4" /> Plan schedule
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // Group scheduled posts by calendar day.
+  const groups = new Map<string, Post[]>();
+  for (const post of posts) {
+    const key = format(new Date(post.scheduledAt!), "yyyy-MM-dd");
+    const list = groups.get(key) ?? [];
+    list.push(post);
+    groups.set(key, list);
+  }
+  const orderedDays = Array.from(groups.keys()).sort();
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "published":
+        return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+      case "scheduled":
+        return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+      default:
+        return "bg-muted text-muted-foreground border-border/50";
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {orderedDays.map((day) => {
+        const dayDate = new Date(`${day}T00:00:00`);
+        return (
+          <div key={day} className="relative pl-6">
+            <div className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
+            <div className="absolute left-[4.5px] top-4 bottom-0 w-px bg-border/60" />
+            <div className="mb-3 flex items-baseline gap-3">
+              <h3 className="font-serif text-xl text-foreground">{format(dayDate, "EEEE, MMM d")}</h3>
+              <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                {groups.get(day)!.length} {groups.get(day)!.length === 1 ? "post" : "posts"}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {groups.get(day)!.map((post) => (
+                <Card
+                  key={post.id}
+                  onClick={() => onSelect(post)}
+                  className="cursor-pointer border-border/50 bg-card shadow-sm transition-all hover:border-primary/20 hover:shadow-md"
+                >
+                  <CardContent className="p-4">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        {format(new Date(post.scheduledAt!), "h:mm a")}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`capitalize border ${getStatusColor(post.status)} rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider`}
+                      >
+                        {post.status}
+                      </Badge>
+                    </div>
+                    <p className="line-clamp-2 font-serif text-base leading-tight text-foreground">{post.title}</p>
+                    <span className="mt-2 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {post.platform}
+                    </span>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

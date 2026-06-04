@@ -399,6 +399,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/Post"
 
+  /posts/schedule-batch:
+    post:
+      operationId: scheduleBatchPosts
+      tags: [posts]
+      summary: Schedule a batch of posts across dates
+      description: Assigns target dates to several posts at once, spreading them from a start date by a fixed day interval, and marks each as scheduled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleBatchInput"
+      responses:
+        "200":
+          description: The updated posts after scheduling
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid input
+        "404":
+          description: No client profile yet
+
   /posts/{id}:
     get:
       operationId: getPost
@@ -1840,3 +1866,22 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AssistantAction"
+
+    ScheduleBatchInput:
+      type: object
+      required: [postIds, startDate]
+      properties:
+        postIds:
+          type: array
+          items:
+            type: integer
+          description: Post IDs to schedule, in the order they should be laid out.
+        startDate:
+          type: string
+          description: ISO date for the first post (YYYY-MM-DD).
+        intervalDays:
+          type: integer
+          description: Days between consecutive posts. Defaults to 1.
+        time:
+          type: string
+          description: Time of day in HH:MM (24h). Defaults to 09:00.

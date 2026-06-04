@@ -686,6 +686,31 @@ export const CreatePostBody = zod.object({
 
 
 /**
+ * Assigns target dates to several posts at once, spreading them from a start date by a fixed day interval, and marks each as scheduled.
+ * @summary Schedule a batch of posts across dates
+ */
+export const ScheduleBatchPostsBody = zod.object({
+  "postIds": zod.array(zod.number()).describe('Post IDs to schedule, in the order they should be laid out.'),
+  "startDate": zod.string().describe('ISO date for the first post (YYYY-MM-DD).'),
+  "intervalDays": zod.number().optional().describe('Days between consecutive posts. Defaults to 1.'),
+  "time": zod.string().optional().describe('Time of day in HH:MM (24h). Defaults to 09:00.')
+})
+
+export const ScheduleBatchPostsResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "content": zod.string(),
+  "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
+  "status": zod.enum(['draft', 'scheduled', 'published']),
+  "scheduledAt": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ScheduleBatchPostsResponse = zod.array(ScheduleBatchPostsResponseItem)
+
+
+/**
  * @summary Get a post by ID
  */
 export const GetPostParams = zod.object({

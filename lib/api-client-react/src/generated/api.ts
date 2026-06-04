@@ -56,7 +56,8 @@ import type {
   PlatformsUpdateInput,
   Post,
   PostInput,
-  PostUpdate
+  PostUpdate,
+  ScheduleBatchInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1678,6 +1679,78 @@ export const useCreatePost = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreatePostMutationOptions(options));
+    }
+
+export const getScheduleBatchPostsUrl = () => {
+
+
+
+
+  return `/api/posts/schedule-batch`
+}
+
+/**
+ * Assigns target dates to several posts at once, spreading them from a start date by a fixed day interval, and marks each as scheduled.
+ * @summary Schedule a batch of posts across dates
+ */
+export const scheduleBatchPosts = async (scheduleBatchInput: ScheduleBatchInput, options?: RequestInit): Promise<Post[]> => {
+
+  return customFetch<Post[]>(getScheduleBatchPostsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      scheduleBatchInput,)
+  }
+);}
+
+
+
+
+export const getScheduleBatchPostsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scheduleBatchPosts>>, TError,{data: BodyType<ScheduleBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof scheduleBatchPosts>>, TError,{data: BodyType<ScheduleBatchInput>}, TContext> => {
+
+const mutationKey = ['scheduleBatchPosts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof scheduleBatchPosts>>, {data: BodyType<ScheduleBatchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  scheduleBatchPosts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ScheduleBatchPostsMutationResult = NonNullable<Awaited<ReturnType<typeof scheduleBatchPosts>>>
+    export type ScheduleBatchPostsMutationBody = BodyType<ScheduleBatchInput>
+    export type ScheduleBatchPostsMutationError = ErrorType<void>
+
+    /**
+ * @summary Schedule a batch of posts across dates
+ */
+export const useScheduleBatchPosts = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scheduleBatchPosts>>, TError,{data: BodyType<ScheduleBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof scheduleBatchPosts>>,
+        TError,
+        {data: BodyType<ScheduleBatchInput>},
+        TContext
+      > => {
+      return useMutation(getScheduleBatchPostsMutationOptions(options));
     }
 
 export const getGetPostUrl = (id: number,) => {

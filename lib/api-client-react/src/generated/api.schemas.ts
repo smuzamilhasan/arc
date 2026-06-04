@@ -670,6 +670,17 @@ export interface AssistantBatchResult {
   actions: AssistantAction[];
 }
 
+export interface ScheduleBatchInput {
+  /** Post IDs to schedule, in the order they should be laid out. */
+  postIds: number[];
+  /** ISO date for the first post (YYYY-MM-DD). */
+  startDate: string;
+  /** Days between consecutive posts. Defaults to 1. */
+  intervalDays?: number;
+  /** Time of day in HH:MM (24h). Defaults to 09:00. */
+  time?: string;
+}
+
 export type ListPostsParams = {
 platform?: string;
 status?: string;

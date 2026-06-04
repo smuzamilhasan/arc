@@ -75,6 +75,7 @@ export * from './postStatus';
 export * from './postUpdate';
 export * from './postUpdatePlatform';
 export * from './postUpdateStatus';
+export * from './scheduleBatchInput';
 export * from './seoFinding';
 export * from './seoFindings';
 export * from './seoFindingType';

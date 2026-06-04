@@ -55,6 +55,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import type { Post, ContentStrategy, ContentMixItem } from "@workspace/api-client-react";
 import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blueprint";
+import { rescheduleToDay, shiftByDays } from "@/lib/schedule";
 import { GenerateGate } from "@/components/locked-panel";
 
 const postSchema = z.object({
@@ -405,20 +406,11 @@ function ContentLibrary() {
   // Move a single post to a different calendar day, preserving its time of day.
   const handleReschedule = (post: Post, newDayKey: string) => {
     if (!post.scheduledAt) return;
-    const existing = new Date(post.scheduledAt);
-    if (format(existing, "yyyy-MM-dd") === newDayKey) return;
-    const [y, m, d] = newDayKey.split("-").map(Number);
-    const newDate = new Date(
-      y,
-      m - 1,
-      d,
-      existing.getHours(),
-      existing.getMinutes(),
-      0,
-      0,
-    );
+    const nextIso = rescheduleToDay(post.scheduledAt, newDayKey);
+    if (nextIso === null) return;
+    const newDate = new Date(nextIso);
     updatePost.mutate(
-      { id: post.id, data: { scheduledAt: newDate.toISOString() } },
+      { id: post.id, data: { scheduledAt: nextIso } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
@@ -442,15 +434,12 @@ function ContentLibrary() {
     if (movable.length === 0 || deltaDays === 0) return;
     try {
       await Promise.all(
-        movable.map((post) => {
-          const existing = new Date(post.scheduledAt!);
-          const shifted = new Date(existing);
-          shifted.setDate(shifted.getDate() + deltaDays);
-          return updatePost.mutateAsync({
+        movable.map((post) =>
+          updatePost.mutateAsync({
             id: post.id,
-            data: { scheduledAt: shifted.toISOString() },
-          });
-        }),
+            data: { scheduledAt: shiftByDays(post.scheduledAt!, deltaDays) },
+          }),
+        ),
       );
       queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
       const direction = deltaDays > 0 ? "later" : "earlier";

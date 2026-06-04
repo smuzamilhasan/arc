@@ -8,6 +8,7 @@ import {
   useExtractPublicInfo,
   useGenerateBio,
   useDraftPillar,
+  useGeneratePillarExamples,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -41,23 +42,34 @@ import {
 
 type Source = { title: string; url: string };
 
+// Industry-tailored "See an example" samples, cached client-side for the session
+// so switching between pillars (or toggling examples) never refetches. Keyed by
+// `${pillarId}::${industry}`. Generated on demand; the static examples in
+// blueprint.ts remain the fallback when this is empty or still loading.
+const examplesCache = new Map<string, Record<string, string>>();
+
 function FieldInput({
   field,
   value,
   onChange,
+  exampleOverride,
 }: {
   field: PillarField;
   value: string;
   onChange: (value: string) => void;
+  // An industry-tailored sample answer, when available. Preferred over the
+  // field's static `example`; falls back to the static one when empty.
+  exampleOverride?: string;
 }) {
   const [showExample, setShowExample] = useState(false);
+  const example = exampleOverride?.trim() ? exampleOverride : field.example;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <Label htmlFor={field.name} className="text-foreground/80 font-medium">
           {field.label}
         </Label>
-        {field.example && (
+        {example && (
           <button
             type="button"
             onClick={() => setShowExample((v) => !v)}
@@ -86,12 +98,12 @@ function FieldInput({
           className="h-12 bg-background border-border/50"
         />
       )}
-      {field.example && showExample && (
+      {example && showExample && (
         <div className="rounded-md border border-border/50 bg-secondary/30 p-3">
           <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1.5">
             Example
           </p>
-          <p className="text-sm text-foreground/70 italic leading-relaxed">{field.example}</p>
+          <p className="text-sm text-foreground/70 italic leading-relaxed">{example}</p>
         </div>
       )}
     </div>
@@ -114,14 +126,68 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
   const extract = useExtractPublicInfo();
   const generateBio = useGenerateBio();
   const draft = useDraftPillar();
+  const examplesMut = useGeneratePillarExamples();
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [initial, setInitial] = useState<Record<string, string>>({});
   const [sources, setSources] = useState<Source[]>([]);
   const [nudge, setNudge] = useState<Pillar | null>(null);
+  // Industry-tailored sample answers for this pillar's fields, keyed by field
+  // name. Empty until generated; the static blueprint examples are used until
+  // (and if) these arrive.
+  const [industryExamples, setIndustryExamples] = useState<Record<string, string>>({});
 
   const core = useMemo(() => coreFields(pillar), [pillar]);
   const supporting = useMemo(() => supportingFields(pillar), [pillar]);
+
+  const industry = (client?.industry ?? "").trim();
+  // The fields on this pillar that ship with a static example are the ones we
+  // upgrade to an industry-tailored sample.
+  const exampleFields = useMemo(
+    () => pillar.fields.filter((f) => Boolean(f.example)),
+    [pillar],
+  );
+
+  // Fetch (once per pillar+industry, cached for the session) industry-adapted
+  // examples. This runs silently in the background: the static examples remain
+  // available the whole time, and we only swap in the industry versions when
+  // they arrive. Any failure is ignored — the static fallback stays.
+  const mutate = examplesMut.mutate;
+  useEffect(() => {
+    setIndustryExamples({});
+    if (!industry || exampleFields.length === 0) return;
+    const cacheKey = `${pillar.id}::${industry.toLowerCase()}`;
+    const cached = examplesCache.get(cacheKey);
+    if (cached) {
+      setIndustryExamples(cached);
+      return;
+    }
+    let active = true;
+    mutate(
+      {
+        data: {
+          pillarId: pillar.id,
+          industry,
+          currentRole: client?.currentRole || undefined,
+          company: client?.company || undefined,
+          fields: exampleFields.map((f) => ({
+            name: f.name,
+            label: f.label,
+            multiline: f.multiline,
+          })),
+        },
+      },
+      {
+        onSuccess: (result) => {
+          examplesCache.set(cacheKey, result.fields);
+          if (active) setIndustryExamples(result.fields);
+        },
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [pillar.id, industry, exampleFields, client?.currentRole, client?.company, mutate]);
 
   useEffect(() => {
     if (!client) return;
@@ -413,6 +479,7 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
             field={f}
             value={values[f.name] ?? ""}
             onChange={(v) => setField(f.name, v)}
+            exampleOverride={industryExamples[f.name]}
           />
         ))}
       </div>
@@ -434,6 +501,7 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
               field={f}
               value={values[f.name] ?? ""}
               onChange={(v) => setField(f.name, v)}
+              exampleOverride={industryExamples[f.name]}
             />
           ))}
         </div>

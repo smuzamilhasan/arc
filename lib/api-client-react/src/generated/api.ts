@@ -34,6 +34,8 @@ import type {
   ExtractInfoResult,
   GenerateBioInput,
   GenerateBioResult,
+  GeneratePillarExamplesInput,
+  GeneratePillarExamplesResult,
   HealthStatus,
   Idea,
   IdeaInput,
@@ -1299,6 +1301,77 @@ export const useDraftPillar = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDraftPillarMutationOptions(options));
+    }
+
+export const getGeneratePillarExamplesUrl = () => {
+
+
+
+
+  return `/api/onboarding/pillar-examples`
+}
+
+/**
+ * @summary Generate industry-tailored illustrative example answers for a Blueprint pillar's fields
+ */
+export const generatePillarExamples = async (generatePillarExamplesInput: GeneratePillarExamplesInput, options?: RequestInit): Promise<GeneratePillarExamplesResult> => {
+
+  return customFetch<GeneratePillarExamplesResult>(getGeneratePillarExamplesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      generatePillarExamplesInput,)
+  }
+);}
+
+
+
+
+export const getGeneratePillarExamplesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePillarExamples>>, TError,{data: BodyType<GeneratePillarExamplesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generatePillarExamples>>, TError,{data: BodyType<GeneratePillarExamplesInput>}, TContext> => {
+
+const mutationKey = ['generatePillarExamples'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generatePillarExamples>>, {data: BodyType<GeneratePillarExamplesInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generatePillarExamples(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GeneratePillarExamplesMutationResult = NonNullable<Awaited<ReturnType<typeof generatePillarExamples>>>
+    export type GeneratePillarExamplesMutationBody = BodyType<GeneratePillarExamplesInput>
+    export type GeneratePillarExamplesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate industry-tailored illustrative example answers for a Blueprint pillar's fields
+ */
+export const useGeneratePillarExamples = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePillarExamples>>, TError,{data: BodyType<GeneratePillarExamplesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generatePillarExamples>>,
+        TError,
+        {data: BodyType<GeneratePillarExamplesInput>},
+        TContext
+      > => {
+      return useMutation(getGeneratePillarExamplesMutationOptions(options));
     }
 
 export const getListPostsUrl = (params?: ListPostsParams,) => {

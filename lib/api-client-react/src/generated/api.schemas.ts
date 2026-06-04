@@ -184,6 +184,20 @@ export interface DraftPillarResult {
   fields: DraftPillarResultFields;
 }
 
+export interface GeneratePillarExamplesInput {
+  pillarId: string;
+  industry: string;
+  currentRole?: string;
+  company?: string;
+  fields: DraftPillarField[];
+}
+
+export type GeneratePillarExamplesResultFields = {[key: string]: string};
+
+export interface GeneratePillarExamplesResult {
+  fields: GeneratePillarExamplesResultFields;
+}
+
 export type SeoFindingType = typeof SeoFindingType[keyof typeof SeoFindingType];
 
 

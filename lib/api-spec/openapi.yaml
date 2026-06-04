@@ -299,6 +299,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/DraftPillarResult"
 
+  /onboarding/pillar-examples:
+    post:
+      operationId: generatePillarExamples
+      tags: [onboarding]
+      summary: Generate industry-tailored illustrative example answers for a Blueprint pillar's fields
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GeneratePillarExamplesInput"
+      responses:
+        "200":
+          description: Illustrative example strings keyed by field name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratePillarExamplesResult"
+
   /posts:
     get:
       operationId: listPosts
@@ -875,6 +894,32 @@ components:
             $ref: "#/components/schemas/DraftPillarField"
 
     DraftPillarResult:
+      type: object
+      required: [fields]
+      properties:
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+
+    GeneratePillarExamplesInput:
+      type: object
+      required: [pillarId, industry, fields]
+      properties:
+        pillarId:
+          type: string
+        industry:
+          type: string
+        currentRole:
+          type: string
+        company:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/DraftPillarField"
+
+    GeneratePillarExamplesResult:
       type: object
       required: [fields]
       properties:

@@ -540,6 +540,26 @@ export const DraftPillarResponse = zod.object({
 
 
 /**
+ * @summary Generate industry-tailored illustrative example answers for a Blueprint pillar's fields
+ */
+export const GeneratePillarExamplesBody = zod.object({
+  "pillarId": zod.string(),
+  "industry": zod.string(),
+  "currentRole": zod.string().optional(),
+  "company": zod.string().optional(),
+  "fields": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "multiline": zod.boolean().optional()
+}))
+})
+
+export const GeneratePillarExamplesResponse = zod.object({
+  "fields": zod.record(zod.string(), zod.string())
+})
+
+
+/**
  * @summary List all posts
  */
 export const ListPostsQueryParams = zod.object({

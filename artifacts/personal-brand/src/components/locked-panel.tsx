@@ -11,8 +11,12 @@ import { Button } from "@/components/ui/button";
 // gated.
 export function PrerequisiteChecklist({
   prerequisites,
+  footer = "This panel unlocks automatically once everything above is complete.",
 }: {
   prerequisites: Prerequisite[];
+  // The closing line under the list. Defaults to the hard-gate copy; pass a
+  // softer message (or null to hide it) when the checklist is a non-blocking hint.
+  footer?: string | null;
 }) {
   const remaining = prerequisites.filter((p) => !p.complete).length;
 
@@ -77,9 +81,11 @@ export function PrerequisiteChecklist({
         ))}
       </ul>
 
-      <p className="border-t border-border/50 pt-3 text-sm text-muted-foreground">
-        This panel unlocks automatically once everything above is complete.
-      </p>
+      {footer && (
+        <p className="border-t border-border/50 pt-3 text-sm text-muted-foreground">
+          {footer}
+        </p>
+      )}
     </div>
   );
 }

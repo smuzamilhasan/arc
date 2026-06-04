@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useGetLatestAudit, getGetLatestAuditQueryKey, getGetDashboardQueryKey, AuditResult } from "@workspace/api-client-react";
+import { useGetLatestAudit, getGetLatestAuditQueryKey, getGetDashboardQueryKey, useGetClient, getGetClientQueryKey, AuditResult } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Search, Loader2, AlertCircle, ChevronRight, Globe, BrainCircuit, ExternalLink, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { PrerequisiteChecklist } from "@/components/locked-panel";
+import { auditReadinessPrerequisites } from "@/lib/blueprint";
 
 type AuditProgress = {
   step: "start" | "seo" | "geo" | "synthesis";
@@ -27,6 +29,10 @@ export default function Audit() {
       queryKey: getGetLatestAuditQueryKey(),
       retry: false,
     }
+  });
+
+  const { data: client } = useGetClient({
+    query: { queryKey: getGetClientQueryKey(), retry: false },
   });
 
   const activeAudit = liveResult || audit;
@@ -185,8 +191,11 @@ export default function Audit() {
 
   // Empty State (No audit ever run)
   if (!activeAudit && !isRunning) {
+    const readiness = auditReadinessPrerequisites(client);
+    const missing = readiness.filter((p) => !p.complete).length;
+
     return (
-      <div className="max-w-3xl mx-auto mt-10">
+      <div className="max-w-3xl mx-auto mt-10 space-y-6">
         <Card className="border-border/50 bg-card/50 shadow-xl overflow-hidden backdrop-blur-sm">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
           <CardContent className="p-12 text-center space-y-8 relative">
@@ -205,6 +214,19 @@ export default function Audit() {
             </Button>
           </CardContent>
         </Card>
+
+        {missing > 0 && (
+          <div className="space-y-3">
+            <p className="text-center text-sm text-muted-foreground font-light max-w-lg mx-auto leading-relaxed">
+              Filling these in first sharpens your results — but you can run the audit
+              now and add them later.
+            </p>
+            <PrerequisiteChecklist
+              prerequisites={readiness}
+              footer="Optional, but each one gives the audit more to work with."
+            />
+          </div>
+        )}
       </div>
     );
   }

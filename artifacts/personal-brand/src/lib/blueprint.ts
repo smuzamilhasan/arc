@@ -543,6 +543,50 @@ export function blueprintPrerequisites(
   return ORDERED_PILLARS.map((pillar) => pillarPrerequisite(pillar, client));
 }
 
+// The basics that make a first audit meaningful: who arc is searching for and
+// where they already show up online. This is a SOFT readiness hint surfaced at
+// the audit action (the audit can still be run with any of these missing), reusing
+// the same Prerequisite shape as the hard panel gates so the checklist UI stays
+// identical everywhere. All items link to Basics & Footprint, where they're filled.
+export function auditReadinessPrerequisites(
+  client: ClientProfile | undefined,
+): Prerequisite[] {
+  const has = (name: string) => Boolean(fieldValue(client, name).trim());
+  const footprintFields = [
+    "website",
+    "linkedinUrl",
+    "twitterUrl",
+    "instagramUrl",
+    "youtubeUrl",
+    "extractedInfo",
+  ];
+  const hasFootprint = footprintFields.some((f) => has(f));
+  const basicsHref = "/blueprint/basics";
+  return [
+    {
+      id: "name",
+      label: "Your name",
+      href: basicsHref,
+      complete: has("fullName"),
+      detail: "Who arc searches for",
+    },
+    {
+      id: "role",
+      label: "Current role",
+      href: basicsHref,
+      complete: has("currentRole"),
+      detail: "Adds context to every search",
+    },
+    {
+      id: "footprint",
+      label: "Online footprint",
+      href: basicsHref,
+      complete: hasFootprint,
+      detail: "A link or two where you already show up",
+    },
+  ];
+}
+
 // The prerequisites a locked Blueprint pillar is waiting on: every pillar in the
 // immediately preceding stage. Empty for always-open first-stage pillars.
 export function pillarUnlockPrerequisites(

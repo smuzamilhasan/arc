@@ -419,8 +419,8 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
 
       {supporting.length > 0 && (
         <div className="space-y-6 pt-2">
-          <div className="border-t border-border/60 pt-6 space-y-1">
-            <h3 className="text-sm font-medium text-foreground/80">
+          <div className="border-t border-border/60 pt-6 space-y-1.5">
+            <h3 className="font-serif text-2xl text-foreground">
               {pillar.supportingLabel ?? "Supporting detail"}
             </h3>
             <p className="text-sm text-muted-foreground">

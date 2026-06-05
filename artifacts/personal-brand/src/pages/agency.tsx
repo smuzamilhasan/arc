@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useCreateAgency,
@@ -339,6 +339,21 @@ function Members({ agencyId, isOwner }: { agencyId: number; isOwner: boolean }) 
 export default function Agency() {
   const { context, isLoading, setActiveClient } = useActiveClient();
   const [, setLocation] = useLocation();
+  const search = useSearch();
+
+  const agencies = context?.agencies ?? [];
+  // The create-agency surface is only reached deliberately: a fresh "For
+  // agencies" sign-up (routed here with ?create=1) or an existing individual
+  // opting in from Account settings (also ?create=1). A regular user who simply
+  // types /agency with no agency is bounced back to their dashboard.
+  const wantsCreate = new URLSearchParams(search).get("create") === "1";
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (agencies.length === 0 && !wantsCreate) {
+      setLocation("/dashboard");
+    }
+  }, [isLoading, agencies.length, wantsCreate, setLocation]);
 
   if (isLoading) {
     return (
@@ -348,9 +363,8 @@ export default function Agency() {
     );
   }
 
-  const agencies = context?.agencies ?? [];
-
   if (agencies.length === 0) {
+    if (!wantsCreate) return null;
     return (
       <div className="space-y-8">
         <div>

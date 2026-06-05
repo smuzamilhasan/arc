@@ -52,7 +52,9 @@ export default function Entry() {
     }
 
     // A fresh sign-up that came through the "For agencies" path, with no profile
-    // or agency yet, goes to the agency hub to create one.
+    // or agency yet, goes to the agency hub to create one. The explicit
+    // ?create=1 marks this as a deliberate create flow so the hub shows the
+    // create-agency surface instead of bouncing back to the dashboard.
     if (
       context &&
       context.personalClientId == null &&
@@ -61,7 +63,7 @@ export default function Entry() {
       consumeSignupIntent() === "agency"
     ) {
       routedRef.current = true;
-      setLocation("/agency");
+      setLocation("/agency?create=1");
       return;
     }
 

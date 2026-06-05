@@ -314,6 +314,7 @@ function AssistantPanel({ unreadCount }: { unreadCount: number }) {
 export function Layout({ children }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { hasAgency } = useActiveClient();
   const { data: access } = useGetAdminAccess();
   const { data: client } = useGetClient({
     query: { queryKey: getGetClientQueryKey(), retry: false },
@@ -406,10 +407,12 @@ export function Layout({ children }: LayoutProps) {
       )
     : expandedItems;
 
-  const withAgency: NavItem[] = [
-    ...baseItems,
-    { href: "/agency", icon: Building2, label: "Agency" },
-  ];
+  // Only surface the Agency hub to users who actually belong to (or own) an
+  // agency. Individuals opt in deliberately from Account settings; until they
+  // create one, the nav stays clean.
+  const withAgency: NavItem[] = hasAgency
+    ? [...baseItems, { href: "/agency", icon: Building2, label: "Agency" }]
+    : baseItems;
   const items: NavItem[] = access?.isAdmin
     ? [...withAgency, { href: "/admin", icon: Shield, label: "Admin" }]
     : withAgency;

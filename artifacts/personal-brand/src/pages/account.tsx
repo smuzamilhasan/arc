@@ -1,7 +1,16 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { UserProfile, useClerk } from "@clerk/react";
-import { Loader2, Trash2, CheckCircle2, ExternalLink } from "lucide-react";
+import {
+  Loader2,
+  Trash2,
+  CheckCircle2,
+  ExternalLink,
+  Building2,
+  ArrowRight,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useActiveClient } from "@/lib/active-client";
 import {
   useDeleteAccount,
   useListConnections,
@@ -269,6 +278,37 @@ function SchedulerConnections() {
   );
 }
 
+function StartAgency() {
+  const [, setLocation] = useLocation();
+  const { hasAgency } = useActiveClient();
+
+  // Individuals can deliberately opt into the agency track from here. Once they
+  // belong to an agency, this entry point disappears and the Agency nav takes
+  // over.
+  if (hasAgency) return null;
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-6 md:p-8">
+      <div className="flex items-center gap-2">
+        <Building2 className="h-5 w-5 text-primary stroke-[1.5]" />
+        <h2 className="font-serif text-2xl text-foreground">Start an agency</h2>
+      </div>
+      <p className="mt-2 max-w-prose text-sm text-muted-foreground leading-relaxed">
+        Managing brands for more than just yourself? Create an agency to manage
+        multiple clients and invite teammates. Your individual profile stays
+        exactly as it is.
+      </p>
+      <button
+        onClick={() => setLocation("/agency?create=1")}
+        className="group mt-5 inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors duration-300 hover:bg-secondary/40"
+      >
+        Create an agency
+        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+      </button>
+    </div>
+  );
+}
+
 function DeleteAccount() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -370,6 +410,8 @@ export default function Account() {
       />
 
       <SchedulerConnections />
+
+      <StartAgency />
 
       <DeleteAccount />
     </div>

@@ -50,3 +50,4 @@ channel = "stable-25_05"
 
 [userenv.shared]
 ADMIN_EMAILS = "smuzamilhasan@gmail.com"
+APP_ENCRYPTION_KEY = "7ffe94bc6f2769520996fea8e47c8cc2b8c9a7d7dedce9d23e58841f5eae9dfe"

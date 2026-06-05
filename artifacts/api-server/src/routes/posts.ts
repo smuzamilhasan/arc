@@ -1,10 +1,12 @@
 import { Router } from "express";
-import { db, postsTable, ideasTable, narrativeProfilesTable } from "@workspace/db";
-import { CreatePostBody, UpdatePostBody, ListPostsQueryParams, GetPostParams, UpdatePostParams, DeletePostParams, ScheduleBatchPostsBody, DraftPostsBody } from "@workspace/api-zod";
+import { db, postsTable, ideasTable, narrativeProfilesTable, schedulerConnectionsTable } from "@workspace/db";
+import { CreatePostBody, UpdatePostBody, ListPostsQueryParams, GetPostParams, UpdatePostParams, DeletePostParams, ScheduleBatchPostsBody, DraftPostsBody, HandoffPostParams, HandoffPostBody, HandoffBatchPostsBody } from "@workspace/api-zod";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { getClientForUser } from "./client";
-import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
+import { aiGenerationRateLimit, externalApiRateLimit } from "../middlewares/aiRateLimit";
 import { draftContent } from "../services/ghostwriter";
+import { getProvider } from "../services/schedulers";
+import { decryptSecret } from "../lib/crypto";
 
 const router = Router();
 
@@ -227,6 +229,174 @@ router.post("/posts/draft", aiGenerationRateLimit, async (req, res) => {
     req.log.error({ err }, "ghostwriter draft failed");
     res.status(502).json({ error: "Draft generation failed. Please try again." });
   }
+});
+
+// Resolve which connected scheduler to hand a post off to. When `requested` is
+// omitted we use the client's single connection (the common case); if several
+// are connected, the provider must be specified.
+async function resolveConnection(clientId: number, requested?: string) {
+  const rows = await db
+    .select()
+    .from(schedulerConnectionsTable)
+    .where(eq(schedulerConnectionsTable.clientId, clientId));
+  if (rows.length === 0) return { error: "no-connection" as const };
+  if (requested) {
+    const match = rows.find((r) => r.provider === requested);
+    return match ? { connection: match } : { error: "no-connection" as const };
+  }
+  if (rows.length === 1) return { connection: rows[0] };
+  return { error: "ambiguous" as const };
+}
+
+// Push one post to a provider and, on success, record the hand-off state.
+// Returns a discriminated result so batch and single callers share the logic.
+async function handoffOne(
+  clientId: number,
+  post: typeof postsTable.$inferSelect,
+  connection: typeof schedulerConnectionsTable.$inferSelect,
+  overrideScheduledAt?: string | null,
+): Promise<{ ok: true; post: typeof postsTable.$inferSelect } | { ok: false; error: string }> {
+  const provider = getProvider(connection.provider);
+  if (!provider) return { ok: false, error: "Unsupported scheduler" };
+
+  let apiKey: string;
+  try {
+    apiKey = decryptSecret(connection.apiKeyEncrypted);
+  } catch {
+    return { ok: false, error: "Stored scheduler key could not be read. Reconnect the scheduler." };
+  }
+
+  const scheduledAtIso =
+    overrideScheduledAt !== undefined && overrideScheduledAt !== null
+      ? overrideScheduledAt
+      : post.scheduledAt
+        ? post.scheduledAt.toISOString()
+        : undefined;
+
+  const result = await provider.createScheduledDraft(apiKey, {
+    content: post.content,
+    title: post.title,
+    scheduledAt: scheduledAtIso,
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+
+  const now = new Date();
+  const [updated] = await db
+    .update(postsTable)
+    .set({
+      handoffProvider: connection.provider,
+      handoffAt: now,
+      handoffRef: result.url ?? result.externalId ?? null,
+      scheduledAt: scheduledAtIso ? new Date(scheduledAtIso) : post.scheduledAt,
+      updatedAt: now,
+    })
+    .where(and(eq(postsTable.id, post.id), eq(postsTable.clientId, clientId)))
+    .returning();
+  return { ok: true, post: updated };
+}
+
+// Push a single post into the client's connected scheduler. arc never publishes
+// directly — it only creates a draft/scheduled item in the client's own tool.
+router.post("/posts/:id/handoff", externalApiRateLimit, async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "Post not found" });
+    return;
+  }
+  const paramParsed = HandoffPostParams.safeParse({ id: Number(req.params.id) });
+  if (!paramParsed.success) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const bodyParsed = HandoffPostBody.safeParse(req.body ?? {});
+  if (!bodyParsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+
+  const [post] = await db
+    .select()
+    .from(postsTable)
+    .where(and(eq(postsTable.id, paramParsed.data.id), eq(postsTable.clientId, client.id)));
+  if (!post) {
+    res.status(404).json({ error: "Post not found" });
+    return;
+  }
+
+  const resolved = await resolveConnection(client.id, bodyParsed.data.provider);
+  if ("error" in resolved) {
+    res.status(409).json({
+      error:
+        resolved.error === "ambiguous"
+          ? "Several schedulers are connected. Specify which one to use."
+          : "No scheduler connected. Connect one first.",
+    });
+    return;
+  }
+
+  const result = await handoffOne(
+    client.id,
+    post,
+    resolved.connection,
+    bodyParsed.data.scheduledAt ?? undefined,
+  );
+  if (!result.ok) {
+    res.status(502).json({ error: result.error });
+    return;
+  }
+  res.json(serializePost(result.post));
+});
+
+// Hand off several posts at once, returning a per-post result so partial
+// failures are visible, plus the updated posts.
+router.post("/posts/handoff-batch", externalApiRateLimit, async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const parsed = HandoffBatchPostsBody.safeParse(req.body);
+  if (!parsed.success || parsed.data.postIds.length === 0) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+
+  const resolved = await resolveConnection(client.id, parsed.data.provider);
+  if ("error" in resolved) {
+    res.status(409).json({
+      error:
+        resolved.error === "ambiguous"
+          ? "Several schedulers are connected. Specify which one to use."
+          : "No scheduler connected. Connect one first.",
+    });
+    return;
+  }
+
+  const orderedIds = Array.from(new Set(parsed.data.postIds));
+  const owned = await db
+    .select()
+    .from(postsTable)
+    .where(and(eq(postsTable.clientId, client.id), inArray(postsTable.id, orderedIds)));
+  const byId = new Map(owned.map((p) => [p.id, p]));
+
+  const results: { postId: number; ok: boolean; error: string | null }[] = [];
+  const updatedPosts: (typeof postsTable.$inferSelect)[] = [];
+  for (const id of orderedIds) {
+    const post = byId.get(id);
+    if (!post) {
+      results.push({ postId: id, ok: false, error: "Post not found" });
+      continue;
+    }
+    const r = await handoffOne(client.id, post, resolved.connection);
+    if (r.ok) {
+      results.push({ postId: id, ok: true, error: null });
+      updatedPosts.push(r.post);
+    } else {
+      results.push({ postId: id, ok: false, error: r.error });
+    }
+  }
+
+  res.json({ results, posts: updatedPosts.map(serializePost) });
 });
 
 router.get("/posts/:id", async (req, res) => {

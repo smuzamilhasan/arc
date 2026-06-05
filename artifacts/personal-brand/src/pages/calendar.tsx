@@ -28,8 +28,16 @@ import {
   ChevronRight,
   CalendarDays,
   Plus,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportPostsCsv, exportPostsIcs } from "@/lib/export-plan";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blueprint";
@@ -777,13 +785,34 @@ export default function Calendar() {
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
-      <header className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-widest text-primary">Content Calendar</p>
-        <h1 className="font-serif text-4xl tracking-tight text-foreground">Plan your content</h1>
-        <p className="text-lg font-light leading-relaxed text-muted-foreground">
-          See how your scheduled posts spread across platforms and time. Switch between month, week,
-          and day views, and click any post to edit it.
-        </p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-widest text-primary">Content Calendar</p>
+          <h1 className="font-serif text-4xl tracking-tight text-foreground">Plan your content</h1>
+          <p className="text-lg font-light leading-relaxed text-muted-foreground">
+            See how your scheduled posts spread across platforms and time. Switch between month, week,
+            and day views, and click any post to edit it.
+          </p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              disabled={posts.length === 0}
+              className="rounded-full gap-2 h-11 px-5 shrink-0"
+            >
+              <Download className="w-4 h-4" /> Export plan
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => exportPostsCsv(posts)}>
+              Download CSV (spreadsheet)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => exportPostsIcs(posts)}>
+              Download ICS (calendar)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       {isPostsLoading ? (

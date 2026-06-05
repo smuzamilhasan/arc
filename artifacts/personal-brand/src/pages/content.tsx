@@ -15,6 +15,12 @@ import {
   useGenerateContentPlan,
   useApplyContentPlan,
   getListIdeasQueryKey,
+  useListConnections,
+  useListSchedulerProviders,
+  useHandoffPost,
+  useHandoffBatchPosts,
+  getListConnectionsQueryKey,
+  getListSchedulerProvidersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRegenerateFeedback } from "@/components/regenerate-feedback";
@@ -48,13 +54,24 @@ import {
   ChevronRight,
   Wand2,
   Lightbulb,
+  Send,
+  Download,
+  Plug,
+  CheckCircle2,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportPostsCsv, exportPostsIcs } from "@/lib/export-plan";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import type { Post, ContentStrategy, ContentMixItem, ContentPlanProposal, PlannedSlot, PlannedIdea } from "@workspace/api-client-react";
+import type { Post, ContentStrategy, ContentMixItem, ContentPlanProposal, PlannedSlot, PlannedIdea, SchedulerConnection } from "@workspace/api-client-react";
 import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blueprint";
 import { rescheduleToDay, shiftByDays } from "@/lib/schedule";
 import { GenerateGate } from "@/components/locked-panel";
@@ -317,6 +334,7 @@ function ContentLibrary() {
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [isGhostwriterOpen, setIsGhostwriterOpen] = useState(false);
   const [ghostwriterPrefill, setGhostwriterPrefill] = useState<GhostwriterPrefill | undefined>(undefined);
+  const [isHandoffOpen, setIsHandoffOpen] = useState(false);
   const search = useSearch();
   const [, navigate] = useLocation();
 
@@ -355,6 +373,48 @@ function ContentLibrary() {
   const deletePost = useDeletePost();
   const updatePost = useUpdatePost();
   const scheduleBatch = useScheduleBatchPosts();
+  const handoffPost = useHandoffPost();
+
+  const { data: connections = [] } = useListConnections({
+    query: { queryKey: getListConnectionsQueryKey(), retry: false },
+  });
+  const { data: schedulerProviders = [] } = useListSchedulerProviders({
+    query: { queryKey: getListSchedulerProvidersQueryKey(), retry: false },
+  });
+  const connectedProviders = connections.filter((c) => c.connected);
+  const hasConnection = connectedProviders.length > 0;
+  const providerLabel = (id?: string | null) =>
+    schedulerProviders.find((p) => p.id === id)?.label ??
+    (id ? id.charAt(0).toUpperCase() + id.slice(1) : "scheduler");
+
+  // Send a single post to the client's connected scheduler. When more than one
+  // scheduler is connected we let the batch dialog disambiguate; for a single
+  // connection the server defaults to it.
+  const handleHandoffSingle = (post: Post) => {
+    handoffPost.mutate(
+      { id: post.id, data: {} },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+          toast({
+            title: `Sent to ${providerLabel(connectedProviders[0]?.provider)}`,
+            description: `"${post.title}" was handed off to your scheduler.`,
+          });
+        },
+        onError: (err) => {
+          const status = (err as { status?: number } | undefined)?.status;
+          toast({
+            title: "Could not hand off post",
+            description:
+              status === 429
+                ? "You are sending too quickly. Wait a moment and try again."
+                : "Check your scheduler connection and try again.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
 
   const filteredPosts = posts.filter((post) => {
     if (platformFilter !== "all" && post.platform !== platformFilter) return false;
@@ -560,6 +620,35 @@ function ContentLibrary() {
           >
             <CalendarClock className="w-4 h-4" /> Plan schedule
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={posts.length === 0}
+                className="rounded-full gap-2 h-11 px-5"
+              >
+                <Download className="w-4 h-4" /> Export plan
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportPostsCsv(posts)}>
+                Download CSV (spreadsheet)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportPostsIcs(posts)}>
+                Download ICS (calendar)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {hasConnection && (
+            <Button
+              variant="outline"
+              onClick={() => setIsHandoffOpen(true)}
+              disabled={schedulablePosts.length === 0}
+              className="rounded-full gap-2 h-11 px-5 border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
+            >
+              <Send className="w-4 h-4" /> Send to scheduler
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={openGhostwriter}
@@ -658,9 +747,17 @@ function ContentLibrary() {
             <Card key={post.id} className="flex flex-col border-border/50 shadow-sm hover:shadow-md transition-all group bg-card hover:border-primary/20 cursor-pointer" onClick={() => handleOpenEditor(post)}>
               <CardHeader className="pb-4 pt-6 px-6">
                 <div className="flex justify-between items-start mb-4">
-                  <Badge variant="outline" className={`capitalize border ${getStatusColor(post.status)} px-2.5 py-0.5 rounded-full font-medium text-[10px] tracking-wider`}>
-                    {post.status}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className={`capitalize border ${getStatusColor(post.status)} px-2.5 py-0.5 rounded-full font-medium text-[10px] tracking-wider`}>
+                      {post.status}
+                    </Badge>
+                    {post.handoffProvider && (
+                      <Badge variant="outline" className="border border-primary/20 bg-primary/5 text-primary px-2.5 py-0.5 rounded-full font-medium text-[10px] tracking-wider inline-flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Sent to {providerLabel(post.handoffProvider)}
+                      </Badge>
+                    )}
+                  </div>
                   <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-widest">
                     {post.platform}
                   </span>
@@ -673,7 +770,12 @@ function ContentLibrary() {
                 </p>
                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/50">
                   <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                    {post.scheduledAt ? (
+                    {post.handoffProvider && post.handoffAt ? (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        Sent {format(new Date(post.handoffAt), "MMM d, yyyy")}
+                      </>
+                    ) : post.scheduledAt ? (
                       <>
                         <CalendarIcon className="w-3.5 h-3.5" />
                         {format(new Date(post.scheduledAt), "MMM d, yyyy")}
@@ -686,6 +788,21 @@ function ContentLibrary() {
                     <div onClick={(e) => e.stopPropagation()}>
                       <ShareMenu post={post} />
                     </div>
+                    {hasConnection && post.status !== "published" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                        title={post.handoffProvider ? "Send again to scheduler" : "Send to scheduler"}
+                        disabled={handoffPost.isPending}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleHandoffSingle(post);
+                        }}
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => {
                       e.stopPropagation();
                       setPostToDelete(post.id);
@@ -848,7 +965,183 @@ function ContentLibrary() {
           setView("calendar");
         }}
       />
+
+      {/* Batch hand-off to the client's own scheduler */}
+      <HandoffDialog
+        open={isHandoffOpen}
+        onOpenChange={setIsHandoffOpen}
+        posts={schedulablePosts}
+        connectedProviders={connectedProviders}
+        providerLabel={providerLabel}
+        onDone={() => queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() })}
+      />
     </div>
+  );
+}
+
+function HandoffDialog({
+  open,
+  onOpenChange,
+  posts,
+  connectedProviders,
+  providerLabel,
+  onDone,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  posts: Post[];
+  connectedProviders: SchedulerConnection[];
+  providerLabel: (id?: string | null) => string;
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const handoffBatch = useHandoffBatchPosts();
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [provider, setProvider] = useState<string>("");
+
+  // Default the selection to everything not yet sent, and pick the first
+  // connected provider, whenever the dialog opens.
+  useEffect(() => {
+    if (!open) return;
+    setSelectedIds(posts.filter((p) => !p.handoffProvider).map((p) => p.id));
+    setProvider(connectedProviders[0]?.provider ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const toggle = (id: number) =>
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+
+  const handleSend = () => {
+    if (selectedIds.length === 0 || !provider) return;
+    const orderedIds = posts.filter((p) => selectedIds.includes(p.id)).map((p) => p.id);
+    handoffBatch.mutate(
+      { data: { postIds: orderedIds, provider } },
+      {
+        onSuccess: (result) => {
+          onDone();
+          const sent = result.results.filter((r) => r.ok).length;
+          const failed = result.results.length - sent;
+          toast({
+            title: `Sent ${sent} ${sent === 1 ? "post" : "posts"} to ${providerLabel(provider)}`,
+            description:
+              failed > 0
+                ? `${failed} could not be sent. Check your connection and retry those.`
+                : "Your scheduler now has these posts. It controls when they go live.",
+            variant: failed > 0 ? "destructive" : undefined,
+          });
+          if (failed === 0) onOpenChange(false);
+        },
+        onError: (err) => {
+          const status = (err as { status?: number } | undefined)?.status;
+          toast({
+            title: "Could not hand off posts",
+            description:
+              status === 429
+                ? "You are sending too quickly. Wait a moment and try again."
+                : "Check your scheduler connection and try again.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden border-border/50 rounded-xl">
+        <DialogHeader className="p-6 pb-4 border-b border-border/50">
+          <DialogTitle className="font-serif text-2xl flex items-center gap-2">
+            <Send className="w-5 h-5 text-primary" /> Send to scheduler
+          </DialogTitle>
+          <DialogDescription className="text-sm font-light">
+            Push selected posts into your own scheduler. arc never publishes for you — your
+            scheduler decides when posts go live.
+          </DialogDescription>
+        </DialogHeader>
+
+        {connectedProviders.length > 1 && (
+          <div className="px-6 pt-4 space-y-1.5">
+            <Label className="text-muted-foreground font-medium text-xs uppercase tracking-widest">
+              Scheduler
+            </Label>
+            <Select value={provider} onValueChange={setProvider}>
+              <SelectTrigger className="h-11 bg-card border-border/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {connectedProviders.map((c) => (
+                  <SelectItem key={c.provider} value={c.provider}>
+                    {providerLabel(c.provider)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <div className="max-h-[50vh] overflow-y-auto p-6 space-y-2">
+          {posts.length === 0 ? (
+            <p className="text-sm text-muted-foreground font-light py-8 text-center">
+              No draft or scheduled posts available to send.
+            </p>
+          ) : (
+            posts.map((post) => {
+              const checked = selectedIds.includes(post.id);
+              return (
+                <button
+                  type="button"
+                  key={post.id}
+                  onClick={() => toggle(post.id)}
+                  className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors ${checked ? "border-primary/40 bg-primary/5" : "border-border/50 bg-card hover:border-border"}`}
+                >
+                  <Checkbox checked={checked} className="mt-0.5 pointer-events-none" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-medium text-foreground">{post.title}</span>
+                      <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {post.platform}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 line-clamp-1 text-xs font-light text-muted-foreground">
+                      {post.content}
+                    </p>
+                  </div>
+                  {post.handoffProvider && (
+                    <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Sent
+                    </span>
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        <DialogFooter className="p-5 border-t border-border/50 bg-card shrink-0 sm:justify-between items-center">
+          <span className="text-xs text-muted-foreground">{selectedIds.length} selected</span>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-muted-foreground">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSend}
+              disabled={selectedIds.length === 0 || !provider || handoffBatch.isPending}
+              className="rounded-full gap-2 px-6"
+            >
+              {handoffBatch.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Send {selectedIds.length > 0 ? selectedIds.length : ""}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

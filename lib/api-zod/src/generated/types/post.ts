@@ -17,6 +17,12 @@ export interface Post {
   /** @nullable */
   scheduledAt?: string | null;
   tags?: string[];
+  /** @nullable */
+  handoffProvider?: string | null;
+  /** @nullable */
+  handoffAt?: string | null;
+  /** @nullable */
+  handoffRef?: string | null;
   createdAt: string;
   updatedAt: string;
 }

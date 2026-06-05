@@ -863,6 +863,9 @@ export const ApplyContentPlanResponse = zod.object({
   "status": zod.enum(['draft', 'scheduled', 'published']),
   "scheduledAt": zod.string().nullish(),
   "tags": zod.array(zod.string()).optional(),
+  "handoffProvider": zod.string().nullish(),
+  "handoffAt": zod.string().nullish(),
+  "handoffRef": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })),
@@ -1102,6 +1105,9 @@ export const ListPostsResponseItem = zod.object({
   "status": zod.enum(['draft', 'scheduled', 'published']),
   "scheduledAt": zod.string().nullish(),
   "tags": zod.array(zod.string()).optional(),
+  "handoffProvider": zod.string().nullish(),
+  "handoffAt": zod.string().nullish(),
+  "handoffRef": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1140,6 +1146,9 @@ export const ScheduleBatchPostsResponseItem = zod.object({
   "status": zod.enum(['draft', 'scheduled', 'published']),
   "scheduledAt": zod.string().nullish(),
   "tags": zod.array(zod.string()).optional(),
+  "handoffProvider": zod.string().nullish(),
+  "handoffAt": zod.string().nullish(),
+  "handoffRef": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1184,6 +1193,9 @@ export const GetPostResponse = zod.object({
   "status": zod.enum(['draft', 'scheduled', 'published']),
   "scheduledAt": zod.string().nullish(),
   "tags": zod.array(zod.string()).optional(),
+  "handoffProvider": zod.string().nullish(),
+  "handoffAt": zod.string().nullish(),
+  "handoffRef": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1213,6 +1225,9 @@ export const UpdatePostResponse = zod.object({
   "status": zod.enum(['draft', 'scheduled', 'published']),
   "scheduledAt": zod.string().nullish(),
   "tags": zod.array(zod.string()).optional(),
+  "handoffProvider": zod.string().nullish(),
+  "handoffAt": zod.string().nullish(),
+  "handoffRef": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1223,6 +1238,120 @@ export const UpdatePostResponse = zod.object({
  */
 export const DeletePostParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+/**
+ * Sends the post's content (and schedule date, if any) to the client's own connected third-party scheduler. arc never publishes directly. Records the hand-off state on the post.
+ * @summary Push a single post into the client's connected scheduler
+ */
+export const HandoffPostParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const HandoffPostBody = zod.object({
+  "provider": zod.string().optional().describe('Which connected scheduler to push to. Defaults to the only connected provider when omitted.'),
+  "scheduledAt": zod.string().nullish().describe('ISO 8601 schedule date\/time. When omitted, the post\'s own scheduledAt (or the scheduler\'s next free slot) is used.')
+})
+
+export const HandoffPostResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "content": zod.string(),
+  "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
+  "status": zod.enum(['draft', 'scheduled', 'published']),
+  "scheduledAt": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "handoffProvider": zod.string().nullish(),
+  "handoffAt": zod.string().nullish(),
+  "handoffRef": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * Hands off a batch of posts at once. Returns a per-post result so partial failures are visible, plus the updated posts.
+ * @summary Push several posts into the client's connected scheduler
+ */
+export const HandoffBatchPostsBody = zod.object({
+  "postIds": zod.array(zod.number()),
+  "provider": zod.string().optional()
+})
+
+export const HandoffBatchPostsResponse = zod.object({
+  "results": zod.array(zod.object({
+  "postId": zod.number(),
+  "ok": zod.boolean(),
+  "error": zod.string().nullish()
+})),
+  "posts": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "content": zod.string(),
+  "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
+  "status": zod.enum(['draft', 'scheduled', 'published']),
+  "scheduledAt": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "handoffProvider": zod.string().nullish(),
+  "handoffAt": zod.string().nullish(),
+  "handoffRef": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * Returns connection status per provider. Never returns the stored API key.
+ * @summary List the client's connected schedulers
+ */
+export const ListConnectionsResponseItem = zod.object({
+  "provider": zod.string(),
+  "connected": zod.boolean(),
+  "accountRef": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListConnectionsResponse = zod.array(ListConnectionsResponseItem)
+
+
+/**
+ * Verifies the API key against the provider, then stores it encrypted at rest. Returns the connection status without the key. Fails with 400 if the key is invalid.
+ * @summary Connect (or update) a scheduler by verifying and storing an API key
+ */
+export const SaveConnectionBody = zod.object({
+  "provider": zod.string(),
+  "apiKey": zod.string(),
+  "accountRef": zod.string().nullish()
+})
+
+export const SaveConnectionResponse = zod.object({
+  "provider": zod.string(),
+  "connected": zod.boolean(),
+  "accountRef": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary List supported scheduler providers
+ */
+export const ListSchedulerProvidersResponseItem = zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "supportsApi": zod.boolean(),
+  "apiKeyUrl": zod.string().nullish()
+})
+export const ListSchedulerProvidersResponse = zod.array(ListSchedulerProvidersResponseItem)
+
+
+/**
+ * @summary Disconnect a scheduler and remove its stored key
+ */
+export const DeleteConnectionParams = zod.object({
+  "provider": zod.coerce.string()
 })
 
 
@@ -1306,6 +1435,9 @@ export const GetDashboardResponse = zod.object({
   "status": zod.enum(['draft', 'scheduled', 'published']),
   "scheduledAt": zod.string().nullish(),
   "tags": zod.array(zod.string()).optional(),
+  "handoffProvider": zod.string().nullish(),
+  "handoffAt": zod.string().nullish(),
+  "handoffRef": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }))
@@ -1467,6 +1599,9 @@ export const GetAdminUserResponse = zod.object({
   "status": zod.enum(['draft', 'scheduled', 'published']),
   "scheduledAt": zod.string().nullish(),
   "tags": zod.array(zod.string()).optional(),
+  "handoffProvider": zod.string().nullish(),
+  "handoffAt": zod.string().nullish(),
+  "handoffRef": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })),

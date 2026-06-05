@@ -573,6 +573,12 @@ export interface Post {
   /** @nullable */
   scheduledAt?: string | null;
   tags?: string[];
+  /** @nullable */
+  handoffProvider?: string | null;
+  /** @nullable */
+  handoffAt?: string | null;
+  /** @nullable */
+  handoffRef?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -701,6 +707,57 @@ export interface ProfilePortrait {
   stale: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface HandoffInput {
+  /** Which connected scheduler to push to. Defaults to the only connected provider when omitted. */
+  provider?: string;
+  /**
+     * ISO 8601 schedule date/time. When omitted, the post's own scheduledAt (or the scheduler's next free slot) is used.
+     * @nullable
+     */
+  scheduledAt?: string | null;
+}
+
+export interface HandoffBatchInput {
+  postIds: number[];
+  provider?: string;
+}
+
+export interface HandoffResultItem {
+  postId: number;
+  ok: boolean;
+  /** @nullable */
+  error?: string | null;
+}
+
+export interface HandoffBatchResult {
+  results: HandoffResultItem[];
+  posts: Post[];
+}
+
+export interface SchedulerConnection {
+  provider: string;
+  connected: boolean;
+  /** @nullable */
+  accountRef?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveConnectionInput {
+  provider: string;
+  apiKey: string;
+  /** @nullable */
+  accountRef?: string | null;
+}
+
+export interface SchedulerProviderMeta {
+  id: string;
+  label: string;
+  supportsApi: boolean;
+  /** @nullable */
+  apiKeyUrl?: string | null;
 }
 
 export type PostInputPlatform = typeof PostInputPlatform[keyof typeof PostInputPlatform];

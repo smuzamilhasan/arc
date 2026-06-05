@@ -11,6 +11,13 @@ export const postsTable = pgTable("posts", {
   status: text("status").notNull().default("draft"),
   scheduledAt: timestamp("scheduled_at"),
   tags: text("tags").array().notNull().default([]),
+  // Hand-off state: set once the post is pushed into the client's own
+  // third-party scheduler. Independent of `status` (arc's internal lifecycle) —
+  // the scheduler owns publishing from here. `handoffRef` holds the provider's
+  // draft id/url for reference.
+  handoffProvider: text("handoff_provider"),
+  handoffAt: timestamp("handoff_at"),
+  handoffRef: text("handoff_ref"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

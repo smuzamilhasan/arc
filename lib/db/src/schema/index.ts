@@ -7,6 +7,7 @@ export * from "./platformStrategies";
 export * from "./industryOverview";
 export * from "./contentStrategies";
 export * from "./posts";
+export * from "./schedulerConnections";
 export * from "./ideas";
 export * from "./assistantMessages";
 export * from "./assistantReviews";

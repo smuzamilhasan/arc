@@ -57,6 +57,9 @@ import type {
   GenerateBioResult,
   GeneratePillarExamplesInput,
   GeneratePillarExamplesResult,
+  HandoffBatchInput,
+  HandoffBatchResult,
+  HandoffInput,
   HealthStatus,
   Idea,
   IdeaInput,
@@ -77,7 +80,10 @@ import type {
   PostInput,
   PostUpdate,
   ProfilePortrait,
-  ScheduleBatchInput
+  SaveConnectionInput,
+  ScheduleBatchInput,
+  SchedulerConnection,
+  SchedulerProviderMeta
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -3021,6 +3027,448 @@ export const useDeletePost = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeletePostMutationOptions(options));
+    }
+
+export const getHandoffPostUrl = (id: number,) => {
+
+
+
+
+  return `/api/posts/${id}/handoff`
+}
+
+/**
+ * Sends the post's content (and schedule date, if any) to the client's own connected third-party scheduler. arc never publishes directly. Records the hand-off state on the post.
+ * @summary Push a single post into the client's connected scheduler
+ */
+export const handoffPost = async (id: number,
+    handoffInput: HandoffInput, options?: RequestInit): Promise<Post> => {
+
+  return customFetch<Post>(getHandoffPostUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      handoffInput,)
+  }
+);}
+
+
+
+
+export const getHandoffPostMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof handoffPost>>, TError,{id: number;data: BodyType<HandoffInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof handoffPost>>, TError,{id: number;data: BodyType<HandoffInput>}, TContext> => {
+
+const mutationKey = ['handoffPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof handoffPost>>, {id: number;data: BodyType<HandoffInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  handoffPost(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HandoffPostMutationResult = NonNullable<Awaited<ReturnType<typeof handoffPost>>>
+    export type HandoffPostMutationBody = BodyType<HandoffInput>
+    export type HandoffPostMutationError = ErrorType<void>
+
+    /**
+ * @summary Push a single post into the client's connected scheduler
+ */
+export const useHandoffPost = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof handoffPost>>, TError,{id: number;data: BodyType<HandoffInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof handoffPost>>,
+        TError,
+        {id: number;data: BodyType<HandoffInput>},
+        TContext
+      > => {
+      return useMutation(getHandoffPostMutationOptions(options));
+    }
+
+export const getHandoffBatchPostsUrl = () => {
+
+
+
+
+  return `/api/posts/handoff-batch`
+}
+
+/**
+ * Hands off a batch of posts at once. Returns a per-post result so partial failures are visible, plus the updated posts.
+ * @summary Push several posts into the client's connected scheduler
+ */
+export const handoffBatchPosts = async (handoffBatchInput: HandoffBatchInput, options?: RequestInit): Promise<HandoffBatchResult> => {
+
+  return customFetch<HandoffBatchResult>(getHandoffBatchPostsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      handoffBatchInput,)
+  }
+);}
+
+
+
+
+export const getHandoffBatchPostsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof handoffBatchPosts>>, TError,{data: BodyType<HandoffBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof handoffBatchPosts>>, TError,{data: BodyType<HandoffBatchInput>}, TContext> => {
+
+const mutationKey = ['handoffBatchPosts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof handoffBatchPosts>>, {data: BodyType<HandoffBatchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  handoffBatchPosts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HandoffBatchPostsMutationResult = NonNullable<Awaited<ReturnType<typeof handoffBatchPosts>>>
+    export type HandoffBatchPostsMutationBody = BodyType<HandoffBatchInput>
+    export type HandoffBatchPostsMutationError = ErrorType<void>
+
+    /**
+ * @summary Push several posts into the client's connected scheduler
+ */
+export const useHandoffBatchPosts = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof handoffBatchPosts>>, TError,{data: BodyType<HandoffBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof handoffBatchPosts>>,
+        TError,
+        {data: BodyType<HandoffBatchInput>},
+        TContext
+      > => {
+      return useMutation(getHandoffBatchPostsMutationOptions(options));
+    }
+
+export const getListConnectionsUrl = () => {
+
+
+
+
+  return `/api/connections`
+}
+
+/**
+ * Returns connection status per provider. Never returns the stored API key.
+ * @summary List the client's connected schedulers
+ */
+export const listConnections = async ( options?: RequestInit): Promise<SchedulerConnection[]> => {
+
+  return customFetch<SchedulerConnection[]>(getListConnectionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListConnectionsQueryKey = () => {
+    return [
+    `/api/connections`
+    ] as const;
+    }
+
+
+export const getListConnectionsQueryOptions = <TData = Awaited<ReturnType<typeof listConnections>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listConnections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListConnectionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listConnections>>> = ({ signal }) => listConnections({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listConnections>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListConnectionsQueryResult = NonNullable<Awaited<ReturnType<typeof listConnections>>>
+export type ListConnectionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the client's connected schedulers
+ */
+
+export function useListConnections<TData = Awaited<ReturnType<typeof listConnections>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listConnections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListConnectionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSaveConnectionUrl = () => {
+
+
+
+
+  return `/api/connections`
+}
+
+/**
+ * Verifies the API key against the provider, then stores it encrypted at rest. Returns the connection status without the key. Fails with 400 if the key is invalid.
+ * @summary Connect (or update) a scheduler by verifying and storing an API key
+ */
+export const saveConnection = async (saveConnectionInput: SaveConnectionInput, options?: RequestInit): Promise<SchedulerConnection> => {
+
+  return customFetch<SchedulerConnection>(getSaveConnectionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saveConnectionInput,)
+  }
+);}
+
+
+
+
+export const getSaveConnectionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveConnection>>, TError,{data: BodyType<SaveConnectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveConnection>>, TError,{data: BodyType<SaveConnectionInput>}, TContext> => {
+
+const mutationKey = ['saveConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveConnection>>, {data: BodyType<SaveConnectionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveConnection(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof saveConnection>>>
+    export type SaveConnectionMutationBody = BodyType<SaveConnectionInput>
+    export type SaveConnectionMutationError = ErrorType<void>
+
+    /**
+ * @summary Connect (or update) a scheduler by verifying and storing an API key
+ */
+export const useSaveConnection = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveConnection>>, TError,{data: BodyType<SaveConnectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveConnection>>,
+        TError,
+        {data: BodyType<SaveConnectionInput>},
+        TContext
+      > => {
+      return useMutation(getSaveConnectionMutationOptions(options));
+    }
+
+export const getListSchedulerProvidersUrl = () => {
+
+
+
+
+  return `/api/connections/providers`
+}
+
+/**
+ * @summary List supported scheduler providers
+ */
+export const listSchedulerProviders = async ( options?: RequestInit): Promise<SchedulerProviderMeta[]> => {
+
+  return customFetch<SchedulerProviderMeta[]>(getListSchedulerProvidersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSchedulerProvidersQueryKey = () => {
+    return [
+    `/api/connections/providers`
+    ] as const;
+    }
+
+
+export const getListSchedulerProvidersQueryOptions = <TData = Awaited<ReturnType<typeof listSchedulerProviders>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSchedulerProviders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSchedulerProvidersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSchedulerProviders>>> = ({ signal }) => listSchedulerProviders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSchedulerProviders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSchedulerProvidersQueryResult = NonNullable<Awaited<ReturnType<typeof listSchedulerProviders>>>
+export type ListSchedulerProvidersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List supported scheduler providers
+ */
+
+export function useListSchedulerProviders<TData = Awaited<ReturnType<typeof listSchedulerProviders>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSchedulerProviders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSchedulerProvidersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getDeleteConnectionUrl = (provider: string,) => {
+
+
+
+
+  return `/api/connections/${provider}`
+}
+
+/**
+ * @summary Disconnect a scheduler and remove its stored key
+ */
+export const deleteConnection = async (provider: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteConnectionUrl(provider),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteConnectionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteConnection>>, TError,{provider: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteConnection>>, TError,{provider: string}, TContext> => {
+
+const mutationKey = ['deleteConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteConnection>>, {provider: string}> = (props) => {
+          const {provider} = props ?? {};
+
+          return  deleteConnection(provider,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteConnection>>>
+
+    export type DeleteConnectionMutationError = ErrorType<void>
+
+    /**
+ * @summary Disconnect a scheduler and remove its stored key
+ */
+export const useDeleteConnection = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteConnection>>, TError,{provider: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteConnection>>,
+        TError,
+        {provider: string},
+        TContext
+      > => {
+      return useMutation(getDeleteConnectionMutationOptions(options));
     }
 
 export const getListIdeasUrl = () => {

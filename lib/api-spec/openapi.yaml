@@ -22,6 +22,8 @@ tags:
     description: Content post operations
   - name: ideas
     description: Content idea operations
+  - name: connections
+    description: Per-client connections to third-party scheduling tools
   - name: dashboard
     description: Dashboard summary operations
   - name: onboarding
@@ -783,6 +785,136 @@ paths:
           description: Deleted
         "404":
           description: Not found
+
+  /posts/{id}/handoff:
+    post:
+      operationId: handoffPost
+      tags: [posts]
+      summary: Push a single post into the client's connected scheduler
+      description: Sends the post's content (and schedule date, if any) to the client's own connected third-party scheduler. arc never publishes directly. Records the hand-off state on the post.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoffInput"
+      responses:
+        "200":
+          description: The post after a successful hand-off
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid input
+        "404":
+          description: Post not found
+        "409":
+          description: No scheduler connected for that provider
+        "502":
+          description: The scheduler rejected the post
+
+  /posts/handoff-batch:
+    post:
+      operationId: handoffBatchPosts
+      tags: [posts]
+      summary: Push several posts into the client's connected scheduler
+      description: Hands off a batch of posts at once. Returns a per-post result so partial failures are visible, plus the updated posts.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoffBatchInput"
+      responses:
+        "200":
+          description: Per-post hand-off results and the updated posts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoffBatchResult"
+        "400":
+          description: Invalid input
+        "404":
+          description: No client profile yet
+        "409":
+          description: No scheduler connected for that provider
+
+  /connections:
+    get:
+      operationId: listConnections
+      tags: [connections]
+      summary: List the client's connected schedulers
+      description: Returns connection status per provider. Never returns the stored API key.
+      responses:
+        "200":
+          description: Connected schedulers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SchedulerConnection"
+    post:
+      operationId: saveConnection
+      tags: [connections]
+      summary: Connect (or update) a scheduler by verifying and storing an API key
+      description: Verifies the API key against the provider, then stores it encrypted at rest. Returns the connection status without the key. Fails with 400 if the key is invalid.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveConnectionInput"
+      responses:
+        "200":
+          description: The saved connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchedulerConnection"
+        "400":
+          description: Invalid key or input
+        "404":
+          description: No client profile yet
+
+  /connections/providers:
+    get:
+      operationId: listSchedulerProviders
+      tags: [connections]
+      summary: List supported scheduler providers
+      responses:
+        "200":
+          description: Supported providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SchedulerProviderMeta"
+
+  /connections/{provider}:
+    delete:
+      operationId: deleteConnection
+      tags: [connections]
+      summary: Disconnect a scheduler and remove its stored key
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Disconnected
+        "404":
+          description: Not connected
 
   /ideas:
     get:
@@ -2311,10 +2443,100 @@ components:
           type: array
           items:
             type: string
+        handoffProvider:
+          type: ["string", "null"]
+        handoffAt:
+          type: ["string", "null"]
+        handoffRef:
+          type: ["string", "null"]
         createdAt:
           type: string
         updatedAt:
           type: string
+
+    HandoffInput:
+      type: object
+      properties:
+        provider:
+          type: string
+          description: Which connected scheduler to push to. Defaults to the only connected provider when omitted.
+        scheduledAt:
+          type: ["string", "null"]
+          description: ISO 8601 schedule date/time. When omitted, the post's own scheduledAt (or the scheduler's next free slot) is used.
+
+    HandoffBatchInput:
+      type: object
+      required: [postIds]
+      properties:
+        postIds:
+          type: array
+          items:
+            type: integer
+        provider:
+          type: string
+
+    HandoffResultItem:
+      type: object
+      required: [postId, ok]
+      properties:
+        postId:
+          type: integer
+        ok:
+          type: boolean
+        error:
+          type: ["string", "null"]
+
+    HandoffBatchResult:
+      type: object
+      required: [results, posts]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/HandoffResultItem"
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+
+    SchedulerConnection:
+      type: object
+      required: [provider, connected, createdAt, updatedAt]
+      properties:
+        provider:
+          type: string
+        connected:
+          type: boolean
+        accountRef:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    SaveConnectionInput:
+      type: object
+      required: [provider, apiKey]
+      properties:
+        provider:
+          type: string
+        apiKey:
+          type: string
+        accountRef:
+          type: ["string", "null"]
+
+    SchedulerProviderMeta:
+      type: object
+      required: [id, label, supportsApi]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        supportsApi:
+          type: boolean
+        apiKeyUrl:
+          type: ["string", "null"]
 
     PostInput:
       type: object

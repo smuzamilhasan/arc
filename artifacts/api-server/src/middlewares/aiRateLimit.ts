@@ -26,6 +26,19 @@ export const aiGenerationRateLimit = rateLimit({
   skipFailedRequests: false,
 });
 
+// Limiter for outbound third-party scheduler calls (connect/verify and
+// hand-off). Each call hits an external provider on the client's behalf, so cap
+// it to keep a compromised account from hammering the provider. 60 per hour.
+export const externalApiRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 60,
+  keyGenerator: userKeyGenerator,
+  handler: tooManyRequestsHandler,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  skipFailedRequests: false,
+});
+
 // Strict limiter for the audit endpoint — one run triggers up to 7 provider
 // calls with live web-search grounding, so abuse is very high cost.
 // 5 audit runs per user per hour.

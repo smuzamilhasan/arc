@@ -12,7 +12,6 @@ import {
   Building2,
   CalendarDays,
   Layers,
-  Plug,
   Lock,
   RotateCcw,
   LogOut,
@@ -266,7 +265,6 @@ const navItems: NavItem[] = [
   { href: "/content", icon: FileText, label: "Content", gate: "content" },
   { href: "/ideas", icon: Lightbulb, label: "Ideas" },
   { href: "/manager", icon: Network, label: "Manager" },
-  { href: "/connections", icon: Plug, label: "Connections" },
   { href: "/assistant", icon: MessagesSquare, label: "Strategist" },
 ];
 

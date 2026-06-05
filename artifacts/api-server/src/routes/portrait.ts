@@ -11,6 +11,7 @@ import { desc, eq } from "drizzle-orm";
 import { getClientForUser } from "./client";
 import type { SystemContext } from "../services/assistant";
 import { generatePortrait, portraitSourceHash } from "../services/portrait";
+import { GeneratePortraitBody } from "@workspace/api-zod";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
 
 const router = Router();
@@ -84,9 +85,12 @@ router.post("/portrait/generate", aiGenerationRateLimit, async (req, res) => {
     return;
   }
 
+  const body = GeneratePortraitBody.safeParse(req.body ?? {});
+  const feedback = body.success ? body.data.feedback : undefined;
+
   try {
     const ctx = await loadFoundation(client);
-    const data = await generatePortrait(ctx);
+    const data = await generatePortrait(ctx, feedback);
     const values = {
       clientId: client.id,
       headline: data.headline,

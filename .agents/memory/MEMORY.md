@@ -14,3 +14,4 @@
 - [client_profile 500 = dev DB drift](db-drift-500.md) — a 500 on /api/client select means a missing column; run `pnpm --filter @workspace/db run push`, don't blame app code.
 - [Assistant batch confirm/reject](assistant-batch-actions.md) — bulk "Confirm all" must use the batch endpoints, not parallel single-action calls, or same-row JSON actions lost-update.
 - [Batch post scheduling dates](batch-schedule-dates.md) — spread scheduledAt from y/m/d parts, not new Date("YYYY-MM-DD"), to avoid a TZ off-by-one day.
+- [Regenerate feedback steering](regenerate-feedback-steering.md) — optional pre-regen feedback dialog; first-run skips it; audit feedback deliberately not fed to GEO model/judge to keep the audit honest.

@@ -89,7 +89,7 @@ router.post("/narrative/generate", aiGenerationRateLimit, async (req, res) => {
   const answers = parsed.data.answers;
 
   try {
-    const data = await generateNarrative(client, answers);
+    const data = await generateNarrative(client, answers, parsed.data.feedback);
 
     const values = {
       clientId: client.id,

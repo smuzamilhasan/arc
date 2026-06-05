@@ -5,10 +5,8 @@
  * arc — Personal Brand Strategy API
  * OpenAPI spec version: 0.1.0
  */
-import type { IndustryAnswer } from './industryAnswer';
 
-export interface NarrativeGenerateInput {
-  answers: IndustryAnswer[];
+export interface AuditRunInput {
   /** Optional user revision notes to steer a regeneration. */
   feedback?: string;
 }

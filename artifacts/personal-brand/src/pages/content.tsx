@@ -14,6 +14,7 @@ import {
   useGenerateContentStrategy,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRegenerateFeedback } from "@/components/regenerate-feedback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1034,22 +1035,34 @@ function ContentShell({ mode }: { mode: ContentMode }) {
   const gateCtx = { client, hasPlatformStrategy: Boolean(platformStrategy) };
   const platformsReady = isPanelUnlocked("content", gateCtx);
 
-  const runGenerate = (isAuto: boolean) => {
-    generateStrategy.mutate(undefined, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetContentStrategyQueryKey() });
-        if (!isAuto) toast({ title: "Content strategy generated" });
+  const runGenerate = (isAuto: boolean, feedback?: string) => {
+    generateStrategy.mutate(
+      { data: feedback ? { feedback } : undefined },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetContentStrategyQueryKey() });
+          if (!isAuto) toast({ title: "Content strategy generated" });
+        },
+        onError: () => {
+          if (isAuto) setAutoGenFailed(true);
+          toast({
+            title: "Could not generate content strategy",
+            description: "Please try again.",
+            variant: "destructive",
+          });
+        },
       },
-      onError: () => {
-        if (isAuto) setAutoGenFailed(true);
-        toast({
-          title: "Could not generate content strategy",
-          description: "Please try again.",
-          variant: "destructive",
-        });
-      },
-    });
+    );
   };
+
+  const { requestFeedback, dialog } = useRegenerateFeedback({
+    title: "Refine your content strategy",
+    description:
+      "Optionally tell the AI what to change before it regenerates your content strategy. Leave blank to regenerate as before.",
+  });
+
+  const handleRegenerate = () =>
+    requestFeedback(Boolean(strategy), (fb) => runGenerate(false, fb));
 
   const canAutoGenerate = platformsReady && !strategy && !autoGenFailed;
 
@@ -1127,12 +1140,13 @@ function ContentShell({ mode }: { mode: ContentMode }) {
       {mode === "strategy" ? (
         <StrategyDashboard
           strategy={strategy}
-          onRegenerate={() => runGenerate(false)}
+          onRegenerate={handleRegenerate}
           regenerating={generateStrategy.isPending}
         />
       ) : (
         <ContentLibrary />
       )}
+      {dialog}
     </div>
   );
 }

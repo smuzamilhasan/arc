@@ -143,6 +143,8 @@ export interface GenerateBioInput {
   audienceImpact?: string;
   professionalJourney?: string;
   extractedInfo?: string;
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
 }
 
 export interface GenerateBioResult {
@@ -175,6 +177,8 @@ export interface DraftPillarInput {
   coreBeliefs?: string;
   signatureFrameworks?: string;
   extractedInfo?: string;
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
   fields: DraftPillarField[];
 }
 
@@ -189,6 +193,8 @@ export interface GeneratePillarExamplesInput {
   industry: string;
   currentRole?: string;
   company?: string;
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
   fields: DraftPillarField[];
 }
 
@@ -388,6 +394,28 @@ export interface NarrativeProfile {
 
 export interface NarrativeGenerateInput {
   answers: IndustryAnswer[];
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
+}
+
+export interface PortraitGenerateInput {
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
+}
+
+export interface PlatformsGenerateInput {
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
+}
+
+export interface ContentStrategyGenerateInput {
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
+}
+
+export interface AuditRunInput {
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
 }
 
 export interface NarrativeUpdateInput {

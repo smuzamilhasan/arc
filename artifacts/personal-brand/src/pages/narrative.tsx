@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useRegenerateFeedback } from "@/components/regenerate-feedback";
 
 const QUESTIONS = [
   "What is the biggest lie your industry believes to be true?",
@@ -132,6 +133,12 @@ export default function Narrative() {
   });
 
   const generateNarrative = useGenerateNarrative();
+
+  const { requestFeedback, dialog } = useRegenerateFeedback({
+    title: "Refine your narrative",
+    description:
+      "Optionally tell the AI what to change before it regenerates your narrative. Leave blank to regenerate as before.",
+  });
   const updateNarrative = useUpdateNarrative();
 
   const hasUnsavedChanges = draftHasChanges(draft, narrative);
@@ -249,14 +256,12 @@ export default function Narrative() {
     }
   };
 
-  const submitInterview = () => {
-    const formattedAnswers: IndustryAnswer[] = QUESTIONS.map((q, i) => ({
-      question: q,
-      answer: answers[i]
-    }));
-
+  const runInterviewGenerate = (
+    formattedAnswers: IndustryAnswer[],
+    feedback?: string,
+  ) => {
     generateNarrative.mutate(
-      { data: { answers: formattedAnswers } },
+      { data: { answers: formattedAnswers, ...(feedback ? { feedback } : {}) } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetNarrativeQueryKey() });
@@ -268,6 +273,17 @@ export default function Narrative() {
           toast({ title: "Failed to generate narrative", variant: "destructive" });
         }
       }
+    );
+  };
+
+  const submitInterview = () => {
+    const formattedAnswers: IndustryAnswer[] = QUESTIONS.map((q, i) => ({
+      question: q,
+      answer: answers[i]
+    }));
+
+    requestFeedback(Boolean(narrative), (fb) =>
+      runInterviewGenerate(formattedAnswers, fb),
     );
   };
 
@@ -387,6 +403,7 @@ export default function Narrative() {
             </div>
           </CardContent>
         </Card>
+        {dialog}
       </div>
     );
   }

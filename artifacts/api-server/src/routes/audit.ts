@@ -48,7 +48,8 @@ router.post("/audit/run", auditRateLimit, auditConcurrencyLimit, async (req, res
 
   try {
     send({ type: "progress", step: "start", message: `Auditing the presence of ${client.fullName}` });
-    const data = await runAudit(client, send);
+    const feedback = typeof req.body?.feedback === "string" ? req.body.feedback : undefined;
+    const data = await runAudit(client, send, feedback);
 
     const [saved] = await db
       .insert(auditResultsTable)

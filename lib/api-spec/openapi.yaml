@@ -117,6 +117,12 @@ paths:
       tags: [audit]
       summary: Run a digital presence audit (SSE stream)
       description: Streams progress events via Server-Sent Events, then persists and returns the result. Consume with fetch + ReadableStream, not generated hooks.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuditRunInput"
       responses:
         "200":
           description: SSE stream of audit progress
@@ -198,6 +204,12 @@ paths:
       operationId: generatePortrait
       tags: [portrait]
       summary: Generate (or regenerate) the foundational profile portrait from the current profile
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortraitGenerateInput"
       responses:
         "200":
           description: Generated profile portrait
@@ -247,6 +259,12 @@ paths:
       operationId: generatePlatforms
       tags: [platforms]
       summary: Generate a platform strategy from the completed blueprint
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformsGenerateInput"
       responses:
         "200":
           description: Generated platform strategy
@@ -300,6 +318,12 @@ paths:
       operationId: generateContentStrategy
       tags: [contentStrategy]
       summary: Generate a content strategy from the blueprint and platform strategy
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentStrategyGenerateInput"
       responses:
         "200":
           description: Generated content strategy
@@ -1065,6 +1089,9 @@ components:
           type: string
         extractedInfo:
           type: string
+        feedback:
+          type: string
+          description: Optional user revision notes to steer a regeneration.
 
     GenerateBioResult:
       type: object
@@ -1126,6 +1153,9 @@ components:
           type: string
         extractedInfo:
           type: string
+        feedback:
+          type: string
+          description: Optional user revision notes to steer a regeneration.
         fields:
           type: array
           items:
@@ -1152,6 +1182,9 @@ components:
           type: string
         company:
           type: string
+        feedback:
+          type: string
+          description: Optional user revision notes to steer a regeneration.
         fields:
           type: array
           items:
@@ -1525,6 +1558,37 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/IndustryAnswer"
+        feedback:
+          type: string
+          description: Optional user revision notes to steer a regeneration.
+
+    PortraitGenerateInput:
+      type: object
+      properties:
+        feedback:
+          type: string
+          description: Optional user revision notes to steer a regeneration.
+
+    PlatformsGenerateInput:
+      type: object
+      properties:
+        feedback:
+          type: string
+          description: Optional user revision notes to steer a regeneration.
+
+    ContentStrategyGenerateInput:
+      type: object
+      properties:
+        feedback:
+          type: string
+          description: Optional user revision notes to steer a regeneration.
+
+    AuditRunInput:
+      type: object
+      properties:
+        feedback:
+          type: string
+          description: Optional user revision notes to steer a regeneration.
 
     NarrativeUpdateInput:
       type: object

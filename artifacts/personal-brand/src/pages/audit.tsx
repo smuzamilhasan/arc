@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PrerequisiteChecklist } from "@/components/locked-panel";
 import { auditReadinessPrerequisites } from "@/lib/blueprint";
+import { useRegenerateFeedback } from "@/components/regenerate-feedback";
 
 type AuditProgress = {
   step: "start" | "seo" | "geo" | "synthesis";
@@ -37,7 +38,19 @@ export default function Audit() {
 
   const activeAudit = liveResult || audit;
 
-  const runAudit = async () => {
+  const { requestFeedback, dialog } = useRegenerateFeedback({
+    title: "Refine your audit",
+    description:
+      "Optionally tell the AI what to focus on before it re-runs your audit. Leave blank to run as before.",
+  });
+
+  const handleRerun = () => {
+    requestFeedback(Boolean(activeAudit), (fb) => {
+      void runAudit(fb);
+    });
+  };
+
+  const runAudit = async (feedback?: string) => {
     setIsRunning(true);
     setError(null);
     setProgress({ step: "start", status: "running", message: "Initializing audit sequence..." });
@@ -49,7 +62,7 @@ export default function Audit() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify(feedback ? { feedback } : {}),
       });
 
       if (!response.ok || !response.body) {
@@ -181,7 +194,7 @@ export default function Audit() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
         <div className="flex justify-center">
-          <Button onClick={runAudit} className="gap-2 rounded-full">
+          <Button onClick={() => runAudit()} className="gap-2 rounded-full">
             Try Again <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
@@ -209,7 +222,7 @@ export default function Audit() {
                 arc will scan search engines and query leading AI models to see if you exist, and how you are perceived.
               </p>
             </div>
-            <Button onClick={runAudit} size="lg" className="rounded-full px-8 text-md h-14 bg-primary text-primary-foreground hover:bg-primary/90 gap-2 shadow-lg hover:shadow-xl transition-all">
+            <Button onClick={() => runAudit()} size="lg" className="rounded-full px-8 text-md h-14 bg-primary text-primary-foreground hover:bg-primary/90 gap-2 shadow-lg hover:shadow-xl transition-all">
               Run Initial Audit <ChevronRight className="w-4 h-4" />
             </Button>
           </CardContent>
@@ -241,7 +254,7 @@ export default function Audit() {
           <h1 className="text-4xl font-serif text-foreground tracking-tight">Digital Presence Audit</h1>
           <p className="text-muted-foreground text-lg font-light">How the world and AI models see you today.</p>
         </div>
-        <Button onClick={runAudit} variant="outline" className="shrink-0 rounded-full bg-card hover:bg-secondary border-border/50">
+        <Button onClick={handleRerun} variant="outline" className="shrink-0 rounded-full bg-card hover:bg-secondary border-border/50">
           Run Fresh Audit
         </Button>
       </div>
@@ -395,6 +408,7 @@ export default function Audit() {
           </CardContent>
         </Card>
       </div>
+      {dialog}
     </div>
   );
 }

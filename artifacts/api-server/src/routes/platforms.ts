@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, platformStrategiesTable } from "@workspace/db";
-import { UpdatePlatformsBody } from "@workspace/api-zod";
+import { UpdatePlatformsBody, GeneratePlatformsBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
 import { getClientForUser } from "./client";
 import { generatePlatformStrategy, isBlueprintComplete } from "../services/platforms";
@@ -46,8 +46,11 @@ router.post("/platforms/generate", aiGenerationRateLimit, async (req, res) => {
     return;
   }
 
+  const body = GeneratePlatformsBody.safeParse(req.body ?? {});
+  const feedback = body.success ? body.data.feedback : undefined;
+
   try {
-    const data = await generatePlatformStrategy(client);
+    const data = await generatePlatformStrategy(client, feedback);
 
     const values = {
       clientId: client.id,

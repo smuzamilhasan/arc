@@ -6,6 +6,7 @@ import type {
   PlatformPick,
 } from "@workspace/db";
 import { parseJsonLoose } from "./json";
+import { feedbackBlock } from "./feedback";
 
 export type PlatformStrategyData = {
   summary: string;
@@ -90,7 +91,8 @@ function buildProfile(client: ClientProfile): string {
 }
 
 export async function generatePlatformStrategy(
-  client: ClientProfile
+  client: ClientProfile,
+  feedback?: string
 ): Promise<PlatformStrategyData> {
   const profile = buildProfile(client);
 
@@ -126,7 +128,7 @@ Return ONLY JSON in exactly this shape:
     "teaching": "concrete teaching & mentoring recommendation tailored to them"
   },
   "closing": "1-2 sentences on how they should balance online scale with offline depth as they build their arc."
-}`;
+}${feedbackBlock(feedback)}`;
 
   const resp = await openai.chat.completions.create({
     model: "gpt-5.4",

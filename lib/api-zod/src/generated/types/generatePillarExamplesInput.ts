@@ -12,5 +12,7 @@ export interface GeneratePillarExamplesInput {
   industry: string;
   currentRole?: string;
   company?: string;
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
   fields: DraftPillarField[];
 }

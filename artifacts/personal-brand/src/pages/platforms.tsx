@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { overallCompletion, PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blueprint";
 import { GenerateGate } from "@/components/locked-panel";
+import { useRegenerateFeedback } from "@/components/regenerate-feedback";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -332,22 +333,34 @@ export default function Platforms() {
 
   const blueprintComplete = overallCompletion(client).pct === 100;
 
-  const runGenerate = (isAuto: boolean) => {
-    generatePlatforms.mutate(undefined, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetPlatformsQueryKey() });
-        if (!isAuto) toast({ title: "Platform strategy generated" });
+  const runGenerate = (isAuto: boolean, feedback?: string) => {
+    generatePlatforms.mutate(
+      { data: feedback ? { feedback } : undefined },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetPlatformsQueryKey() });
+          if (!isAuto) toast({ title: "Platform strategy generated" });
+        },
+        onError: () => {
+          if (isAuto) setAutoGenFailed(true);
+          toast({
+            title: "Could not generate platform strategy",
+            description: "Please try again.",
+            variant: "destructive",
+          });
+        },
       },
-      onError: () => {
-        if (isAuto) setAutoGenFailed(true);
-        toast({
-          title: "Could not generate platform strategy",
-          description: "Please try again.",
-          variant: "destructive",
-        });
-      },
-    });
+    );
   };
+
+  const { requestFeedback, dialog } = useRegenerateFeedback({
+    title: "Refine your platform strategy",
+    description:
+      "Optionally tell the AI what to change before it regenerates your platform strategy. Leave blank to regenerate as before.",
+  });
+
+  const handleRegenerate = () =>
+    requestFeedback(Boolean(strategy), (fb) => runGenerate(false, fb));
 
   const canAutoGenerate =
     blueprintComplete && !strategy && !autoGenFailed;
@@ -423,10 +436,13 @@ export default function Platforms() {
   }
 
   return (
-    <Results
-      strategy={strategy}
-      onRegenerate={() => runGenerate(false)}
-      regenerating={generatePlatforms.isPending}
-    />
+    <>
+      <Results
+        strategy={strategy}
+        onRegenerate={handleRegenerate}
+        regenerating={generatePlatforms.isPending}
+      />
+      {dialog}
+    </>
   );
 }

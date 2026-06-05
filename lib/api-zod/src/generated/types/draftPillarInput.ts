@@ -26,5 +26,7 @@ export interface DraftPillarInput {
   coreBeliefs?: string;
   signatureFrameworks?: string;
   extractedInfo?: string;
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
   fields: DraftPillarField[];
 }

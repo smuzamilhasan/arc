@@ -10,6 +10,7 @@ import type {
   GeoSource,
 } from "@workspace/db";
 import { parseJsonLoose, clampScore } from "./json";
+import { classifyFeedbackParts, feedbackBlock } from "./feedback";
 
 export type AuditProgress = {
   type: "progress" | "complete" | "error";
@@ -54,7 +55,7 @@ function ownedDomains(client: ClientProfile): string[] {
     .filter(Boolean);
 }
 
-async function runSeo(client: ClientProfile): Promise<{ findings: SeoFindings; raw: string }> {
+async function runSeo(client: ClientProfile, feedback?: string): Promise<{ findings: SeoFindings; raw: string }> {
   const subject = describeClient(client);
   const prompt = `Search the web for information about this person and report what is publicly visible about them.\n\nPerson: ${subject}\n\nList the most relevant web results that appear when searching their name. For each, give the page title and URL. Then summarize in 2-3 sentences how strong and professional their search-result presence is.`;
 
@@ -90,7 +91,7 @@ async function runSeo(client: ClientProfile): Promise<{ findings: SeoFindings; r
   const deduped = Array.from(new Map(results.map((r) => [r.url, r])).values()).slice(0, 12);
   const ownedPresence = deduped.some((r) => r.type === "owned") || owned.length > 0;
 
-  const summary = await summarizeSeo(subject, text, deduped).catch(() => text.slice(0, 1200));
+  const summary = await summarizeSeo(subject, text, deduped, feedback).catch(() => text.slice(0, 1200));
 
   const findings: SeoFindings = {
     resultCount: deduped.length,
@@ -101,7 +102,7 @@ async function runSeo(client: ClientProfile): Promise<{ findings: SeoFindings; r
   return { findings, raw: text };
 }
 
-async function summarizeSeo(subject: string, raw: string, results: SeoFinding[]): Promise<string> {
+async function summarizeSeo(subject: string, raw: string, results: SeoFinding[], feedback?: string): Promise<string> {
   const fallback = raw.slice(0, 1200);
   const resultList = results.length
     ? results.map((r) => `- [${r.type}] ${r.title} (${r.url})`).join("\n")
@@ -111,7 +112,7 @@ async function summarizeSeo(subject: string, raw: string, results: SeoFinding[])
     return "No meaningful search-result presence was found for this person.";
   }
 
-  const prompt = `You are a personal brand strategist analyzing someone's Google search-result presence. Using ONLY the search data provided below, write a clean, professional 2-4 sentence analysis of how this person shows up in search. Cover the strength of their presence, what kinds of sources appear (owned sites, social, press, directories), and any notable gaps. Do not invent sources, links, or facts that are not present in the data. Write in polished prose with no bullet points, no URLs, and no markdown.\n\nPerson: ${subject}\n\nStructured search results:\n${resultList}\n\nRaw search notes:\n${trimmedRaw || "(none)"}`;
+  const prompt = `You are a personal brand strategist analyzing someone's Google search-result presence. Using ONLY the search data provided below, write a clean, professional 2-4 sentence analysis of how this person shows up in search. Cover the strength of their presence, what kinds of sources appear (owned sites, social, press, directories), and any notable gaps. Do not invent sources, links, or facts that are not present in the data. Write in polished prose with no bullet points, no URLs, and no markdown.\n\nPerson: ${subject}\n\nStructured search results:\n${resultList}\n\nRaw search notes:\n${trimmedRaw || "(none)"}${feedbackBlock(feedback)}`;
 
   const resp = await openai.chat.completions.create({
     model: "gpt-5.4",
@@ -122,7 +123,7 @@ async function summarizeSeo(subject: string, raw: string, results: SeoFinding[])
   return summary || fallback || "No meaningful search-result presence was found for this person.";
 }
 
-async function summarizeGeo(subject: string, models: GeoModelResult[]): Promise<string> {
+async function summarizeGeo(subject: string, models: GeoModelResult[], feedback?: string): Promise<string> {
   const mentionedCount = models.filter((m) => m.mentioned).length;
   const fallback = `${mentionedCount} of ${models.length} AI models represented you using current web information.`;
   if (models.length === 0) return fallback;
@@ -131,7 +132,7 @@ async function summarizeGeo(subject: string, models: GeoModelResult[]): Promise<
     .map((m) => `- ${m.label}: ${m.mentioned ? "represented the person" : "surfaced no information"}, accuracy=${m.accuracy}${m.notes ? `, notes: ${m.notes}` : ""}`)
     .join("\n");
 
-  const prompt = `You are a personal brand strategist analyzing how AI engines represent someone when they answer using current public web information. Using ONLY the per-model audit data below, write a clean, professional 2-4 sentence analysis of how AI models currently surface this person from the live web. Cover which models represented them well, how accurate that coverage was, and any notable gaps or confusion. Do not invent facts, sources, or details that are not present in the data. Write in polished prose with no bullet points, no URLs, and no markdown.\n\nPerson: ${subject}\n\nPer-model results:\n${modelList}`;
+  const prompt = `You are a personal brand strategist analyzing how AI engines represent someone when they answer using current public web information. Using ONLY the per-model audit data below, write a clean, professional 2-4 sentence analysis of how AI models currently surface this person from the live web. Cover which models represented them well, how accurate that coverage was, and any notable gaps or confusion. Do not invent facts, sources, or details that are not present in the data. Write in polished prose with no bullet points, no URLs, and no markdown.\n\nPerson: ${subject}\n\nPer-model results:\n${modelList}${feedbackBlock(feedback)}`;
 
   const resp = await openai.chat.completions.create({
     model: "gpt-5.4",
@@ -143,9 +144,10 @@ async function summarizeGeo(subject: string, models: GeoModelResult[]): Promise<
 }
 
 async function gatherWebContext(
-  subject: string
+  subject: string,
+  feedback?: string
 ): Promise<{ text: string; sources: GeoSource[] }> {
-  const prompt = `Search the web for current, public information about this person and write a thorough, factual briefing about who they are. Cover their background, current role and work, notable achievements, and any documented contributions.\n\nPerson: ${subject}\n\nBase everything strictly on what is currently published on the web. Do not invent details. If little or nothing can be found about this specific person, say so plainly.`;
+  const prompt = `Search the web for current, public information about this person and write a thorough, factual briefing about who they are. Cover their background, current role and work, notable achievements, and any documented contributions.\n\nPerson: ${subject}\n\nBase everything strictly on what is currently published on the web. Do not invent details. If little or nothing can be found about this specific person, say so plainly.${feedbackBlock(feedback, { focus: "Use this only to disambiguate or target the right person and sources; never fabricate information that is not on the web." })}`;
 
   let text = "";
   const sources: GeoSource[] = [];
@@ -269,9 +271,10 @@ async function buildRecommendations(
   seo: SeoFindings,
   geo: GeoFindings,
   seoScore: number,
-  geoScore: number
+  geoScore: number,
+  feedback?: string
 ): Promise<string[]> {
-  const prompt = `You are a personal brand strategist. Based on this digital presence audit, give 4-6 specific, actionable recommendations to improve how this person shows up in Google search (SEO) and in AI models (GEO).\n\nPerson: ${describeClient(client)}\nGoals: ${client.goals || "not specified"}\nSEO score: ${seoScore}/100. Findings: ${seo.summary}\nGEO score: ${geoScore}/100. ${geo.summary}\n\nReturn ONLY JSON: {"recommendations":["...","..."]}. Each item is one concrete action, max 25 words.`;
+  const prompt = `You are a personal brand strategist. Based on this digital presence audit, give 4-6 specific, actionable recommendations to improve how this person shows up in Google search (SEO) and in AI models (GEO).\n\nPerson: ${describeClient(client)}\nGoals: ${client.goals || "not specified"}\nSEO score: ${seoScore}/100. Findings: ${seo.summary}\nGEO score: ${geoScore}/100. ${geo.summary}\n\nReturn ONLY JSON: {"recommendations":["...","..."]}. Each item is one concrete action, max 25 words.${feedbackBlock(feedback)}`;
   const resp = await openai.chat.completions.create({
     model: "gpt-5.4",
     max_completion_tokens: 8192,
@@ -284,12 +287,25 @@ async function buildRecommendations(
 
 export async function runAudit(
   client: ClientProfile,
-  onProgress: (p: AuditProgress) => void
+  onProgress: (p: AuditProgress) => void,
+  feedback?: string
 ): Promise<AuditData> {
   const subject = describeClient(client);
 
+  const fb = (feedback ?? "").trim();
+  const parts = fb
+    ? await classifyFeedbackParts(fb, [
+        { id: "seo", label: "the Google search (SEO) presence analysis" },
+        { id: "geo", label: "the AI-model (GEO) representation analysis and the web context gathered about the person" },
+        { id: "recommendations", label: "the list of actionable recommendations" },
+      ])
+    : [];
+  const seoFeedback = parts.includes("seo") ? fb : undefined;
+  const geoFeedback = parts.includes("geo") ? fb : undefined;
+  const recommendationsFeedback = parts.includes("recommendations") ? fb : undefined;
+
   onProgress({ type: "progress", step: "seo", status: "running", message: "Searching the web for your name..." });
-  const { findings: seoFindings } = await runSeo(client);
+  const { findings: seoFindings } = await runSeo(client, seoFeedback);
   onProgress({
     type: "progress",
     step: "seo",
@@ -298,7 +314,7 @@ export async function runAudit(
   });
 
   onProgress({ type: "progress", step: "geo", status: "running", message: "Gathering current web information about you..." });
-  const { text: webContext, sources: geoSources } = await gatherWebContext(subject);
+  const { text: webContext, sources: geoSources } = await gatherWebContext(subject, geoFeedback);
   onProgress({ type: "progress", step: "geo", status: "running", message: "Asking ChatGPT, Claude, and Gemini what the web says about you..." });
   const rawResponses = await Promise.all(
     GEO_MODELS.map(async (m) => ({
@@ -312,7 +328,7 @@ export async function runAudit(
   onProgress({ type: "progress", step: "synthesis", status: "running", message: "Scoring your digital presence..." });
   const geoModels = await classifyGeo(subject, webContext, rawResponses);
   const mentionedCount = geoModels.filter((m) => m.mentioned).length;
-  const geoSummary = await summarizeGeo(subject, geoModels).catch(
+  const geoSummary = await summarizeGeo(subject, geoModels, geoFeedback).catch(
     () => `${mentionedCount} of ${geoModels.length} AI models represented you using current web information.`
   );
   const geoFindings: GeoFindings = {
@@ -323,7 +339,7 @@ export async function runAudit(
 
   const seoScore = scoreSeo(seoFindings);
   const geoScore = scoreGeo(geoModels);
-  const recommendations = await buildRecommendations(client, seoFindings, geoFindings, seoScore, geoScore).catch(
+  const recommendations = await buildRecommendations(client, seoFindings, geoFindings, seoScore, geoScore, recommendationsFeedback).catch(
     () => []
   );
 

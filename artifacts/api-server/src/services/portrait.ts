@@ -3,6 +3,7 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import type { PortraitSection } from "@workspace/db";
 import type { SystemContext } from "./assistant";
 import { parseJsonLoose } from "./json";
+import { feedbackBlock } from "./feedback";
 
 export type PortraitData = {
   headline: string;
@@ -111,9 +112,12 @@ Rules: Ground everything strictly in the foundation. Do NOT invent facts, metric
 Return ONLY JSON of this exact shape:
 {"headline":"...","summary":"...","sections":[{"title":"...","body":"..."}]}`;
 
-export async function generatePortrait(ctx: SystemContext): Promise<PortraitData> {
+export async function generatePortrait(
+  ctx: SystemContext,
+  feedback?: string,
+): Promise<PortraitData> {
   const source = buildPortraitSource(ctx);
-  const prompt = `${PROMPT_INTRO}\n\nFOUNDATION:\n${source}`;
+  const prompt = `${PROMPT_INTRO}\n\nFOUNDATION:\n${source}${feedbackBlock(feedback)}`;
 
   const resp = await openai.chat.completions.create({
     model: "gpt-5.4",

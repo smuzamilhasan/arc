@@ -31,9 +31,11 @@ import type {
   AssistantReply,
   AssistantSendInput,
   AuditResult,
+  AuditRunInput,
   ClientProfile,
   ClientProfileInput,
   ContentStrategy,
+  ContentStrategyGenerateInput,
   ContentStrategyUpdateInput,
   DashboardSummary,
   DraftPillarInput,
@@ -53,7 +55,9 @@ import type {
   NarrativeProfile,
   NarrativeUpdateInput,
   PlatformStrategy,
+  PlatformsGenerateInput,
   PlatformsUpdateInput,
+  PortraitGenerateInput,
   Post,
   PostInput,
   PostUpdate,
@@ -529,14 +533,15 @@ export const getRunAuditUrl = () => {
  * Streams progress events via Server-Sent Events, then persists and returns the result. Consume with fetch + ReadableStream, not generated hooks.
  * @summary Run a digital presence audit (SSE stream)
  */
-export const runAudit = async ( options?: RequestInit): Promise<string> => {
+export const runAudit = async (auditRunInput?: AuditRunInput, options?: RequestInit): Promise<string> => {
 
   return customFetch<string>(getRunAuditUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      auditRunInput,)
   }
 );}
 
@@ -544,8 +549,8 @@ export const runAudit = async ( options?: RequestInit): Promise<string> => {
 
 
 export const getRunAuditMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAudit>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof runAudit>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAudit>>, TError,{data?: BodyType<AuditRunInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runAudit>>, TError,{data?: BodyType<AuditRunInput>}, TContext> => {
 
 const mutationKey = ['runAudit'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -557,10 +562,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runAudit>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runAudit>>, {data?: BodyType<AuditRunInput>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  runAudit(requestOptions)
+          return  runAudit(data,requestOptions)
         }
 
 
@@ -571,18 +576,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RunAuditMutationResult = NonNullable<Awaited<ReturnType<typeof runAudit>>>
-
+    export type RunAuditMutationBody = BodyType<AuditRunInput> | undefined
     export type RunAuditMutationError = ErrorType<unknown>
 
     /**
  * @summary Run a digital presence audit (SSE stream)
  */
 export const useRunAudit = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAudit>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAudit>>, TError,{data?: BodyType<AuditRunInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof runAudit>>,
         TError,
-        void,
+        {data?: BodyType<AuditRunInput>},
         TContext
       > => {
       return useMutation(getRunAuditMutationOptions(options));
@@ -895,14 +900,15 @@ export const getGeneratePortraitUrl = () => {
 /**
  * @summary Generate (or regenerate) the foundational profile portrait from the current profile
  */
-export const generatePortrait = async ( options?: RequestInit): Promise<ProfilePortrait> => {
+export const generatePortrait = async (portraitGenerateInput?: PortraitGenerateInput, options?: RequestInit): Promise<ProfilePortrait> => {
 
   return customFetch<ProfilePortrait>(getGeneratePortraitUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      portraitGenerateInput,)
   }
 );}
 
@@ -910,8 +916,8 @@ export const generatePortrait = async ( options?: RequestInit): Promise<ProfileP
 
 
 export const getGeneratePortraitMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePortrait>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof generatePortrait>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePortrait>>, TError,{data?: BodyType<PortraitGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generatePortrait>>, TError,{data?: BodyType<PortraitGenerateInput>}, TContext> => {
 
 const mutationKey = ['generatePortrait'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -923,10 +929,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generatePortrait>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generatePortrait>>, {data?: BodyType<PortraitGenerateInput>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  generatePortrait(requestOptions)
+          return  generatePortrait(data,requestOptions)
         }
 
 
@@ -937,18 +943,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type GeneratePortraitMutationResult = NonNullable<Awaited<ReturnType<typeof generatePortrait>>>
-
+    export type GeneratePortraitMutationBody = BodyType<PortraitGenerateInput> | undefined
     export type GeneratePortraitMutationError = ErrorType<void>
 
     /**
  * @summary Generate (or regenerate) the foundational profile portrait from the current profile
  */
 export const useGeneratePortrait = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePortrait>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePortrait>>, TError,{data?: BodyType<PortraitGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof generatePortrait>>,
         TError,
-        void,
+        {data?: BodyType<PortraitGenerateInput>},
         TContext
       > => {
       return useMutation(getGeneratePortraitMutationOptions(options));
@@ -1113,14 +1119,15 @@ export const getGeneratePlatformsUrl = () => {
 /**
  * @summary Generate a platform strategy from the completed blueprint
  */
-export const generatePlatforms = async ( options?: RequestInit): Promise<PlatformStrategy> => {
+export const generatePlatforms = async (platformsGenerateInput?: PlatformsGenerateInput, options?: RequestInit): Promise<PlatformStrategy> => {
 
   return customFetch<PlatformStrategy>(getGeneratePlatformsUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      platformsGenerateInput,)
   }
 );}
 
@@ -1128,8 +1135,8 @@ export const generatePlatforms = async ( options?: RequestInit): Promise<Platfor
 
 
 export const getGeneratePlatformsMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePlatforms>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof generatePlatforms>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePlatforms>>, TError,{data?: BodyType<PlatformsGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generatePlatforms>>, TError,{data?: BodyType<PlatformsGenerateInput>}, TContext> => {
 
 const mutationKey = ['generatePlatforms'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1141,10 +1148,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generatePlatforms>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generatePlatforms>>, {data?: BodyType<PlatformsGenerateInput>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  generatePlatforms(requestOptions)
+          return  generatePlatforms(data,requestOptions)
         }
 
 
@@ -1155,18 +1162,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type GeneratePlatformsMutationResult = NonNullable<Awaited<ReturnType<typeof generatePlatforms>>>
-
+    export type GeneratePlatformsMutationBody = BodyType<PlatformsGenerateInput> | undefined
     export type GeneratePlatformsMutationError = ErrorType<void>
 
     /**
  * @summary Generate a platform strategy from the completed blueprint
  */
 export const useGeneratePlatforms = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePlatforms>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePlatforms>>, TError,{data?: BodyType<PlatformsGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof generatePlatforms>>,
         TError,
-        void,
+        {data?: BodyType<PlatformsGenerateInput>},
         TContext
       > => {
       return useMutation(getGeneratePlatformsMutationOptions(options));
@@ -1331,14 +1338,15 @@ export const getGenerateContentStrategyUrl = () => {
 /**
  * @summary Generate a content strategy from the blueprint and platform strategy
  */
-export const generateContentStrategy = async ( options?: RequestInit): Promise<ContentStrategy> => {
+export const generateContentStrategy = async (contentStrategyGenerateInput?: ContentStrategyGenerateInput, options?: RequestInit): Promise<ContentStrategy> => {
 
   return customFetch<ContentStrategy>(getGenerateContentStrategyUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      contentStrategyGenerateInput,)
   }
 );}
 
@@ -1346,8 +1354,8 @@ export const generateContentStrategy = async ( options?: RequestInit): Promise<C
 
 
 export const getGenerateContentStrategyMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentStrategy>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof generateContentStrategy>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentStrategy>>, TError,{data?: BodyType<ContentStrategyGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateContentStrategy>>, TError,{data?: BodyType<ContentStrategyGenerateInput>}, TContext> => {
 
 const mutationKey = ['generateContentStrategy'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1359,10 +1367,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateContentStrategy>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateContentStrategy>>, {data?: BodyType<ContentStrategyGenerateInput>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  generateContentStrategy(requestOptions)
+          return  generateContentStrategy(data,requestOptions)
         }
 
 
@@ -1373,18 +1381,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type GenerateContentStrategyMutationResult = NonNullable<Awaited<ReturnType<typeof generateContentStrategy>>>
-
+    export type GenerateContentStrategyMutationBody = BodyType<ContentStrategyGenerateInput> | undefined
     export type GenerateContentStrategyMutationError = ErrorType<void>
 
     /**
  * @summary Generate a content strategy from the blueprint and platform strategy
  */
 export const useGenerateContentStrategy = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentStrategy>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentStrategy>>, TError,{data?: BodyType<ContentStrategyGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof generateContentStrategy>>,
         TError,
-        void,
+        {data?: BodyType<ContentStrategyGenerateInput>},
         TContext
       > => {
       return useMutation(getGenerateContentStrategyMutationOptions(options));

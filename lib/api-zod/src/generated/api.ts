@@ -212,6 +212,15 @@ export const GetLatestAuditResponse = zod.object({
 
 
 /**
+ * Streams progress events via Server-Sent Events, then persists and returns the result. Consume with fetch + ReadableStream, not generated hooks.
+ * @summary Run a digital presence audit (SSE stream)
+ */
+export const RunAuditBody = zod.object({
+  "feedback": zod.string().optional().describe('Optional user revision notes to steer a regeneration.')
+})
+
+
+/**
  * @summary Get the narrative profile
  */
 export const GetNarrativeResponse = zod.object({
@@ -287,7 +296,8 @@ export const GenerateNarrativeBody = zod.object({
   "answers": zod.array(zod.object({
   "question": zod.string(),
   "answer": zod.string()
-}))
+})),
+  "feedback": zod.string().optional().describe('Optional user revision notes to steer a regeneration.')
 })
 
 export const GenerateNarrativeResponse = zod.object({
@@ -335,6 +345,10 @@ export const GetPortraitResponse = zod.object({
 /**
  * @summary Generate (or regenerate) the foundational profile portrait from the current profile
  */
+export const GeneratePortraitBody = zod.object({
+  "feedback": zod.string().optional().describe('Optional user revision notes to steer a regeneration.')
+})
+
 export const GeneratePortraitResponse = zod.object({
   "id": zod.number(),
   "clientId": zod.number(),
@@ -438,6 +452,10 @@ export const UpdatePlatformsResponse = zod.object({
 /**
  * @summary Generate a platform strategy from the completed blueprint
  */
+export const GeneratePlatformsBody = zod.object({
+  "feedback": zod.string().optional().describe('Optional user revision notes to steer a regeneration.')
+})
+
 export const GeneratePlatformsResponse = zod.object({
   "id": zod.number(),
   "clientId": zod.number(),
@@ -556,6 +574,10 @@ export const UpdateContentStrategyResponse = zod.object({
 /**
  * @summary Generate a content strategy from the blueprint and platform strategy
  */
+export const GenerateContentStrategyBody = zod.object({
+  "feedback": zod.string().optional().describe('Optional user revision notes to steer a regeneration.')
+})
+
 export const GenerateContentStrategyResponse = zod.object({
   "id": zod.number(),
   "clientId": zod.number(),
@@ -623,7 +645,8 @@ export const GenerateBioBody = zod.object({
   "quantifiableResults": zod.string().optional(),
   "audienceImpact": zod.string().optional(),
   "professionalJourney": zod.string().optional(),
-  "extractedInfo": zod.string().optional()
+  "extractedInfo": zod.string().optional(),
+  "feedback": zod.string().optional().describe('Optional user revision notes to steer a regeneration.')
 })
 
 export const GenerateBioResponse = zod.object({
@@ -654,6 +677,7 @@ export const DraftPillarBody = zod.object({
   "coreBeliefs": zod.string().optional(),
   "signatureFrameworks": zod.string().optional(),
   "extractedInfo": zod.string().optional(),
+  "feedback": zod.string().optional().describe('Optional user revision notes to steer a regeneration.'),
   "fields": zod.array(zod.object({
   "name": zod.string(),
   "label": zod.string(),
@@ -674,6 +698,7 @@ export const GeneratePillarExamplesBody = zod.object({
   "industry": zod.string(),
   "currentRole": zod.string().optional(),
   "company": zod.string().optional(),
+  "feedback": zod.string().optional().describe('Optional user revision notes to steer a regeneration.'),
   "fields": zod.array(zod.object({
   "name": zod.string(),
   "label": zod.string(),

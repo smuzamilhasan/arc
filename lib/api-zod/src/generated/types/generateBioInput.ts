@@ -17,4 +17,6 @@ export interface GenerateBioInput {
   audienceImpact?: string;
   professionalJourney?: string;
   extractedInfo?: string;
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
 }

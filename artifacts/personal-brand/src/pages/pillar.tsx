@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useRegenerateFeedback } from "@/components/regenerate-feedback";
 import {
   ArrowLeft,
   Loader2,
@@ -130,6 +131,12 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
   const generateBio = useGenerateBio();
   const draft = useDraftPillar();
   const examplesMut = useGeneratePillarExamples();
+
+  const { requestFeedback, dialog: bioFeedbackDialog } = useRegenerateFeedback({
+    title: "Refine your headline and bio",
+    description:
+      "Optionally tell the AI what to change before it redrafts your headline and bio. Leave blank to redraft as before.",
+  });
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [initial, setInitial] = useState<Record<string, string>>({});
@@ -290,7 +297,7 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
     );
   };
 
-  const handleDraftBio = () => {
+  const runDraftBio = (feedback?: string) => {
     if (!client) return;
     generateBio.mutate(
       {
@@ -305,6 +312,7 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
           quantifiableResults: client.quantifiableResults || undefined,
           audienceImpact: client.audienceImpact || undefined,
           extractedInfo: values.extractedInfo || undefined,
+          ...(feedback ? { feedback } : {}),
         },
       },
       {
@@ -325,6 +333,13 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
         },
       },
     );
+  };
+
+  const handleDraftBio = () => {
+    const hasExisting = Boolean(
+      (values.headline || "").trim() || (values.bio || "").trim(),
+    );
+    requestFeedback(hasExisting, runDraftBio);
   };
 
   const handleDraftPillar = () => {
@@ -620,6 +635,7 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
           Save
         </Button>
       </div>
+      {bioFeedbackDialog}
     </div>
   );
 }

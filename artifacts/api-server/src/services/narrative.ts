@@ -6,6 +6,7 @@ import type {
   PlatformRecommendation,
 } from "@workspace/db";
 import { parseJsonLoose } from "./json";
+import { classifyFeedbackParts, feedbackBlock } from "./feedback";
 
 export type NarrativeData = {
   coreNarrative: string;
@@ -15,9 +16,17 @@ export type NarrativeData = {
   contentHooks: string[];
 };
 
+const NARRATIVE_PARTS = [
+  { id: "positioning", label: "the core narrative and point of view" },
+  { id: "themes", label: "the content themes / pillars" },
+  { id: "platforms", label: "the recommended platforms" },
+  { id: "hooks", label: "the content hooks / post ideas" },
+];
+
 export async function generateNarrative(
   client: ClientProfile,
-  answers: IndustryAnswer[]
+  answers: IndustryAnswer[],
+  feedback?: string
 ): Promise<NarrativeData> {
   const profile = [
     `Name: ${client.fullName}`,
@@ -71,7 +80,16 @@ export async function generateNarrative(
 
   const qa = answers.map((a) => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n");
 
-  const prompt = `You are an elite personal brand and thought-leadership strategist. Using the profile, the positioning, the worldview, the coaching notes, and the industry interview below, define a sharp, differentiated narrative this person can build thought leadership around.\n\nPROFILE:\n${profile}\n\nIDENTITY & POSITIONING (their explicit niche, audience, values, and tone):\n${positioning || "(none captured)"}\n\nIDEAS & WORLDVIEW (their thesis, core beliefs, and signature frameworks):\n${worldview || "(none captured)"}\n\nCOACHING NOTES (passions, beliefs, and motivations drawn out conversationally):\n${coach || "(none captured)"}\n\nINDUSTRY INTERVIEW:\n${qa}\n\nWhere the person gave an explicit positioning, audience, thesis, or frameworks, anchor the narrative, themes, and platforms to them rather than inventing generic ones.\n\nProduce a strategy with:\n- coreNarrative: 2-3 sentences capturing the central story and positioning. Specific, not generic.\n- pointOfView: 1-2 sentences stating their contrarian or distinctive POV on their industry.\n- themes: 3-4 content pillars, each with a title and a one-sentence description.\n- recommendedPlatforms: 3-4 platforms (e.g. LinkedIn, X, newsletter, podcast, YouTube) each with a reason and priority ("high"|"medium"|"low").\n- contentHooks: 5 specific, scroll-stopping content ideas/headlines they could publish.\n\nReturn ONLY JSON:\n{"coreNarrative":"...","pointOfView":"...","themes":[{"title":"...","description":"..."}],"recommendedPlatforms":[{"platform":"...","reason":"...","priority":"high"}],"contentHooks":["...","..."]}`;
+  let revision = "";
+  if (feedback?.trim()) {
+    const parts = await classifyFeedbackParts(feedback, NARRATIVE_PARTS);
+    const focus = NARRATIVE_PARTS.filter((p) => parts.includes(p.id))
+      .map((p) => p.label)
+      .join(", ");
+    revision = feedbackBlock(feedback, { focus: focus || undefined });
+  }
+
+  const prompt = `You are an elite personal brand and thought-leadership strategist. Using the profile, the positioning, the worldview, the coaching notes, and the industry interview below, define a sharp, differentiated narrative this person can build thought leadership around.\n\nPROFILE:\n${profile}\n\nIDENTITY & POSITIONING (their explicit niche, audience, values, and tone):\n${positioning || "(none captured)"}\n\nIDEAS & WORLDVIEW (their thesis, core beliefs, and signature frameworks):\n${worldview || "(none captured)"}\n\nCOACHING NOTES (passions, beliefs, and motivations drawn out conversationally):\n${coach || "(none captured)"}\n\nINDUSTRY INTERVIEW:\n${qa}\n\nWhere the person gave an explicit positioning, audience, thesis, or frameworks, anchor the narrative, themes, and platforms to them rather than inventing generic ones.\n\nProduce a strategy with:\n- coreNarrative: 2-3 sentences capturing the central story and positioning. Specific, not generic.\n- pointOfView: 1-2 sentences stating their contrarian or distinctive POV on their industry.\n- themes: 3-4 content pillars, each with a title and a one-sentence description.\n- recommendedPlatforms: 3-4 platforms (e.g. LinkedIn, X, newsletter, podcast, YouTube) each with a reason and priority ("high"|"medium"|"low").\n- contentHooks: 5 specific, scroll-stopping content ideas/headlines they could publish.\n\nReturn ONLY JSON:\n{"coreNarrative":"...","pointOfView":"...","themes":[{"title":"...","description":"..."}],"recommendedPlatforms":[{"platform":"...","reason":"...","priority":"high"}],"contentHooks":["...","..."]}${revision}`;
 
   const resp = await openai.chat.completions.create({
     model: "gpt-5.4",

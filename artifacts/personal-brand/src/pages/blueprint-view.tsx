@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { BlueprintModeToggle } from "@/components/blueprint-mode-toggle";
 import { useToast } from "@/hooks/use-toast";
+import { useRegenerateFeedback } from "@/components/regenerate-feedback";
 
 function formatDate(iso: string): string {
   try {
@@ -70,21 +71,32 @@ export default function BlueprintView() {
 
   const generate = useGeneratePortrait();
 
-  const runGenerate = () => {
-    generate.mutate(undefined, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetPortraitQueryKey() });
-        toast({ title: "Foundational profile generated" });
+  const { requestFeedback, dialog } = useRegenerateFeedback({
+    title: "Refine your foundational profile",
+    description:
+      "Optionally tell the AI what to change before it regenerates your profile. Leave blank to regenerate as before.",
+  });
+
+  const runGenerate = (feedback?: string) => {
+    generate.mutate(
+      { data: feedback ? { feedback } : undefined },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetPortraitQueryKey() });
+          toast({ title: "Foundational profile generated" });
+        },
+        onError: () => {
+          toast({
+            title: "Could not generate your profile",
+            description: "Please try again in a moment.",
+            variant: "destructive",
+          });
+        },
       },
-      onError: () => {
-        toast({
-          title: "Could not generate your profile",
-          description: "Please try again in a moment.",
-          variant: "destructive",
-        });
-      },
-    });
+    );
   };
+
+  const handleGenerate = () => requestFeedback(Boolean(portrait), runGenerate);
 
   const name = client?.fullName?.trim();
 
@@ -179,7 +191,7 @@ export default function BlueprintView() {
             to create your content.
           </p>
           <Button
-            onClick={runGenerate}
+            onClick={handleGenerate}
             className="mt-6 gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Sparkles className="w-4 h-4" />
@@ -204,7 +216,7 @@ export default function BlueprintView() {
               </div>
               <Button
                 variant="outline"
-                onClick={runGenerate}
+                onClick={handleGenerate}
                 className="gap-2 rounded-full shrink-0"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -248,7 +260,7 @@ export default function BlueprintView() {
             </p>
             <Button
               variant="outline"
-              onClick={runGenerate}
+              onClick={handleGenerate}
               className="gap-2 rounded-full"
             >
               {generate.isPending ? (
@@ -261,6 +273,7 @@ export default function BlueprintView() {
           </div>
         </div>
       )}
+      {dialog}
     </div>
   );
 }

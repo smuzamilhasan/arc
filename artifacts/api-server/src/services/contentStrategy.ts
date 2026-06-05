@@ -8,6 +8,7 @@ import type {
   PostFormat,
 } from "@workspace/db";
 import { parseJsonLoose } from "./json";
+import { feedbackBlock } from "./feedback";
 
 export type ContentStrategyData = {
   summary: string;
@@ -69,7 +70,8 @@ function buildPlatformContext(strategy: PlatformStrategy): string {
 
 export async function generateContentStrategy(
   client: ClientProfile,
-  platformStrategy: PlatformStrategy
+  platformStrategy: PlatformStrategy,
+  feedback?: string
 ): Promise<ContentStrategyData> {
   const profile = buildProfile(client);
   const platforms = buildPlatformContext(platformStrategy);

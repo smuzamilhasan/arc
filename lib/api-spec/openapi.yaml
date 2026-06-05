@@ -522,6 +522,32 @@ paths:
         "404":
           description: No client profile yet
 
+  /posts/draft:
+    post:
+      operationId: draftPosts
+      tags: [posts]
+      summary: Draft platform-appropriate copy in the client's voice (Ghostwriter)
+      description: Generates one or more editable content drafts (post, hook, or article) grounded in the client's narrative, voice/tone, and profile. Drafts are returned for review and are NOT persisted; the client edits and saves the ones they want via the normal create-post route.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DraftPostsInput"
+      responses:
+        "200":
+          description: Generated drafts for review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftPostsResult"
+        "400":
+          description: Invalid input
+        "404":
+          description: No client profile yet
+        "502":
+          description: Generation failed
+
   /posts/{id}:
     get:
       operationId: getPost
@@ -1818,6 +1844,54 @@ components:
           type: array
           items:
             type: string
+
+    DraftPostsInput:
+      type: object
+      required: [format, platform]
+      properties:
+        format:
+          type: string
+          enum: [post, hook, article]
+          description: The kind of copy to draft — a full platform post, short scroll-stopping hooks, or a longer-form article.
+        platform:
+          type: string
+          enum: [linkedin, twitter, instagram, blog, other]
+        brief:
+          type: string
+          description: Optional freeform topic, angle, or instruction the draft should be about.
+        ideaId:
+          type: integer
+          description: Optional saved idea to ground the draft in (its title and notes are used).
+        theme:
+          type: string
+          description: Optional narrative theme or angle title to anchor the draft to.
+        count:
+          type: integer
+          description: How many draft variants to produce (server-bounded).
+        feedback:
+          type: string
+          description: Optional revision notes to steer a regeneration.
+
+    DraftedPost:
+      type: object
+      required: [title, content, format]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        format:
+          type: string
+          enum: [post, hook, article]
+
+    DraftPostsResult:
+      type: object
+      required: [drafts]
+      properties:
+        drafts:
+          type: array
+          items:
+            $ref: "#/components/schemas/DraftedPost"
 
     Idea:
       type: object

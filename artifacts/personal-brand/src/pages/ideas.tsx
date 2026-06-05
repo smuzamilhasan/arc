@@ -116,12 +116,11 @@ export default function Ideas() {
   };
 
   const promoteToPost = (idea: Idea) => {
-    // In a real app we'd pass state to the content page
-    toast({
-      title: "Taking action",
-      description: "Feature to turn idea directly into draft coming soon. Moving to Content.",
-    });
-    setLocation("/content");
+    // Hand the idea to the Ghostwriter on the Content page, which opens prefilled
+    // and drafts copy grounded in this idea.
+    const params = new URLSearchParams({ draftIdea: String(idea.id), draftTitle: idea.title });
+    if (idea.platform) params.set("draftPlatform", idea.platform);
+    setLocation(`/content?${params.toString()}`);
   };
 
   return (

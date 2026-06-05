@@ -1,8 +1,10 @@
 import { Router } from "express";
-import { db, postsTable } from "@workspace/db";
-import { CreatePostBody, UpdatePostBody, ListPostsQueryParams, GetPostParams, UpdatePostParams, DeletePostParams, ScheduleBatchPostsBody } from "@workspace/api-zod";
+import { db, postsTable, ideasTable, narrativeProfilesTable } from "@workspace/db";
+import { CreatePostBody, UpdatePostBody, ListPostsQueryParams, GetPostParams, UpdatePostParams, DeletePostParams, ScheduleBatchPostsBody, DraftPostsBody } from "@workspace/api-zod";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { getClientForUser } from "./client";
+import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
+import { draftContent } from "../services/ghostwriter";
 
 const router = Router();
 
@@ -147,6 +149,69 @@ router.post("/posts/schedule-batch", async (req, res) => {
     res.json(updated.map(serializePost));
   } catch {
     res.status(400).json({ error: "Invalid input" });
+  }
+});
+
+// The Ghostwriter: draft platform-appropriate copy in the client's voice. Drafts
+// are returned for review and are NOT persisted — the client edits the ones they
+// want and saves them via the normal create-post route. Rate-limited because each
+// call is an AI generation.
+router.post("/posts/draft", aiGenerationRateLimit, async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const parsed = DraftPostsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const data = parsed.data;
+
+  // Optionally ground the draft in a saved idea — scoped to this client.
+  let ideaTitle: string | undefined;
+  let ideaNotes: string | undefined;
+  if (data.ideaId !== undefined) {
+    const [idea] = await db
+      .select()
+      .from(ideasTable)
+      .where(and(eq(ideasTable.id, data.ideaId), eq(ideasTable.clientId, client.id)));
+    if (!idea) {
+      res.status(400).json({ error: "Idea not found" });
+      return;
+    }
+    ideaTitle = idea.title;
+    ideaNotes = idea.notes ?? undefined;
+  }
+
+  // Use the latest narrative for voice/themes if one exists; it's optional.
+  const [narrative] = await db
+    .select()
+    .from(narrativeProfilesTable)
+    .where(eq(narrativeProfilesTable.clientId, client.id))
+    .orderBy(desc(narrativeProfilesTable.id))
+    .limit(1);
+
+  try {
+    const result = await draftContent(client, narrative ?? null, {
+      format: data.format,
+      platform: data.platform,
+      brief: data.brief,
+      theme: data.theme,
+      count: data.count,
+      feedback: data.feedback,
+      ideaTitle,
+      ideaNotes,
+    });
+    if (result.drafts.length === 0) {
+      res.status(502).json({ error: "The Ghostwriter could not produce a draft. Please try again." });
+      return;
+    }
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "ghostwriter draft failed");
+    res.status(502).json({ error: "Draft generation failed. Please try again." });
   }
 });
 

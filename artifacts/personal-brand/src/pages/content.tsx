@@ -53,7 +53,9 @@ import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blue
 import { rescheduleToDay, shiftByDays } from "@/lib/schedule";
 import { GenerateGate } from "@/components/locked-panel";
 import { PostEditorDialog } from "@/components/post-editor";
+import { GhostwriterDialog, type GhostwriterPrefill } from "@/components/ghostwriter-dialog";
 import { ContentModeToggle, type ContentMode } from "@/components/content-mode-toggle";
+import { useLocation, useSearch } from "wouter";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -305,6 +307,36 @@ function ContentLibrary() {
   const [planStartDate, setPlanStartDate] = useState("");
   const [planInterval, setPlanInterval] = useState("1");
   const [planTime, setPlanTime] = useState("09:00");
+  const [isGhostwriterOpen, setIsGhostwriterOpen] = useState(false);
+  const [ghostwriterPrefill, setGhostwriterPrefill] = useState<GhostwriterPrefill | undefined>(undefined);
+  const search = useSearch();
+  const [, navigate] = useLocation();
+
+  // Open the Ghostwriter prefilled when arriving from the Idea Bank via
+  // /content?draftIdea=<id>&draftTitle=<title>. Strip the params afterward so a
+  // refresh or back-navigation doesn't reopen it.
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const draftIdea = params.get("draftIdea");
+    if (!draftIdea) return;
+    const id = Number(draftIdea);
+    if (!Number.isFinite(id)) return;
+    const title = params.get("draftTitle") ?? undefined;
+    const platform = params.get("draftPlatform") ?? undefined;
+    setGhostwriterPrefill({
+      ideaId: id,
+      ideaTitle: title,
+      platform: platform as GhostwriterPrefill["platform"],
+    });
+    setIsGhostwriterOpen(true);
+    navigate("/content", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const openGhostwriter = () => {
+    setGhostwriterPrefill(undefined);
+    setIsGhostwriterOpen(true);
+  };
 
   // Always load the full library (unfiltered) so the calendar and the batch
   // planner see every post regardless of the active filters.
@@ -513,6 +545,13 @@ function ContentLibrary() {
           >
             <CalendarClock className="w-4 h-4" /> Plan schedule
           </Button>
+          <Button
+            variant="outline"
+            onClick={openGhostwriter}
+            className="rounded-full gap-2 h-11 px-5 border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
+          >
+            <Sparkles className="w-4 h-4" /> Ghostwriter
+          </Button>
           <Button onClick={() => handleOpenEditor()} className="rounded-full bg-primary hover:bg-primary/90 gap-2 h-11 px-6 shadow-sm">
             <Plus className="w-4 h-4" /> New Post
           </Button>
@@ -648,6 +687,9 @@ function ContentLibrary() {
 
       {/* Editor Dialog */}
       <PostEditorDialog open={isEditorOpen} onOpenChange={setIsEditorOpen} post={editingPost} />
+
+      {/* Ghostwriter Dialog */}
+      <GhostwriterDialog open={isGhostwriterOpen} onOpenChange={setIsGhostwriterOpen} prefill={ghostwriterPrefill} />
 
       {/* Delete Confirmation */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

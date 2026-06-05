@@ -3,6 +3,7 @@
 - [No null render on query failure](no-null-render-on-query-failure.md) — pages returning null on a failed query = white screen; QueryClient swallows errors with no global 401 handler, so render an explicit error/sign-in state.
 - [Web API auth bearer bridge](web-api-auth-bearer-bridge.md) — authed endpoints 401 only in the preview iframe = blocked third-party cookie, not a route bug; app sends a Clerk Bearer token to fix it (SSE audit excluded).
 - [Per-client table cleanup](feature-gate-cleanup.md) — any new clientId-keyed table must be added to deleteClientData (backs reset + account-delete) or its rows leak after deletion.
+- [Ghostwriter drafting design](ghostwriter-drafting.md) — POST /posts/draft returns un-persisted editable drafts saved via normal POST /posts; no drafts table; idea→ghostwriter via /content?draftIdea= URL.
 - [wouter catch-all routing](wouter-catchall-routing.md) — `/:rest*` only matches ONE segment; use `/*` for multi-segment catch-all. Blank screen, no error = unmatched route.
 - [Blueprint completion check](blueprint-completion-check.md) — use nextPillar()===null for "is the whole Blueprint done"; nextPillarAfter() skips the current pillar and falsely reports done on incomplete single-pillar stages.
 - [Narrative generation source](narrative-generation.md) — narrative auto-synthesizes from onboarding coach fields on the Narrative page; the 4-question interview is only a fallback/retake.

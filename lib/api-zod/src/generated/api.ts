@@ -849,6 +849,29 @@ export const ScheduleBatchPostsResponse = zod.array(ScheduleBatchPostsResponseIt
 
 
 /**
+ * Generates one or more editable content drafts (post, hook, or article) grounded in the client's narrative, voice/tone, and profile. Drafts are returned for review and are NOT persisted; the client edits and saves the ones they want via the normal create-post route.
+ * @summary Draft platform-appropriate copy in the client's voice (Ghostwriter)
+ */
+export const DraftPostsBody = zod.object({
+  "format": zod.enum(['post', 'hook', 'article']).describe('The kind of copy to draft — a full platform post, short scroll-stopping hooks, or a longer-form article.'),
+  "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
+  "brief": zod.string().optional().describe('Optional freeform topic, angle, or instruction the draft should be about.'),
+  "ideaId": zod.number().optional().describe('Optional saved idea to ground the draft in (its title and notes are used).'),
+  "theme": zod.string().optional().describe('Optional narrative theme or angle title to anchor the draft to.'),
+  "count": zod.number().optional().describe('How many draft variants to produce (server-bounded).'),
+  "feedback": zod.string().optional().describe('Optional revision notes to steer a regeneration.')
+})
+
+export const DraftPostsResponse = zod.object({
+  "drafts": zod.array(zod.object({
+  "title": zod.string(),
+  "content": zod.string(),
+  "format": zod.enum(['post', 'hook', 'article'])
+}))
+})
+
+
+/**
  * @summary Get a post by ID
  */
 export const GetPostParams = zod.object({

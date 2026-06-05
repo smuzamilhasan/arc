@@ -43,6 +43,8 @@ import type {
   DashboardSummary,
   DraftPillarInput,
   DraftPillarResult,
+  DraftPostsInput,
+  DraftPostsResult,
   ExtractInfoInput,
   ExtractInfoResult,
   GenerateBioInput,
@@ -2129,6 +2131,78 @@ export const useScheduleBatchPosts = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getScheduleBatchPostsMutationOptions(options));
+    }
+
+export const getDraftPostsUrl = () => {
+
+
+
+
+  return `/api/posts/draft`
+}
+
+/**
+ * Generates one or more editable content drafts (post, hook, or article) grounded in the client's narrative, voice/tone, and profile. Drafts are returned for review and are NOT persisted; the client edits and saves the ones they want via the normal create-post route.
+ * @summary Draft platform-appropriate copy in the client's voice (Ghostwriter)
+ */
+export const draftPosts = async (draftPostsInput: DraftPostsInput, options?: RequestInit): Promise<DraftPostsResult> => {
+
+  return customFetch<DraftPostsResult>(getDraftPostsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      draftPostsInput,)
+  }
+);}
+
+
+
+
+export const getDraftPostsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof draftPosts>>, TError,{data: BodyType<DraftPostsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof draftPosts>>, TError,{data: BodyType<DraftPostsInput>}, TContext> => {
+
+const mutationKey = ['draftPosts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof draftPosts>>, {data: BodyType<DraftPostsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  draftPosts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DraftPostsMutationResult = NonNullable<Awaited<ReturnType<typeof draftPosts>>>
+    export type DraftPostsMutationBody = BodyType<DraftPostsInput>
+    export type DraftPostsMutationError = ErrorType<void>
+
+    /**
+ * @summary Draft platform-appropriate copy in the client's voice (Ghostwriter)
+ */
+export const useDraftPosts = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof draftPosts>>, TError,{data: BodyType<DraftPostsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof draftPosts>>,
+        TError,
+        {data: BodyType<DraftPostsInput>},
+        TContext
+      > => {
+      return useMutation(getDraftPostsMutationOptions(options));
     }
 
 export const getGetPostUrl = (id: number,) => {

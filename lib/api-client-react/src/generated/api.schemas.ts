@@ -547,6 +547,64 @@ export interface PostUpdate {
   tags?: string[];
 }
 
+/**
+ * The kind of copy to draft — a full platform post, short scroll-stopping hooks, or a longer-form article.
+ */
+export type DraftPostsInputFormat = typeof DraftPostsInputFormat[keyof typeof DraftPostsInputFormat];
+
+
+export const DraftPostsInputFormat = {
+  post: 'post',
+  hook: 'hook',
+  article: 'article',
+} as const;
+
+export type DraftPostsInputPlatform = typeof DraftPostsInputPlatform[keyof typeof DraftPostsInputPlatform];
+
+
+export const DraftPostsInputPlatform = {
+  linkedin: 'linkedin',
+  twitter: 'twitter',
+  instagram: 'instagram',
+  blog: 'blog',
+  other: 'other',
+} as const;
+
+export interface DraftPostsInput {
+  /** The kind of copy to draft — a full platform post, short scroll-stopping hooks, or a longer-form article. */
+  format: DraftPostsInputFormat;
+  platform: DraftPostsInputPlatform;
+  /** Optional freeform topic, angle, or instruction the draft should be about. */
+  brief?: string;
+  /** Optional saved idea to ground the draft in (its title and notes are used). */
+  ideaId?: number;
+  /** Optional narrative theme or angle title to anchor the draft to. */
+  theme?: string;
+  /** How many draft variants to produce (server-bounded). */
+  count?: number;
+  /** Optional revision notes to steer a regeneration. */
+  feedback?: string;
+}
+
+export type DraftedPostFormat = typeof DraftedPostFormat[keyof typeof DraftedPostFormat];
+
+
+export const DraftedPostFormat = {
+  post: 'post',
+  hook: 'hook',
+  article: 'article',
+} as const;
+
+export interface DraftedPost {
+  title: string;
+  content: string;
+  format: DraftedPostFormat;
+}
+
+export interface DraftPostsResult {
+  drafts: DraftedPost[];
+}
+
 export interface Idea {
   id: number;
   title: string;

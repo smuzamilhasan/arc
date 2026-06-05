@@ -1227,6 +1227,37 @@ export interface Invitation {
   createdAt: string;
 }
 
+export type CreateInvitationResultKind = typeof CreateInvitationResultKind[keyof typeof CreateInvitationResultKind];
+
+
+export const CreateInvitationResultKind = {
+  member: 'member',
+  client: 'client',
+} as const;
+
+export type CreateInvitationResultStatus = typeof CreateInvitationResultStatus[keyof typeof CreateInvitationResultStatus];
+
+
+export const CreateInvitationResultStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+  revoked: 'revoked',
+} as const;
+
+export interface CreateInvitationResult {
+  id: number;
+  agencyId: number;
+  email: string;
+  kind: CreateInvitationResultKind;
+  /** @nullable */
+  clientId: number | null;
+  token: string;
+  status: CreateInvitationResultStatus;
+  createdAt: string;
+  /** Whether the invite email was delivered. False means the owner should fall back to copying the invite link manually. */
+  emailSent: boolean;
+}
+
 export interface InvitationListResponse {
   invitations: Invitation[];
 }

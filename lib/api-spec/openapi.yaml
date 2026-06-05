@@ -1533,7 +1533,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Invitation"
+                $ref: "#/components/schemas/CreateInvitationResult"
         "400":
           description: Invalid input
         "403":
@@ -3493,6 +3493,31 @@ components:
           enum: [pending, accepted, revoked]
         createdAt:
           type: string
+    CreateInvitationResult:
+      type: object
+      required: [id, agencyId, email, kind, clientId, token, status, createdAt, emailSent]
+      properties:
+        id:
+          type: integer
+        agencyId:
+          type: integer
+        email:
+          type: string
+        kind:
+          type: string
+          enum: [member, client]
+        clientId:
+          type: ["integer", "null"]
+        token:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, revoked]
+        createdAt:
+          type: string
+        emailSent:
+          type: boolean
+          description: Whether the invite email was delivered. False means the owner should fall back to copying the invite link manually.
     InvitationListResponse:
       type: object
       required: [invitations]

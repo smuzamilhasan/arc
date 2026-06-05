@@ -22,3 +22,4 @@
 - [Manager orchestration](manager-orchestration.md) — one instruction decomposed (the only AI call) then existing agents run sequentially; outputs are confirm/reject proposals; bounded to 1 decompose + <=4 agent calls.
 - [Active-client scoping](active-client-scoping.md) — agency multi-tenant via x-arc-client-id header; raw fetch (audit/assistant SSE) must stamp it manually; invite accept is email-bound; team mgmt owner-only.
 - [Scheduler hand-off](scheduler-handoff.md) — clients connect their OWN scheduler (BYO API key, encrypted at rest); arc pushes posts but NEVER publishes. Per-post handoff state + CSV/ICS export fallback.
+- [Resend transactional email](resend-email-sending.md) — send via connector proxy POST /emails; key is send-only so GET /domains 401 is expected; default onboarding domain only delivers to the account owner.

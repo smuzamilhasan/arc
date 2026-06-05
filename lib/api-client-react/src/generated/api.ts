@@ -50,6 +50,7 @@ import type {
   ContentStrategy,
   ContentStrategyGenerateInput,
   ContentStrategyUpdateInput,
+  CreateInvitationResult,
   DashboardSummary,
   DossierGenerateInput,
   DraftPillarInput,
@@ -71,7 +72,6 @@ import type {
   IdeaUpdate,
   IndustryOverview,
   IndustryOverviewGenerateInput,
-  Invitation,
   InvitationInput,
   InvitationListResponse,
   InvitationPreview,
@@ -5704,9 +5704,9 @@ export const getCreateInvitationUrl = (agencyId: number,) => {
  * @summary Invite a team member or prebuild and invite a client
  */
 export const createInvitation = async (agencyId: number,
-    invitationInput: InvitationInput, options?: RequestInit): Promise<Invitation> => {
+    invitationInput: InvitationInput, options?: RequestInit): Promise<CreateInvitationResult> => {
 
-  return customFetch<Invitation>(getCreateInvitationUrl(agencyId),
+  return customFetch<CreateInvitationResult>(getCreateInvitationUrl(agencyId),
   {
     ...options,
     method: 'POST',

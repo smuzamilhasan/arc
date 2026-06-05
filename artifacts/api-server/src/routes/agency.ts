@@ -16,6 +16,9 @@ import { and, eq, inArray } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { z } from "zod/v4";
 import { primaryEmail, clerkUserName } from "../middlewares/requireAdmin";
+import { sendEmail } from "../services/email";
+import { buildInviteEmail } from "../services/inviteEmail";
+import type { Request } from "express";
 
 const router = Router();
 
@@ -78,6 +81,35 @@ function serializeInvitation(inv: Invitation) {
     status: inv.status,
     createdAt: inv.createdAt.toISOString(),
   };
+}
+
+// Sends the invite email to the invitee. Never throws — returns whether the
+// email was delivered so invite creation can succeed even if delivery fails
+// and the owner can fall back to copying the link manually.
+async function sendInviteEmail(
+  req: Request,
+  inv: Invitation,
+  agencyName: string,
+): Promise<boolean> {
+  try {
+    let inviterName = "Your team";
+    try {
+      const inviter = await clerkClient.users.getUser(inv.invitedByUserId);
+      inviterName = clerkUserName(inviter);
+    } catch (err) {
+      req.log.warn({ err }, "Could not resolve inviter name for invite email");
+    }
+    const { subject, html, text } = buildInviteEmail({
+      token: inv.token,
+      kind: inv.kind === "member" ? "member" : "client",
+      inviterName,
+      agencyName,
+    });
+    return await sendEmail({ to: inv.email, subject, html, text });
+  } catch (err) {
+    req.log.error({ err }, "Invite email send failed");
+    return false;
+  }
 }
 
 // Everything the nav + client switcher needs: the user's agencies, every
@@ -278,6 +310,12 @@ router.post("/agency/:agencyId/invite", async (req, res) => {
     return;
   }
   const token = newToken();
+  const [agency] = await db
+    .select()
+    .from(agenciesTable)
+    .where(eq(agenciesTable.id, agencyId))
+    .limit(1);
+  const agencyName = agency?.name ?? "Your agency";
 
   if (data.kind === "client") {
     // Create the unclaimed, agency-prebuilt profile + grant + invitation.
@@ -299,7 +337,10 @@ router.post("/agency/:agencyId/invite", async (req, res) => {
         invitedByUserId: req.userId!,
       })
       .returning();
-    res.status(201).json({ ...serializeInvitation(inv), clientId: profile.id });
+    const emailSent = await sendInviteEmail(req, inv, agencyName);
+    res
+      .status(201)
+      .json({ ...serializeInvitation(inv), clientId: profile.id, emailSent });
     return;
   }
 
@@ -313,7 +354,8 @@ router.post("/agency/:agencyId/invite", async (req, res) => {
       invitedByUserId: req.userId!,
     })
     .returning();
-  res.status(201).json(serializeInvitation(inv));
+  const emailSent = await sendInviteEmail(req, inv, agencyName);
+  res.status(201).json({ ...serializeInvitation(inv), emailSent });
 });
 
 router.delete("/agency/:agencyId/invitations/:id", async (req, res) => {

@@ -117,12 +117,24 @@ function InviteForm({ agencyId }: { agencyId: number }) {
     mutate(
       { agencyId, data },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
           qc.invalidateQueries({
             queryKey: getGetAgencyInvitationsQueryKey(agencyId),
           });
           qc.invalidateQueries({ queryKey: getGetAgencyContextQueryKey() });
-          toast({ title: "Invitation created" });
+          if (result.emailSent) {
+            toast({
+              title: "Invitation sent",
+              description: `We emailed the invite link to ${result.email}.`,
+            });
+          } else {
+            toast({
+              title: "Invitation created — email not sent",
+              description:
+                "We couldn't email the invite. Copy the invite link below and send it manually.",
+              variant: "destructive",
+            });
+          }
           setEmail("");
           setFullName("");
           setHeadline("");

@@ -244,10 +244,13 @@ export function Layout({ children }: LayoutProps) {
       {items.map((item) => {
         const locked = item.gate ? !isPanelUnlocked(item.gate, gateCtx) : false;
         // Keep the Blueprint nav highlighted across Edit, View, and pillar
-        // pages, since its href can point at either /blueprint or /blueprint/view.
+        // pages (its href can point at either /blueprint or /blueprint/view),
+        // and the Content nav highlighted across the Create + Strategy sub-routes.
         const active =
           item.label === "Blueprint"
             ? location.startsWith("/blueprint")
+            : item.label === "Content"
+            ? location.startsWith("/content")
             : location === item.href;
 
         // Locked items stay clickable: they navigate to the panel, which now

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useListPosts,
   useDeletePost,
@@ -52,6 +52,7 @@ import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blue
 import { rescheduleToDay, shiftByDays } from "@/lib/schedule";
 import { GenerateGate } from "@/components/locked-panel";
 import { PostEditorDialog } from "@/components/post-editor";
+import { ContentModeToggle, type ContentMode } from "@/components/content-mode-toggle";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -964,7 +965,44 @@ function ScheduleCalendar({
   );
 }
 
-export default function Content() {
+// Tracks, per client, the strategy `updatedAt` the user has already viewed.
+// When a regeneration changes `updatedAt` and the user hasn't opened the
+// Strategy view since, `unseen` is true so the toggle can show a dot. The
+// last-seen value lives in localStorage (no backend "seen" tracking).
+function useStrategySeen(
+  clientId: number | undefined,
+  updatedAt: string | undefined,
+) {
+  const storageKey = clientId ? `arc:strategy-seen:${clientId}` : null;
+  const [seenAt, setSeenAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!storageKey) {
+      setSeenAt(null);
+      return;
+    }
+    try {
+      setSeenAt(localStorage.getItem(storageKey));
+    } catch {
+      setSeenAt(null);
+    }
+  }, [storageKey]);
+
+  const markSeen = useCallback(() => {
+    if (!storageKey || !updatedAt) return;
+    try {
+      localStorage.setItem(storageKey, updatedAt);
+    } catch {
+      // Ignore storage failures (private mode / quota); the dot just persists.
+    }
+    setSeenAt(updatedAt);
+  }, [storageKey, updatedAt]);
+
+  const unseen = Boolean(updatedAt) && seenAt !== updatedAt;
+  return { unseen, markSeen };
+}
+
+function ContentShell({ mode }: { mode: ContentMode }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [autoGenFailed, setAutoGenFailed] = useState(false);
@@ -981,6 +1019,17 @@ export default function Content() {
   });
 
   const generateStrategy = useGenerateContentStrategy();
+
+  const { unseen: strategyUnseen, markSeen } = useStrategySeen(
+    client?.id,
+    strategy?.updatedAt,
+  );
+
+  // While the user is on the Strategy view, record the current strategy as seen
+  // so the toggle dot clears and stays cleared until the next regeneration.
+  useEffect(() => {
+    if (mode === "strategy" && strategy?.updatedAt) markSeen();
+  }, [mode, strategy?.updatedAt, markSeen]);
 
   const gateCtx = { client, hasPlatformStrategy: Boolean(platformStrategy) };
   const platformsReady = isPanelUnlocked("content", gateCtx);
@@ -1073,15 +1122,25 @@ export default function Content() {
   }
 
   return (
-    <div className="space-y-14 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-      <StrategyDashboard
-        strategy={strategy}
-        onRegenerate={() => runGenerate(false)}
-        regenerating={generateStrategy.isPending}
-      />
-      <div className="border-t border-border/50 pt-12">
+    <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+      <ContentModeToggle active={mode} strategyUnseen={strategyUnseen} />
+      {mode === "strategy" ? (
+        <StrategyDashboard
+          strategy={strategy}
+          onRegenerate={() => runGenerate(false)}
+          regenerating={generateStrategy.isPending}
+        />
+      ) : (
         <ContentLibrary />
-      </div>
+      )}
     </div>
   );
+}
+
+export default function Content() {
+  return <ContentShell mode="create" />;
+}
+
+export function ContentStrategyPage() {
+  return <ContentShell mode="strategy" />;
 }

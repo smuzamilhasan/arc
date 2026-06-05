@@ -8,7 +8,7 @@ import {
   getGetAssistantUnreadQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Network } from "lucide-react";
+import { Loader2, ChevronUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +25,7 @@ export default function Manager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [instruction, setInstruction] = useState("");
+  const [showEarlier, setShowEarlier] = useState(false);
 
   const { data: runs = [], isLoading } = useListManagerRuns({
     query: { queryKey: getListManagerRunsQueryKey() },
@@ -69,15 +70,10 @@ export default function Manager() {
   const running = runManager.isPending;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <div className="max-w-3xl space-y-3">
-        <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-primary">
-          <Network className="h-4 w-4" /> Manager
-        </p>
-        <h1 className="font-serif text-4xl tracking-tight text-foreground">
-          Run the whole team from one instruction
-        </h1>
-        <p className="text-lg font-light leading-relaxed text-muted-foreground">
+    <div className="flex flex-col">
+      <div className="mb-6">
+        <h1 className="font-serif text-3xl tracking-tight text-foreground">Manager</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Give one high-level instruction. The Manager breaks it down and delegates each piece to
           the right agent — Investigator, Strategist, Planner, and Ghostwriter — in the right order.
           You stay in control: anything that changes your strategy or content waits for your
@@ -85,7 +81,7 @@ export default function Manager() {
         </p>
       </div>
 
-      <Card className="mt-8 border-border/60">
+      <Card className="border-border/60">
         <CardContent className="p-5">
           <Textarea
             value={instruction}
@@ -123,7 +119,7 @@ export default function Manager() {
         </CardContent>
       </Card>
 
-      <div className="mt-12 space-y-10">
+      <div className="mt-10 space-y-10">
         {isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading past runs...
@@ -133,7 +129,24 @@ export default function Manager() {
             No runs yet. Give the Manager your first instruction above.
           </p>
         ) : (
-          runs.map((run) => <RunCard key={run.id} run={run} />)
+          <>
+            {runs.length > 1 && !showEarlier && (
+              <div className="flex justify-center">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs text-muted-foreground"
+                  onClick={() => setShowEarlier(true)}
+                >
+                  <ChevronUp className="h-3.5 w-3.5" />
+                  Show earlier ({runs.length - 1})
+                </Button>
+              </div>
+            )}
+            {(showEarlier ? runs : runs.slice(0, 1)).map((run) => (
+              <RunCard key={run.id} run={run} />
+            ))}
+          </>
         )}
       </div>
     </div>

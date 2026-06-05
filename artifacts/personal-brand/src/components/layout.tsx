@@ -28,10 +28,8 @@ import {
   getGetClientQueryKey,
   useGetPlatforms,
   getGetPlatformsQueryKey,
-  useGetLatestAudit,
-  getGetLatestAuditQueryKey,
-  useGetNarrative,
-  getGetNarrativeQueryKey,
+  useGetDashboard,
+  getGetDashboardQueryKey,
   useGetAssistantUnread,
   getGetAssistantUnreadQueryKey,
   useAckFoundationConsolidation,
@@ -250,11 +248,8 @@ export function Layout({ children }: LayoutProps) {
   const { data: platformStrategy } = useGetPlatforms({
     query: { queryKey: getGetPlatformsQueryKey(), retry: false },
   });
-  const { data: latestAudit } = useGetLatestAudit({
-    query: { queryKey: getGetLatestAuditQueryKey(), retry: false },
-  });
-  const { data: narrative } = useGetNarrative({
-    query: { queryKey: getGetNarrativeQueryKey(), retry: false },
+  const { data: dashboard } = useGetDashboard({
+    query: { queryKey: getGetDashboardQueryKey(), retry: false },
   });
   const { data: unread } = useGetAssistantUnread({
     query: {
@@ -279,12 +274,14 @@ export function Layout({ children }: LayoutProps) {
   // View overview; until then keep landing on Edit so it can be filled in.
   const blueprintComplete = nextPillar(client) === null;
 
-  // The four foundation areas mirror the dashboard's own completion checks so
-  // the nav, modal, and dashboard all flip together (and back, if data is lost).
+  // Read foundation completeness from the same consolidated /dashboard summary
+  // the Overview page uses, so the nav, modal, and dashboard always flip
+  // together (and back, if data is lost). Computing it here from separate
+  // audit/narrative queries let the nav disagree with the dashboard.
   const foundationComplete = isFoundationComplete({
     client,
-    hasAudit: Boolean(latestAudit),
-    hasNarrative: Boolean(narrative && narrative.coreNarrative),
+    hasAudit: Boolean(dashboard?.auditComplete),
+    hasNarrative: Boolean(dashboard?.narrativeComplete),
     hasPlatformStrategy: Boolean(platformStrategy),
   });
 
@@ -314,12 +311,15 @@ export function Layout({ children }: LayoutProps) {
   // Until everything is done, keep the four separate entries. Once complete,
   // collapse Blueprint/Audit/Narrative/Platforms into a single Foundation hub
   // (inserted where Blueprint sat) while leaving the rest of the nav untouched.
-  const foundationHrefs = new Set(["/blueprint", "/audit", "/narrative", "/platforms"]);
+  // Key off the stable label, not href: expandedItems rewrites Blueprint's href
+  // to /blueprint/view once complete, and foundationComplete implies that, so an
+  // href check would never match and the Foundation item would never be inserted.
+  const foundationLabels = new Set(["Blueprint", "Audit", "Narrative", "Platforms"]);
   const baseItems: NavItem[] = foundationComplete
     ? expandedItems.flatMap((item) =>
-        item.href === "/blueprint"
+        item.label === "Blueprint"
           ? [{ href: "/foundation", icon: Layers, label: "Foundation" }]
-          : foundationHrefs.has(item.href)
+          : foundationLabels.has(item.label)
           ? []
           : [item],
       )

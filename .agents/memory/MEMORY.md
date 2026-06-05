@@ -18,3 +18,4 @@
 - [Batch post scheduling dates](batch-schedule-dates.md) — spread scheduledAt from y/m/d parts, not new Date("YYYY-MM-DD"), to avoid a TZ off-by-one day.
 - [Regenerate feedback steering](regenerate-feedback-steering.md) — optional pre-regen feedback dialog; first-run skips it; audit feedback deliberately not fed to GEO model/judge to keep the audit honest.
 - [Assistant proactive suggestions](assistant-proactive-suggestions.md) — background scheduler posts unseen suggestions; debounced by state-hash+cooldown; unread/seen/stream(SSE) endpoints + launcher dot.
+- [Planner content calendar](planner-content-calendar.md) — Planner proposal is ephemeral (no new table); /generate returns it, /apply writes slots->posts + ideas->ideas scoped to client.

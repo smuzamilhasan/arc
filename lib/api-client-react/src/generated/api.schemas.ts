@@ -454,33 +454,59 @@ export interface ContentStrategyGenerateInput {
   feedback?: string;
 }
 
-export interface AuditRunInput {
-  /** Optional user revision notes to steer a regeneration. */
+export interface ContentPlanGenerateInput {
+  /** ISO date (YYYY-MM-DD) the plan should start from. Defaults to today. */
+  startDate?: string;
+  /** Number of weeks to plan (1-4). Defaults to 1. */
+  weeks?: number;
+  /** Optional notes to steer the plan (e.g. emphasize a theme or platform). */
   feedback?: string;
 }
 
-export interface NarrativeUpdateInput {
-  coreNarrative: string;
-  pointOfView: string;
-  themes: NarrativeTheme[];
-  recommendedPlatforms: PlatformRecommendation[];
-  contentHooks: string[];
-}
+export type PlannedSlotPlatform = typeof PlannedSlotPlatform[keyof typeof PlannedSlotPlatform];
 
-export interface PortraitSection {
+
+export const PlannedSlotPlatform = {
+  linkedin: 'linkedin',
+  twitter: 'twitter',
+  instagram: 'instagram',
+  blog: 'blog',
+  other: 'other',
+} as const;
+
+export interface PlannedSlot {
+  platform: PlannedSlotPlatform;
+  /** A working title / hook for the post that will fill this slot. */
   title: string;
-  body: string;
+  /** The post format/shape (e.g. thread, carousel, long-form article). */
+  format: string;
+  /** Which content-mix bucket this slot serves (Educational, Analytical, Opinionated, Story, Community). */
+  contentType: string;
+  /** A short brief the Ghostwriter will later expand into a full post. */
+  brief: string;
+  /** ISO timestamp for when this slot should publish. */
+  targetDate: string;
 }
 
-export interface ProfilePortrait {
-  id: number;
-  clientId: number;
-  headline: string;
+export interface PlannedIdea {
+  title: string;
+  notes: string;
+  /** @nullable */
+  platform?: string | null;
+}
+
+export interface ContentPlanProposal {
+  /** 1-2 sentences framing the proposed week(s) of content. */
   summary: string;
-  sections: PortraitSection[];
-  stale: boolean;
-  createdAt: string;
-  updatedAt: string;
+  startDate: string;
+  weeks: number;
+  slots: PlannedSlot[];
+  ideas: PlannedIdea[];
+}
+
+export interface ContentPlanApplyInput {
+  slots: PlannedSlot[];
+  ideas: PlannedIdea[];
 }
 
 export type PostPlatform = typeof PostPlatform[keyof typeof PostPlatform];
@@ -512,6 +538,49 @@ export interface Post {
   /** @nullable */
   scheduledAt?: string | null;
   tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Idea {
+  id: number;
+  title: string;
+  notes: string;
+  /** @nullable */
+  platform?: string | null;
+  createdAt: string;
+}
+
+export interface ContentPlanApplyResult {
+  posts: Post[];
+  ideas: Idea[];
+}
+
+export interface AuditRunInput {
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
+}
+
+export interface NarrativeUpdateInput {
+  coreNarrative: string;
+  pointOfView: string;
+  themes: NarrativeTheme[];
+  recommendedPlatforms: PlatformRecommendation[];
+  contentHooks: string[];
+}
+
+export interface PortraitSection {
+  title: string;
+  body: string;
+}
+
+export interface ProfilePortrait {
+  id: number;
+  clientId: number;
+  headline: string;
+  summary: string;
+  sections: PortraitSection[];
+  stale: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -630,15 +699,6 @@ export interface DraftedPost {
 
 export interface DraftPostsResult {
   drafts: DraftedPost[];
-}
-
-export interface Idea {
-  id: number;
-  title: string;
-  notes: string;
-  /** @nullable */
-  platform?: string | null;
-  createdAt: string;
 }
 
 export interface IdeaInput {

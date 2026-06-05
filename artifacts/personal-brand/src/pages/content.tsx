@@ -12,6 +12,9 @@ import {
   useGetContentStrategy,
   getGetContentStrategyQueryKey,
   useGenerateContentStrategy,
+  useGenerateContentPlan,
+  useApplyContentPlan,
+  getListIdeasQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRegenerateFeedback } from "@/components/regenerate-feedback";
@@ -43,12 +46,15 @@ import {
   GripVertical,
   ChevronLeft,
   ChevronRight,
+  Wand2,
+  Lightbulb,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import type { Post, ContentStrategy, ContentMixItem } from "@workspace/api-client-react";
+import type { Post, ContentStrategy, ContentMixItem, ContentPlanProposal, PlannedSlot, PlannedIdea } from "@workspace/api-client-react";
 import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blueprint";
 import { rescheduleToDay, shiftByDays } from "@/lib/schedule";
 import { GenerateGate } from "@/components/locked-panel";
@@ -307,6 +313,7 @@ function ContentLibrary() {
   const [planStartDate, setPlanStartDate] = useState("");
   const [planInterval, setPlanInterval] = useState("1");
   const [planTime, setPlanTime] = useState("09:00");
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [isGhostwriterOpen, setIsGhostwriterOpen] = useState(false);
   const [ghostwriterPrefill, setGhostwriterPrefill] = useState<GhostwriterPrefill | undefined>(undefined);
   const search = useSearch();
@@ -537,6 +544,13 @@ function ContentLibrary() {
               <CalendarDays className="h-3.5 w-3.5" /> Calendar
             </Button>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setIsGenerateOpen(true)}
+            className="rounded-full gap-2 h-11 px-5"
+          >
+            <Wand2 className="w-4 h-4" /> Generate calendar
+          </Button>
           <Button
             variant="outline"
             onClick={openPlanner}
@@ -818,7 +832,308 @@ function ContentLibrary() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI content calendar planner */}
+      <PlannerDialog
+        open={isGenerateOpen}
+        onOpenChange={setIsGenerateOpen}
+        onApplied={() => {
+          queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getListIdeasQueryKey() });
+          setIsGenerateOpen(false);
+          setView("calendar");
+        }}
+      />
     </div>
+  );
+}
+
+function PlannerDialog({
+  open,
+  onOpenChange,
+  onApplied,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onApplied: () => void;
+}) {
+  const { toast } = useToast();
+  const [startDate, setStartDate] = useState("");
+  const [weeks, setWeeks] = useState("1");
+  const [feedback, setFeedback] = useState("");
+  const [proposal, setProposal] = useState<ContentPlanProposal | null>(null);
+  const [keptSlots, setKeptSlots] = useState<Set<number>>(new Set());
+  const [keptIdeas, setKeptIdeas] = useState<Set<number>>(new Set());
+
+  const generatePlan = useGenerateContentPlan();
+  const applyPlan = useApplyContentPlan();
+
+  // Default the start date to the upcoming Monday whenever the dialog opens, and
+  // clear any prior proposal so the user starts from the setup step.
+  useEffect(() => {
+    if (!open) return;
+    const now = new Date();
+    const daysUntilMonday = (8 - now.getDay()) % 7 || 7;
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilMonday);
+    const yyyy = monday.getFullYear();
+    const mm = String(monday.getMonth() + 1).padStart(2, "0");
+    const dd = String(monday.getDate()).padStart(2, "0");
+    setStartDate(`${yyyy}-${mm}-${dd}`);
+    setWeeks("1");
+    setFeedback("");
+    setProposal(null);
+    setKeptSlots(new Set());
+    setKeptIdeas(new Set());
+  }, [open]);
+
+  const handleGenerate = () => {
+    generatePlan.mutate(
+      { data: { startDate: startDate || undefined, weeks: Number(weeks) || 1, feedback: feedback.trim() || undefined } },
+      {
+        onSuccess: (result) => {
+          setProposal(result);
+          setKeptSlots(new Set(result.slots.map((_, i) => i)));
+          setKeptIdeas(new Set(result.ideas.map((_, i) => i)));
+          if (result.slots.length === 0 && result.ideas.length === 0) {
+            toast({
+              title: "Nothing to plan yet",
+              description: "The planner returned an empty calendar. Try adjusting your notes.",
+            });
+          }
+        },
+        onError: (err) => {
+          const status = (err as { status?: number } | undefined)?.status;
+          toast({
+            title: "Could not generate a plan",
+            description:
+              status === 403
+                ? "Finish your Blueprint and content strategy first."
+                : status === 429
+                  ? "You have hit the AI rate limit. Please try again later."
+                  : "Please try again.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  const handleApply = () => {
+    if (!proposal) return;
+    const slots: PlannedSlot[] = proposal.slots.filter((_, i) => keptSlots.has(i));
+    const ideas: PlannedIdea[] = proposal.ideas.filter((_, i) => keptIdeas.has(i));
+    if (slots.length === 0 && ideas.length === 0) {
+      toast({ title: "Select at least one slot or idea to add.", variant: "destructive" });
+      return;
+    }
+    applyPlan.mutate(
+      { data: { slots, ideas } },
+      {
+        onSuccess: (result) => {
+          toast({
+            title: "Calendar updated",
+            description: `${result.posts.length} ${result.posts.length === 1 ? "slot" : "slots"} scheduled${result.ideas.length > 0 ? ` and ${result.ideas.length} ${result.ideas.length === 1 ? "idea" : "ideas"} added to your backlog` : ""}.`,
+          });
+          onApplied();
+        },
+        onError: () => toast({ title: "Could not save the plan", variant: "destructive" }),
+      },
+    );
+  };
+
+  const toggleSlot = (i: number) =>
+    setKeptSlots((prev) => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+  const toggleIdea = (i: number) =>
+    setKeptIdeas((prev) => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+
+  // Group kept-or-not slots by their calendar day for review.
+  const slotsByDay: { day: string; items: { slot: PlannedSlot; index: number }[] }[] = [];
+  if (proposal) {
+    const map = new Map<string, { slot: PlannedSlot; index: number }[]>();
+    proposal.slots.forEach((slot, index) => {
+      const key = format(new Date(slot.targetDate), "yyyy-MM-dd");
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push({ slot, index });
+    });
+    for (const [day, items] of map) slotsByDay.push({ day, items });
+  }
+
+  const keptSlotCount = keptSlots.size;
+  const keptIdeaCount = keptIdeas.size;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[88vh] flex flex-col p-0 overflow-hidden border-border/50 rounded-xl shadow-2xl">
+        <DialogHeader className="p-7 pb-4 border-b border-border/50 shrink-0 bg-card">
+          <DialogTitle className="font-serif text-2xl font-normal">Generate a content calendar</DialogTitle>
+          <DialogDescription className="text-sm font-light">
+            arc reads your narrative and content strategy to propose a calendar of post slots and fresh backlog ideas. Nothing is saved until you confirm.
+          </DialogDescription>
+        </DialogHeader>
+
+        {!proposal ? (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-7 space-y-5 bg-background">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-muted-foreground font-medium text-xs uppercase tracking-widest">Start date</Label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="h-11 bg-card border-border/50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-muted-foreground font-medium text-xs uppercase tracking-widest">How many weeks</Label>
+                  <Select value={weeks} onValueChange={setWeeks}>
+                    <SelectTrigger className="h-11 bg-card border-border/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 week</SelectItem>
+                      <SelectItem value="2">2 weeks</SelectItem>
+                      <SelectItem value="3">3 weeks</SelectItem>
+                      <SelectItem value="4">4 weeks</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground font-medium text-xs uppercase tracking-widest">Notes (optional)</Label>
+                <Textarea
+                  placeholder="Steer the plan, e.g. emphasize a launch, lean into a theme, or favor LinkedIn this week."
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  className="min-h-[88px] bg-card border-border/50 resize-none"
+                />
+              </div>
+            </div>
+            <DialogFooter className="p-5 border-t border-border/50 bg-card shrink-0">
+              <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-muted-foreground">
+                Cancel
+              </Button>
+              <Button onClick={handleGenerate} disabled={generatePlan.isPending} className="rounded-full gap-2 px-6">
+                {generatePlan.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                Generate plan
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-7 space-y-6 bg-background">
+              {proposal.summary && (
+                <p className="text-sm font-light leading-relaxed text-foreground">{proposal.summary}</p>
+              )}
+
+              <div className="space-y-3">
+                <h4 className="text-xs uppercase tracking-widest font-medium text-muted-foreground">
+                  Proposed slots
+                </h4>
+                {slotsByDay.length === 0 ? (
+                  <p className="text-sm text-muted-foreground font-light">No slots proposed.</p>
+                ) : (
+                  slotsByDay.map(({ day, items }) => (
+                    <div key={day} className="space-y-2">
+                      <p className="text-xs font-medium text-foreground">
+                        {format(new Date(`${day}T00:00:00`), "EEEE, MMM d")}
+                      </p>
+                      {items.map(({ slot, index }) => {
+                        const kept = keptSlots.has(index);
+                        return (
+                          <div
+                            key={index}
+                            className={`flex items-start gap-3 rounded-lg border p-3 transition-colors ${kept ? "border-primary/40 bg-primary/5" : "border-border/50 bg-card opacity-60"}`}
+                          >
+                            <Checkbox checked={kept} onCheckedChange={() => toggleSlot(index)} className="mt-0.5" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate font-medium text-foreground">{slot.title}</span>
+                                <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">{slot.platform}</span>
+                              </div>
+                              <p className="mt-0.5 line-clamp-2 text-xs font-light text-muted-foreground">{slot.brief}</p>
+                              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                {slot.contentType && <Chip>{slot.contentType}</Chip>}
+                                {slot.format && <Chip>{slot.format}</Chip>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {proposal.ideas.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs uppercase tracking-widest font-medium text-muted-foreground flex items-center gap-1.5">
+                    <Lightbulb className="h-3.5 w-3.5" /> Backlog ideas
+                  </h4>
+                  {proposal.ideas.map((idea, index) => {
+                    const kept = keptIdeas.has(index);
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-start gap-3 rounded-lg border p-3 transition-colors ${kept ? "border-primary/40 bg-primary/5" : "border-border/50 bg-card opacity-60"}`}
+                      >
+                        <Checkbox checked={kept} onCheckedChange={() => toggleIdea(index)} className="mt-0.5" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate font-medium text-foreground">{idea.title}</span>
+                            {idea.platform && (
+                              <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">{idea.platform}</span>
+                            )}
+                          </div>
+                          {idea.notes && <p className="mt-0.5 line-clamp-2 text-xs font-light text-muted-foreground">{idea.notes}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="p-5 border-t border-border/50 bg-card shrink-0 sm:justify-between items-center">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">
+                  {keptSlotCount} {keptSlotCount === 1 ? "slot" : "slots"}, {keptIdeaCount} {keptIdeaCount === 1 ? "idea" : "ideas"}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setProposal(null)}
+                  className="text-muted-foreground gap-1.5 h-8"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Start over
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-muted-foreground">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleApply}
+                  disabled={applyPlan.isPending || keptSlotCount + keptIdeaCount === 0}
+                  className="rounded-full gap-2 px-6"
+                >
+                  {applyPlan.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
+                  Add to calendar
+                </Button>
+              </div>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

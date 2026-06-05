@@ -30,6 +30,8 @@ tags:
     description: Admin operations (view all users and their data)
   - name: assistant
     description: Master assistant chat that proposes confirm-before-apply edits
+  - name: planner
+    description: Planner agent — turns the approved strategy into a weekly content calendar and ideas backlog
 paths:
   /healthz:
     get:
@@ -416,6 +418,54 @@ paths:
           description: No client profile yet
         "502":
           description: Generation failed
+
+  /planner/generate:
+    post:
+      operationId: generateContentPlan
+      tags: [planner]
+      summary: Propose a weekly content calendar from the approved strategy
+      description: Reads the narrative, content strategy, and platform strategy and proposes a calendar of content slots plus new backlog ideas. Nothing is persisted — the client confirms via /planner/apply.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentPlanGenerateInput"
+      responses:
+        "200":
+          description: Proposed content plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentPlanProposal"
+        "403":
+          description: Blueprint or content strategy incomplete
+        "404":
+          description: No client profile yet
+        "502":
+          description: Planning failed
+
+  /planner/apply:
+    post:
+      operationId: applyContentPlan
+      tags: [planner]
+      summary: Commit a confirmed content plan into scheduled posts and backlog ideas
+      description: Persists the confirmed slots as scheduled draft posts and the confirmed ideas into the backlog. Human-in-the-loop — only called after the client reviews the proposal.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentPlanApplyInput"
+      responses:
+        "200":
+          description: The created posts and ideas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentPlanApplyResult"
+        "404":
+          description: No client profile yet
 
   /onboarding/extract:
     post:
@@ -1806,6 +1856,99 @@ components:
         feedback:
           type: string
           description: Optional user revision notes to steer a regeneration.
+
+    ContentPlanGenerateInput:
+      type: object
+      properties:
+        startDate:
+          type: string
+          description: ISO date (YYYY-MM-DD) the plan should start from. Defaults to today.
+        weeks:
+          type: integer
+          description: Number of weeks to plan (1-4). Defaults to 1.
+        feedback:
+          type: string
+          description: Optional notes to steer the plan (e.g. emphasize a theme or platform).
+
+    PlannedSlot:
+      type: object
+      required: [platform, title, format, contentType, brief, targetDate]
+      properties:
+        platform:
+          type: string
+          enum: [linkedin, twitter, instagram, blog, other]
+        title:
+          type: string
+          description: A working title / hook for the post that will fill this slot.
+        format:
+          type: string
+          description: The post format/shape (e.g. thread, carousel, long-form article).
+        contentType:
+          type: string
+          description: Which content-mix bucket this slot serves (Educational, Analytical, Opinionated, Story, Community).
+        brief:
+          type: string
+          description: A short brief the Ghostwriter will later expand into a full post.
+        targetDate:
+          type: string
+          description: ISO timestamp for when this slot should publish.
+
+    PlannedIdea:
+      type: object
+      required: [title, notes]
+      properties:
+        title:
+          type: string
+        notes:
+          type: string
+        platform:
+          type: ["string", "null"]
+
+    ContentPlanProposal:
+      type: object
+      required: [summary, startDate, weeks, slots, ideas]
+      properties:
+        summary:
+          type: string
+          description: 1-2 sentences framing the proposed week(s) of content.
+        startDate:
+          type: string
+        weeks:
+          type: integer
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlannedSlot"
+        ideas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlannedIdea"
+
+    ContentPlanApplyInput:
+      type: object
+      required: [slots, ideas]
+      properties:
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlannedSlot"
+        ideas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlannedIdea"
+
+    ContentPlanApplyResult:
+      type: object
+      required: [posts, ideas]
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        ideas:
+          type: array
+          items:
+            $ref: "#/components/schemas/Idea"
 
     AuditRunInput:
       type: object

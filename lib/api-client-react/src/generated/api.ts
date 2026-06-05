@@ -38,6 +38,10 @@ import type {
   BriefingDossier,
   ClientProfile,
   ClientProfileInput,
+  ContentPlanApplyInput,
+  ContentPlanApplyResult,
+  ContentPlanGenerateInput,
+  ContentPlanProposal,
   ContentStrategy,
   ContentStrategyGenerateInput,
   ContentStrategyUpdateInput,
@@ -1770,6 +1774,150 @@ export const useGenerateContentStrategy = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getGenerateContentStrategyMutationOptions(options));
+    }
+
+export const getGenerateContentPlanUrl = () => {
+
+
+
+
+  return `/api/planner/generate`
+}
+
+/**
+ * Reads the narrative, content strategy, and platform strategy and proposes a calendar of content slots plus new backlog ideas. Nothing is persisted — the client confirms via /planner/apply.
+ * @summary Propose a weekly content calendar from the approved strategy
+ */
+export const generateContentPlan = async (contentPlanGenerateInput?: ContentPlanGenerateInput, options?: RequestInit): Promise<ContentPlanProposal> => {
+
+  return customFetch<ContentPlanProposal>(getGenerateContentPlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      contentPlanGenerateInput,)
+  }
+);}
+
+
+
+
+export const getGenerateContentPlanMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentPlan>>, TError,{data?: BodyType<ContentPlanGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateContentPlan>>, TError,{data?: BodyType<ContentPlanGenerateInput>}, TContext> => {
+
+const mutationKey = ['generateContentPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateContentPlan>>, {data?: BodyType<ContentPlanGenerateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateContentPlan(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateContentPlanMutationResult = NonNullable<Awaited<ReturnType<typeof generateContentPlan>>>
+    export type GenerateContentPlanMutationBody = BodyType<ContentPlanGenerateInput> | undefined
+    export type GenerateContentPlanMutationError = ErrorType<void>
+
+    /**
+ * @summary Propose a weekly content calendar from the approved strategy
+ */
+export const useGenerateContentPlan = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentPlan>>, TError,{data?: BodyType<ContentPlanGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateContentPlan>>,
+        TError,
+        {data?: BodyType<ContentPlanGenerateInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateContentPlanMutationOptions(options));
+    }
+
+export const getApplyContentPlanUrl = () => {
+
+
+
+
+  return `/api/planner/apply`
+}
+
+/**
+ * Persists the confirmed slots as scheduled draft posts and the confirmed ideas into the backlog. Human-in-the-loop — only called after the client reviews the proposal.
+ * @summary Commit a confirmed content plan into scheduled posts and backlog ideas
+ */
+export const applyContentPlan = async (contentPlanApplyInput: ContentPlanApplyInput, options?: RequestInit): Promise<ContentPlanApplyResult> => {
+
+  return customFetch<ContentPlanApplyResult>(getApplyContentPlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      contentPlanApplyInput,)
+  }
+);}
+
+
+
+
+export const getApplyContentPlanMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyContentPlan>>, TError,{data: BodyType<ContentPlanApplyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof applyContentPlan>>, TError,{data: BodyType<ContentPlanApplyInput>}, TContext> => {
+
+const mutationKey = ['applyContentPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof applyContentPlan>>, {data: BodyType<ContentPlanApplyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  applyContentPlan(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApplyContentPlanMutationResult = NonNullable<Awaited<ReturnType<typeof applyContentPlan>>>
+    export type ApplyContentPlanMutationBody = BodyType<ContentPlanApplyInput>
+    export type ApplyContentPlanMutationError = ErrorType<void>
+
+    /**
+ * @summary Commit a confirmed content plan into scheduled posts and backlog ideas
+ */
+export const useApplyContentPlan = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyContentPlan>>, TError,{data: BodyType<ContentPlanApplyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof applyContentPlan>>,
+        TError,
+        {data: BodyType<ContentPlanApplyInput>},
+        TContext
+      > => {
+      return useMutation(getApplyContentPlanMutationOptions(options));
     }
 
 export const getExtractPublicInfoUrl = () => {

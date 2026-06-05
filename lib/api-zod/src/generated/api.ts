@@ -737,6 +737,78 @@ export const GenerateContentStrategyResponse = zod.object({
 
 
 /**
+ * Reads the narrative, content strategy, and platform strategy and proposes a calendar of content slots plus new backlog ideas. Nothing is persisted — the client confirms via /planner/apply.
+ * @summary Propose a weekly content calendar from the approved strategy
+ */
+export const GenerateContentPlanBody = zod.object({
+  "startDate": zod.string().optional().describe('ISO date (YYYY-MM-DD) the plan should start from. Defaults to today.'),
+  "weeks": zod.number().optional().describe('Number of weeks to plan (1-4). Defaults to 1.'),
+  "feedback": zod.string().optional().describe('Optional notes to steer the plan (e.g. emphasize a theme or platform).')
+})
+
+export const GenerateContentPlanResponse = zod.object({
+  "summary": zod.string().describe('1-2 sentences framing the proposed week(s) of content.'),
+  "startDate": zod.string(),
+  "weeks": zod.number(),
+  "slots": zod.array(zod.object({
+  "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
+  "title": zod.string().describe('A working title \/ hook for the post that will fill this slot.'),
+  "format": zod.string().describe('The post format\/shape (e.g. thread, carousel, long-form article).'),
+  "contentType": zod.string().describe('Which content-mix bucket this slot serves (Educational, Analytical, Opinionated, Story, Community).'),
+  "brief": zod.string().describe('A short brief the Ghostwriter will later expand into a full post.'),
+  "targetDate": zod.string().describe('ISO timestamp for when this slot should publish.')
+})),
+  "ideas": zod.array(zod.object({
+  "title": zod.string(),
+  "notes": zod.string(),
+  "platform": zod.string().nullish()
+}))
+})
+
+
+/**
+ * Persists the confirmed slots as scheduled draft posts and the confirmed ideas into the backlog. Human-in-the-loop — only called after the client reviews the proposal.
+ * @summary Commit a confirmed content plan into scheduled posts and backlog ideas
+ */
+export const ApplyContentPlanBody = zod.object({
+  "slots": zod.array(zod.object({
+  "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
+  "title": zod.string().describe('A working title \/ hook for the post that will fill this slot.'),
+  "format": zod.string().describe('The post format\/shape (e.g. thread, carousel, long-form article).'),
+  "contentType": zod.string().describe('Which content-mix bucket this slot serves (Educational, Analytical, Opinionated, Story, Community).'),
+  "brief": zod.string().describe('A short brief the Ghostwriter will later expand into a full post.'),
+  "targetDate": zod.string().describe('ISO timestamp for when this slot should publish.')
+})),
+  "ideas": zod.array(zod.object({
+  "title": zod.string(),
+  "notes": zod.string(),
+  "platform": zod.string().nullish()
+}))
+})
+
+export const ApplyContentPlanResponse = zod.object({
+  "posts": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "content": zod.string(),
+  "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
+  "status": zod.enum(['draft', 'scheduled', 'published']),
+  "scheduledAt": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "ideas": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "notes": zod.string(),
+  "platform": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
  * @summary Gather publicly available info about the person from their name and links
  */
 export const ExtractPublicInfoBody = zod.object({

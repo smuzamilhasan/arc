@@ -72,6 +72,23 @@ router.post("/posts", async (req, res) => {
   res.status(201).json(serializePost(post));
 });
 
+// Compute a concrete scheduled date from a start day, a whole-day offset, and a
+// time of day, using numeric Y/M/D parts so the result lands on the intended
+// local calendar day with no timezone off-by-one drift. Shared by batch
+// scheduling and the Planner's calendar generation. Throws on invalid input.
+export function computeScheduledDate(
+  startDate: string,
+  offsetDays: number,
+  time?: string,
+): Date {
+  const [year, month, day] = startDate.split("-").map(Number);
+  const [hour, minute] = (time ?? "09:00").split(":").map(Number);
+  if (!year || !month || !day || Number.isNaN(hour) || Number.isNaN(minute)) {
+    throw new Error("Invalid date or time");
+  }
+  return new Date(year, month - 1, day + offsetDays, hour, minute, 0, 0);
+}
+
 export type ScheduleClientPostsInput = {
   postIds: number[];
   startDate: string;
@@ -88,11 +105,8 @@ export async function scheduleClientPosts(
   clientId: number,
   input: ScheduleClientPostsInput,
 ): Promise<(typeof postsTable.$inferSelect)[]> {
-  const [year, month, day] = input.startDate.split("-").map(Number);
-  const [hour, minute] = (input.time ?? "09:00").split(":").map(Number);
-  if (!year || !month || !day || Number.isNaN(hour) || Number.isNaN(minute)) {
-    throw new Error("Invalid date or time");
-  }
+  // Validate the start date / time up front (throws on bad input).
+  computeScheduledDate(input.startDate, 0, input.time);
   const step = input.intervalDays && input.intervalDays > 0 ? input.intervalDays : 1;
 
   // De-duplicate while preserving order so the cadence stays even.
@@ -112,7 +126,7 @@ export async function scheduleClientPosts(
 
   const now = new Date();
   for (let i = 0; i < scheduleIds.length; i++) {
-    const scheduledAt = new Date(year, month - 1, day + i * step, hour, minute, 0, 0);
+    const scheduledAt = computeScheduledDate(input.startDate, i * step, input.time);
     await db
       .update(postsTable)
       .set({ scheduledAt, status: "scheduled", updatedAt: now })

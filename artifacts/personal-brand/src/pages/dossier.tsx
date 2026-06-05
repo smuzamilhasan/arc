@@ -16,11 +16,73 @@ import {
   Users,
   Link2,
   ExternalLink,
+  Sparkles,
+  FileText,
+  TrendingUp,
+  Radar,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useRegenerateFeedback } from "@/components/regenerate-feedback";
+
+function BetaNotice() {
+  const upcoming = [
+    {
+      icon: FileText,
+      title: "Active content tracking",
+      description: "Continuous monitoring of your own published content, gathered in one place.",
+    },
+    {
+      icon: TrendingUp,
+      title: "Live industry stream",
+      description: "A running feed of developments and signals across your industry.",
+    },
+    {
+      icon: Radar,
+      title: "Competitor content stream",
+      description: "A running stream of what your competitors are publishing, by industry.",
+    },
+  ];
+
+  return (
+    <Card className="border-primary/20 bg-primary/5 shadow-sm">
+      <CardContent className="space-y-6 pt-6">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <h2 className="font-serif text-2xl text-foreground">A first look</h2>
+              <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-0.5 text-xs font-medium uppercase tracking-widest text-primary">
+                Beta
+              </span>
+            </div>
+            <p className="max-w-2xl text-sm font-light leading-relaxed text-muted-foreground">
+              The Investigator is an early preview, actively being improved. A more detailed version
+              is coming soon, with deeper, continuously updated research.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          {upcoming.map((item) => (
+            <div key={item.title} className="space-y-2">
+              <div className="flex items-center gap-2 text-primary">
+                <item.icon className="h-4 w-4" />
+                <p className="text-xs font-medium uppercase tracking-widest">{item.title}</p>
+              </div>
+              <p className="text-sm font-light leading-relaxed text-foreground/80">
+                {item.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function Results({
   dossier,
@@ -69,6 +131,8 @@ function Results({
           Re-research
         </Button>
       </div>
+
+      <BetaNotice />
 
       {/* PUBLIC FOOTPRINT */}
       <section className="space-y-6">
@@ -198,30 +262,34 @@ function EmptyState({
   hasClient: boolean;
 }) {
   return (
-    <div className="mx-auto mt-20 max-w-2xl space-y-8 text-center animate-in fade-in duration-700">
-      <div className="mx-auto inline-flex h-20 w-20 items-center justify-center rounded-full border border-primary/10 bg-primary/5 text-primary">
-        <Telescope className="h-9 w-9" />
+    <div className="mx-auto mt-20 max-w-2xl space-y-8 animate-in fade-in duration-700">
+      <div className="space-y-8 text-center">
+        <div className="mx-auto inline-flex h-20 w-20 items-center justify-center rounded-full border border-primary/10 bg-primary/5 text-primary">
+          <Telescope className="h-9 w-9" />
+        </div>
+        <div className="space-y-3">
+          <h1 className="font-serif text-4xl tracking-tight text-foreground">The Investigator</h1>
+          <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-muted-foreground">
+            Research your public footprint and the competitors you are up against, compiled into a
+            briefing dossier that informs your whole strategy.
+          </p>
+        </div>
+        <Button
+          onClick={onGenerate}
+          disabled={generating || !hasClient}
+          size="lg"
+          className="gap-2 rounded-full"
+        >
+          {generating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Telescope className="h-4 w-4" />
+          )}
+          {generating ? "Researching" : "Run the investigation"}
+        </Button>
       </div>
-      <div className="space-y-3">
-        <h1 className="font-serif text-4xl tracking-tight text-foreground">The Investigator</h1>
-        <p className="mx-auto max-w-md text-lg font-light leading-relaxed text-muted-foreground">
-          Research your public footprint and the competitors you are up against, compiled into a
-          briefing dossier that informs your whole strategy.
-        </p>
-      </div>
-      <Button
-        onClick={onGenerate}
-        disabled={generating || !hasClient}
-        size="lg"
-        className="gap-2 rounded-full"
-      >
-        {generating ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Telescope className="h-4 w-4" />
-        )}
-        {generating ? "Researching" : "Run the investigation"}
-      </Button>
+
+      <BetaNotice />
     </div>
   );
 }

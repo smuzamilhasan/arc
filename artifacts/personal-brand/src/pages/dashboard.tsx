@@ -1,5 +1,12 @@
 import { Link } from "wouter";
-import { useGetDashboard, getGetDashboardQueryKey, useGetClient, getGetClientQueryKey } from "@workspace/api-client-react";
+import {
+  useGetDashboard,
+  getGetDashboardQueryKey,
+  useGetClient,
+  getGetClientQueryKey,
+  useGetPlatforms,
+  getGetPlatformsQueryKey,
+} from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -15,9 +22,10 @@ import {
   Compass,
   AlertTriangle,
   RefreshCw,
+  Layers,
 } from "lucide-react";
 import { format } from "date-fns";
-import { overallCompletion, nextPillar } from "@/lib/blueprint";
+import { overallCompletion, nextPillar, isFoundationComplete } from "@/lib/blueprint";
 
 function ScoreDial({ label, score, hint }: { label: string; score: number | null | undefined; hint: string }) {
   const has = typeof score === "number";
@@ -77,6 +85,9 @@ export default function Dashboard() {
   });
   const { data: client } = useGetClient({
     query: { queryKey: getGetClientQueryKey(), retry: false },
+  });
+  const { data: platformStrategy } = useGetPlatforms({
+    query: { queryKey: getGetPlatformsQueryKey(), retry: false },
   });
 
   if (isLoading) {
@@ -143,6 +154,13 @@ export default function Dashboard() {
     { label: "Narrative", done: dashboard.narrativeComplete, href: "/narrative", desc: "Shape your point of view" },
     { label: "Content", done: dashboard.totalPosts > 0, href: "/content", desc: "Put the story to work" },
   ];
+
+  const foundationComplete = isFoundationComplete({
+    client,
+    hasAudit: dashboard.auditComplete,
+    hasNarrative: dashboard.narrativeComplete,
+    hasPlatformStrategy: Boolean(platformStrategy),
+  });
 
   const firstName = client?.fullName?.split(" ")[0];
 
@@ -232,27 +250,53 @@ export default function Dashboard() {
       )}
 
       {/* Journey */}
-      <section>
-        <h2 className="font-serif text-2xl text-foreground mb-5">Your arc</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stages.map((stage) => (
-            <Link key={stage.label} href={stage.href}>
-              <div className="group h-full rounded-xl border border-border bg-card p-5 cursor-pointer transition-all hover:border-primary/40 hover:-translate-y-0.5">
-                <div className="flex items-center justify-between mb-3">
-                  {stage.done ? (
-                    <CheckCircle2 className="w-5 h-5 text-primary" />
-                  ) : (
-                    <CircleDashed className="w-5 h-5 text-muted-foreground" />
-                  )}
-                  <ArrowUpRight className="w-4 h-4 text-muted-foreground/0 transition-all group-hover:text-muted-foreground" />
+      {foundationComplete ? (
+        <section>
+          <h2 className="font-serif text-2xl text-foreground mb-5">Your arc</h2>
+          <Link href="/foundation">
+            <div className="group flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-5 cursor-pointer transition-all hover:border-primary/40">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="rounded-full bg-primary/10 p-2.5 shrink-0">
+                  <Layers className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="font-serif text-xl text-foreground">{stage.label}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{stage.desc}</p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif text-xl text-foreground">Foundation complete</h3>
+                    <CheckCircle2 className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5 max-w-2xl">
+                    Blueprint, Audit, Narrative, and Platforms are all set. Review or
+                    refine any of them anytime in your Foundation hub.
+                  </p>
+                </div>
               </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+              <ArrowUpRight className="w-5 h-5 text-primary shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </div>
+          </Link>
+        </section>
+      ) : (
+        <section>
+          <h2 className="font-serif text-2xl text-foreground mb-5">Your arc</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {stages.map((stage) => (
+              <Link key={stage.label} href={stage.href}>
+                <div className="group h-full rounded-xl border border-border bg-card p-5 cursor-pointer transition-all hover:border-primary/40 hover:-translate-y-0.5">
+                  <div className="flex items-center justify-between mb-3">
+                    {stage.done ? (
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    ) : (
+                      <CircleDashed className="w-5 h-5 text-muted-foreground" />
+                    )}
+                    <ArrowUpRight className="w-4 h-4 text-muted-foreground/0 transition-all group-hover:text-muted-foreground" />
+                  </div>
+                  <h3 className="font-serif text-xl text-foreground">{stage.label}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{stage.desc}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Content metrics */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">

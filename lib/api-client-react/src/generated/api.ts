@@ -376,6 +376,77 @@ export const useResetClient = <TError = ErrorType<unknown>,
       return useMutation(getResetClientMutationOptions(options));
     }
 
+export const getAckFoundationConsolidationUrl = () => {
+
+
+
+
+  return `/api/client/foundation-ack`
+}
+
+/**
+ * Sets foundationConsolidatedAck to true so the consolidation celebration modal never shows again.
+ * @summary Acknowledge the one-time foundation consolidation celebration
+ */
+export const ackFoundationConsolidation = async ( options?: RequestInit): Promise<ClientProfile> => {
+
+  return customFetch<ClientProfile>(getAckFoundationConsolidationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAckFoundationConsolidationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ackFoundationConsolidation>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof ackFoundationConsolidation>>, TError,void, TContext> => {
+
+const mutationKey = ['ackFoundationConsolidation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ackFoundationConsolidation>>, void> = () => {
+
+
+          return  ackFoundationConsolidation(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AckFoundationConsolidationMutationResult = NonNullable<Awaited<ReturnType<typeof ackFoundationConsolidation>>>
+
+    export type AckFoundationConsolidationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Acknowledge the one-time foundation consolidation celebration
+ */
+export const useAckFoundationConsolidation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ackFoundationConsolidation>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof ackFoundationConsolidation>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAckFoundationConsolidationMutationOptions(options));
+    }
+
 export const getDeleteAccountUrl = () => {
 
 

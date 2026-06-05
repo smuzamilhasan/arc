@@ -51,4 +51,5 @@ export interface ClientProfileInput {
   youtubeUrl?: string;
   onboardingComplete?: boolean;
   onboardingStep?: number;
+  foundationConsolidatedAck?: boolean;
 }

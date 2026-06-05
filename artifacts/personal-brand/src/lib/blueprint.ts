@@ -665,6 +665,29 @@ export function isPanelUnlocked(gate: PanelGateId, ctx: PanelGateContext): boole
   return panelGatePrerequisites(gate, ctx).every((p) => p.complete);
 }
 
+// The four "foundation" areas the app is set up around: Blueprint, Audit,
+// Narrative, and Platforms. They stay front-and-center while being filled in,
+// then collapse into a single Foundation hub once all are complete.
+export type FoundationContext = {
+  client: ClientProfile | undefined;
+  hasAudit: boolean;
+  hasNarrative: boolean;
+  hasPlatformStrategy: boolean;
+};
+
+// True only once every foundation area is done: Blueprint fully complete
+// (no next pillar to fill), and an audit, narrative, and platform strategy all
+// exist. Reversible — flips back to false if any underlying data disappears.
+export function isFoundationComplete(ctx: FoundationContext): boolean {
+  return (
+    Boolean(ctx.client) &&
+    nextPillar(ctx.client) === null &&
+    ctx.hasAudit &&
+    ctx.hasNarrative &&
+    ctx.hasPlatformStrategy
+  );
+}
+
 // Next-best pillar to work on: the first incomplete, unlocked pillar in the
 // gated order. Locked pillars are skipped.
 export function nextPillar(client: ClientProfile | undefined): Pillar | null {

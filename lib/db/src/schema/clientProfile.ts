@@ -62,6 +62,13 @@ export const clientProfileTable = pgTable("client_profile", {
   youtubeUrl: text("youtube_url"),
   onboardingComplete: boolean("onboarding_complete").notNull().default(false),
   onboardingStep: integer("onboarding_step").notNull().default(1),
+
+  // Set true once the user dismisses the one-time "foundation consolidated"
+  // celebration modal, so it never shows again.
+  foundationConsolidatedAck: boolean("foundation_consolidated_ack")
+    .notNull()
+    .default(false),
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

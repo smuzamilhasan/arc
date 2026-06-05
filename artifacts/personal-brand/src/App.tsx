@@ -32,6 +32,7 @@ import PillarPage from "@/pages/pillar";
 import Audit from "@/pages/audit";
 import Narrative from "@/pages/narrative";
 import Platforms from "@/pages/platforms";
+import Foundation from "@/pages/foundation";
 import Calendar from "@/pages/calendar";
 import Content, { ContentStrategyPage } from "@/pages/content";
 import Ideas from "@/pages/ideas";
@@ -244,6 +245,7 @@ function ClerkProviderWithRoutes() {
                     <Route path="/blueprint" component={Blueprint} />
                     <Route path="/blueprint/view" component={BlueprintView} />
                     <Route path="/blueprint/:pillar" component={PillarPage} />
+                    <Route path="/foundation" component={Foundation} />
                     <Route path="/audit" component={Audit} />
                     <Route path="/narrative" component={Narrative} />
                     <Route path="/platforms" component={Platforms} />

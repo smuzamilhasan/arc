@@ -9,6 +9,7 @@ import {
   Compass,
   Radio,
   CalendarDays,
+  Layers,
   Lock,
   RotateCcw,
   LogOut,
@@ -26,11 +27,21 @@ import {
   getGetClientQueryKey,
   useGetPlatforms,
   getGetPlatformsQueryKey,
+  useGetLatestAudit,
+  getGetLatestAuditQueryKey,
+  useGetNarrative,
+  getGetNarrativeQueryKey,
   useGetAssistantUnread,
   getGetAssistantUnreadQueryKey,
+  useAckFoundationConsolidation,
 } from "@workspace/api-client-react";
 import { useAssistantNotifications } from "@/hooks/use-assistant-notifications";
-import { isPanelUnlocked, nextPillar, type PanelGateId } from "@/lib/blueprint";
+import {
+  isPanelUnlocked,
+  nextPillar,
+  isFoundationComplete,
+  type PanelGateId,
+} from "@/lib/blueprint";
 import { Logo } from "@/components/logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -45,8 +56,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useResetClient } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
@@ -220,7 +239,7 @@ function AssistantPanel({ unreadCount }: { unreadCount: number }) {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: access } = useGetAdminAccess();
   const { data: client } = useGetClient({
@@ -228,6 +247,12 @@ export function Layout({ children }: LayoutProps) {
   });
   const { data: platformStrategy } = useGetPlatforms({
     query: { queryKey: getGetPlatformsQueryKey(), retry: false },
+  });
+  const { data: latestAudit } = useGetLatestAudit({
+    query: { queryKey: getGetLatestAuditQueryKey(), retry: false },
+  });
+  const { data: narrative } = useGetNarrative({
+    query: { queryKey: getGetNarrativeQueryKey(), retry: false },
   });
   const { data: unread } = useGetAssistantUnread({
     query: {
@@ -237,6 +262,9 @@ export function Layout({ children }: LayoutProps) {
     },
   });
   const unreadCount = unread?.count ?? 0;
+  const queryClient = useQueryClient();
+  const { mutate: ackFoundation } = useAckFoundationConsolidation();
+  const [celebrateOpen, setCelebrateOpen] = useState(false);
 
   useAssistantNotifications(Boolean(client));
 
@@ -248,11 +276,52 @@ export function Layout({ children }: LayoutProps) {
   // Once the Blueprint is fully complete, default the nav to the read-only
   // View overview; until then keep landing on Edit so it can be filled in.
   const blueprintComplete = nextPillar(client) === null;
-  const baseItems: NavItem[] = navItems.map((item) =>
+
+  // The four foundation areas mirror the dashboard's own completion checks so
+  // the nav, modal, and dashboard all flip together (and back, if data is lost).
+  const foundationComplete = isFoundationComplete({
+    client,
+    hasAudit: Boolean(latestAudit),
+    hasNarrative: Boolean(narrative && narrative.coreNarrative),
+    hasPlatformStrategy: Boolean(platformStrategy),
+  });
+
+  // Show the one-time celebration the first time everything is complete and the
+  // client hasn't acknowledged it yet.
+  const needsCelebration = foundationComplete && client?.foundationConsolidatedAck === false;
+  useEffect(() => {
+    if (needsCelebration) setCelebrateOpen(true);
+  }, [needsCelebration]);
+
+  const dismissCelebration = () => {
+    setCelebrateOpen(false);
+    ackFoundation(undefined, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetClientQueryKey() });
+      },
+    });
+    setLocation("/foundation");
+  };
+
+  const expandedItems: NavItem[] = navItems.map((item) =>
     item.href === "/blueprint"
       ? { ...item, href: blueprintComplete ? "/blueprint/view" : "/blueprint" }
       : item,
   );
+
+  // Until everything is done, keep the four separate entries. Once complete,
+  // collapse Blueprint/Audit/Narrative/Platforms into a single Foundation hub
+  // (inserted where Blueprint sat) while leaving the rest of the nav untouched.
+  const foundationHrefs = new Set(["/blueprint", "/audit", "/narrative", "/platforms"]);
+  const baseItems: NavItem[] = foundationComplete
+    ? expandedItems.flatMap((item) =>
+        item.href === "/blueprint"
+          ? [{ href: "/foundation", icon: Layers, label: "Foundation" }]
+          : foundationHrefs.has(item.href)
+          ? []
+          : [item],
+      )
+    : expandedItems;
 
   const items: NavItem[] = access?.isAdmin
     ? [...baseItems, { href: "/admin", icon: Shield, label: "Admin" }]
@@ -266,7 +335,11 @@ export function Layout({ children }: LayoutProps) {
         // pages (its href can point at either /blueprint or /blueprint/view),
         // and the Content nav highlighted across the Create + Strategy sub-routes.
         const active =
-          item.label === "Blueprint"
+          item.label === "Foundation"
+            ? ["/foundation", "/blueprint", "/audit", "/narrative", "/platforms"].some(
+                (p) => location.startsWith(p),
+              )
+            : item.label === "Blueprint"
             ? location.startsWith("/blueprint")
             : item.label === "Content"
             ? location.startsWith("/content")
@@ -379,6 +452,30 @@ export function Layout({ children }: LayoutProps) {
       </main>
 
       {location !== "/assistant" && <AssistantPanel unreadCount={unreadCount} />}
+
+      <Dialog
+        open={celebrateOpen}
+        onOpenChange={(o) => {
+          if (!o) dismissCelebration();
+        }}
+      >
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <Sparkles className="h-7 w-7 text-primary stroke-[1.5]" />
+            </div>
+            <DialogTitle className="font-serif text-2xl">Your foundation is set</DialogTitle>
+            <DialogDescription className="text-base leading-relaxed">
+              Blueprint, Audit, Narrative, and Platforms are all complete. We've
+              brought them together into a single Foundation hub so you can review
+              or refine any of them anytime — and keep your focus on creating.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <Button onClick={dismissCelebration}>Go to Foundation</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

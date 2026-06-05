@@ -65,6 +65,7 @@ export const GetClientResponse = zod.object({
   "youtubeUrl": zod.string().nullish(),
   "onboardingComplete": zod.boolean(),
   "onboardingStep": zod.number(),
+  "foundationConsolidatedAck": zod.boolean(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -117,7 +118,8 @@ export const UpsertClientBody = zod.object({
   "instagramUrl": zod.string().optional(),
   "youtubeUrl": zod.string().optional(),
   "onboardingComplete": zod.boolean().optional(),
-  "onboardingStep": zod.number().optional()
+  "onboardingStep": zod.number().optional(),
+  "foundationConsolidatedAck": zod.boolean().optional()
 })
 
 export const UpsertClientResponse = zod.object({
@@ -166,6 +168,63 @@ export const UpsertClientResponse = zod.object({
   "youtubeUrl": zod.string().nullish(),
   "onboardingComplete": zod.boolean(),
   "onboardingStep": zod.number(),
+  "foundationConsolidatedAck": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * Sets foundationConsolidatedAck to true so the consolidation celebration modal never shows again.
+ * @summary Acknowledge the one-time foundation consolidation celebration
+ */
+export const AckFoundationConsolidationResponse = zod.object({
+  "id": zod.number(),
+  "fullName": zod.string(),
+  "location": zod.string(),
+  "headline": zod.string(),
+  "currentRole": zod.string(),
+  "company": zod.string(),
+  "industry": zod.string(),
+  "yearsExperience": zod.number(),
+  "achievements": zod.array(zod.string()),
+  "goals": zod.string(),
+  "bio": zod.string(),
+  "dateOfBirth": zod.string().nullish(),
+  "placeOfBirth": zod.string(),
+  "earlyLife": zod.string(),
+  "schooling": zod.string(),
+  "university": zod.string(),
+  "professionalJourney": zod.string(),
+  "signatureAchievements": zod.string(),
+  "awards": zod.string(),
+  "quantifiableResults": zod.string(),
+  "audienceImpact": zod.string(),
+  "passions": zod.string(),
+  "beliefs": zod.string(),
+  "frustrations": zod.string(),
+  "desiredChange": zod.string(),
+  "positioning": zod.string(),
+  "primaryAudience": zod.string(),
+  "secondaryAudience": zod.string(),
+  "geographyCulture": zod.string(),
+  "brandValues": zod.string(),
+  "nonNegotiables": zod.string(),
+  "personalityTone": zod.string(),
+  "desiredFeeling": zod.string(),
+  "thesis": zod.string(),
+  "coreBeliefs": zod.string(),
+  "signatureFrameworks": zod.string(),
+  "extractedInfo": zod.string(),
+  "website": zod.string().nullish(),
+  "newsletter": zod.string().nullish(),
+  "linkedinUrl": zod.string().nullish(),
+  "twitterUrl": zod.string().nullish(),
+  "instagramUrl": zod.string().nullish(),
+  "youtubeUrl": zod.string().nullish(),
+  "onboardingComplete": zod.boolean(),
+  "onboardingStep": zod.number(),
+  "foundationConsolidatedAck": zod.boolean(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1018,6 +1077,7 @@ export const GetAdminUserResponse = zod.object({
   "youtubeUrl": zod.string().nullish(),
   "onboardingComplete": zod.boolean(),
   "onboardingStep": zod.number(),
+  "foundationConsolidatedAck": zod.boolean(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }),

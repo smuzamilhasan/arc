@@ -86,6 +86,20 @@ paths:
         "204":
           description: Reset complete
 
+  /client/foundation-ack:
+    post:
+      operationId: ackFoundationConsolidation
+      tags: [client]
+      summary: Acknowledge the one-time foundation consolidation celebration
+      description: Sets foundationConsolidatedAck to true so the consolidation celebration modal never shows again.
+      responses:
+        "200":
+          description: Updated client profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientProfile"
+
   /account:
     delete:
       operationId: deleteAccount
@@ -903,7 +917,7 @@ components:
 
     ClientProfile:
       type: object
-      required: [id, fullName, location, headline, currentRole, company, industry, yearsExperience, achievements, goals, bio, placeOfBirth, earlyLife, schooling, university, professionalJourney, signatureAchievements, awards, quantifiableResults, audienceImpact, passions, beliefs, frustrations, desiredChange, positioning, primaryAudience, secondaryAudience, geographyCulture, brandValues, nonNegotiables, personalityTone, desiredFeeling, thesis, coreBeliefs, signatureFrameworks, extractedInfo, onboardingComplete, onboardingStep, createdAt, updatedAt]
+      required: [id, fullName, location, headline, currentRole, company, industry, yearsExperience, achievements, goals, bio, placeOfBirth, earlyLife, schooling, university, professionalJourney, signatureAchievements, awards, quantifiableResults, audienceImpact, passions, beliefs, frustrations, desiredChange, positioning, primaryAudience, secondaryAudience, geographyCulture, brandValues, nonNegotiables, personalityTone, desiredFeeling, thesis, coreBeliefs, signatureFrameworks, extractedInfo, onboardingComplete, onboardingStep, foundationConsolidatedAck, createdAt, updatedAt]
       properties:
         id:
           type: integer
@@ -997,6 +1011,8 @@ components:
           type: boolean
         onboardingStep:
           type: integer
+        foundationConsolidatedAck:
+          type: boolean
         createdAt:
           type: string
         updatedAt:
@@ -1096,6 +1112,8 @@ components:
           type: boolean
         onboardingStep:
           type: integer
+        foundationConsolidatedAck:
+          type: boolean
 
     ExtractInfoInput:
       type: object

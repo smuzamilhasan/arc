@@ -62,6 +62,7 @@ export interface ClientProfile {
   youtubeUrl?: string | null;
   onboardingComplete: boolean;
   onboardingStep: number;
+  foundationConsolidatedAck: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -111,6 +112,7 @@ export interface ClientProfileInput {
   youtubeUrl?: string;
   onboardingComplete?: boolean;
   onboardingStep?: number;
+  foundationConsolidatedAck?: boolean;
 }
 
 export interface ExtractInfoInput {

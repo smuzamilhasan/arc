@@ -126,6 +126,7 @@ router.put("/client", async (req, res) => {
     youtubeUrl: data.youtubeUrl ?? null,
     onboardingComplete: data.onboardingComplete ?? false,
     onboardingStep: data.onboardingStep ?? 1,
+    foundationConsolidatedAck: data.foundationConsolidatedAck ?? false,
     updatedAt: new Date(),
   };
 
@@ -143,6 +144,20 @@ router.put("/client", async (req, res) => {
       .values({ ...values, userId: req.userId! })
       .returning();
   }
+  res.json(serializeClient(client));
+});
+
+router.post("/client/foundation-ack", async (req, res) => {
+  const existing = await getClientForUser(req.userId!);
+  if (!existing) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const [client] = await db
+    .update(clientProfileTable)
+    .set({ foundationConsolidatedAck: true, updatedAt: new Date() })
+    .where(eq(clientProfileTable.id, existing.id))
+    .returning();
   res.json(serializeClient(client));
 });
 

@@ -877,6 +877,116 @@ export const ApplyContentPlanResponse = zod.object({
 
 
 /**
+ * Breaks a single client instruction into an ordered set of delegated tasks, routes each to the right specialist agent (Investigator, Strategist, Planner, Ghostwriter) in research -> strategy -> planning -> writing order, runs them so each reads the latest upstream output, and returns the run with each task's status and outputs. Bounded — at most one task per agent. Outputs that change anything stay un-applied and are confirmed by the client through the existing per-agent surfaces.
+ * @summary Orchestrate the agent team from one high-level instruction
+ */
+export const RunManagerBody = zod.object({
+  "instruction": zod.string().describe('One high-level instruction for the Manager to decompose and delegate.')
+})
+
+export const RunManagerResponse = zod.object({
+  "id": zod.number(),
+  "instruction": zod.string(),
+  "summary": zod.string(),
+  "status": zod.enum(['completed', 'failed']),
+  "tasks": zod.array(zod.object({
+  "id": zod.string(),
+  "agent": zod.enum(['investigator', 'strategist', 'planner', 'ghostwriter']),
+  "title": zod.string(),
+  "brief": zod.string(),
+  "status": zod.enum(['pending', 'running', 'completed', 'failed', 'skipped']),
+  "resultSummary": zod.string(),
+  "error": zod.string().nullish(),
+  "output": zod.union([zod.object({
+  "footprintSummary": zod.string().optional(),
+  "competitorCount": zod.number().optional(),
+  "assistantMessageId": zod.number().optional(),
+  "reply": zod.string().optional(),
+  "proposals": zod.array(zod.object({
+  "title": zod.string(),
+  "rationale": zod.string()
+})).optional(),
+  "planSummary": zod.string().optional(),
+  "slots": zod.array(zod.object({
+  "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
+  "title": zod.string().describe('A working title \/ hook for the post that will fill this slot.'),
+  "format": zod.string().describe('The post format\/shape (e.g. thread, carousel, long-form article).'),
+  "contentType": zod.string().describe('Which content-mix bucket this slot serves (Educational, Analytical, Opinionated, Story, Community).'),
+  "brief": zod.string().describe('A short brief the Ghostwriter will later expand into a full post.'),
+  "targetDate": zod.string().describe('ISO timestamp for when this slot should publish.')
+})).optional(),
+  "ideas": zod.array(zod.object({
+  "title": zod.string(),
+  "notes": zod.string(),
+  "platform": zod.string().nullish()
+})).optional(),
+  "drafts": zod.array(zod.object({
+  "title": zod.string(),
+  "content": zod.string(),
+  "format": zod.string()
+})).optional(),
+  "platform": zod.string().optional()
+}).describe('Agent-specific output for a task. Which fields are set depends on the task\'s agent.'),zod.null()]).optional()
+})),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary List past Manager runs for the client, newest first
+ */
+export const ListManagerRunsResponseItem = zod.object({
+  "id": zod.number(),
+  "instruction": zod.string(),
+  "summary": zod.string(),
+  "status": zod.enum(['completed', 'failed']),
+  "tasks": zod.array(zod.object({
+  "id": zod.string(),
+  "agent": zod.enum(['investigator', 'strategist', 'planner', 'ghostwriter']),
+  "title": zod.string(),
+  "brief": zod.string(),
+  "status": zod.enum(['pending', 'running', 'completed', 'failed', 'skipped']),
+  "resultSummary": zod.string(),
+  "error": zod.string().nullish(),
+  "output": zod.union([zod.object({
+  "footprintSummary": zod.string().optional(),
+  "competitorCount": zod.number().optional(),
+  "assistantMessageId": zod.number().optional(),
+  "reply": zod.string().optional(),
+  "proposals": zod.array(zod.object({
+  "title": zod.string(),
+  "rationale": zod.string()
+})).optional(),
+  "planSummary": zod.string().optional(),
+  "slots": zod.array(zod.object({
+  "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
+  "title": zod.string().describe('A working title \/ hook for the post that will fill this slot.'),
+  "format": zod.string().describe('The post format\/shape (e.g. thread, carousel, long-form article).'),
+  "contentType": zod.string().describe('Which content-mix bucket this slot serves (Educational, Analytical, Opinionated, Story, Community).'),
+  "brief": zod.string().describe('A short brief the Ghostwriter will later expand into a full post.'),
+  "targetDate": zod.string().describe('ISO timestamp for when this slot should publish.')
+})).optional(),
+  "ideas": zod.array(zod.object({
+  "title": zod.string(),
+  "notes": zod.string(),
+  "platform": zod.string().nullish()
+})).optional(),
+  "drafts": zod.array(zod.object({
+  "title": zod.string(),
+  "content": zod.string(),
+  "format": zod.string()
+})).optional(),
+  "platform": zod.string().optional()
+}).describe('Agent-specific output for a task. Which fields are set depends on the task\'s agent.'),zod.null()]).optional()
+})),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListManagerRunsResponse = zod.array(ListManagerRunsResponseItem)
+
+
+/**
  * @summary Gather publicly available info about the person from their name and links
  */
 export const ExtractPublicInfoBody = zod.object({

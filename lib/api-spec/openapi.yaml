@@ -32,6 +32,8 @@ tags:
     description: Master assistant chat that proposes confirm-before-apply edits
   - name: planner
     description: Planner agent — turns the approved strategy into a weekly content calendar and ideas backlog
+  - name: manager
+    description: Manager — orchestrates the agent team from one high-level instruction
 paths:
   /healthz:
     get:
@@ -504,6 +506,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ContentPlanApplyResult"
+        "404":
+          description: No client profile yet
+
+  /manager/run:
+    post:
+      operationId: runManager
+      tags: [manager]
+      summary: Orchestrate the agent team from one high-level instruction
+      description: Breaks a single client instruction into an ordered set of delegated tasks, routes each to the right specialist agent (Investigator, Strategist, Planner, Ghostwriter) in research -> strategy -> planning -> writing order, runs them so each reads the latest upstream output, and returns the run with each task's status and outputs. Bounded — at most one task per agent. Outputs that change anything stay un-applied and are confirmed by the client through the existing per-agent surfaces.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManagerRunInput"
+      responses:
+        "200":
+          description: The completed Manager run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagerRun"
+        "400":
+          description: Missing or invalid instruction
+        "404":
+          description: No client profile yet
+        "429":
+          description: Rate limited or a run is already in flight
+        "502":
+          description: The Manager could not break down the instruction
+
+  /manager/runs:
+    get:
+      operationId: listManagerRuns
+      tags: [manager]
+      summary: List past Manager runs for the client, newest first
+      responses:
+        "200":
+          description: Manager runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ManagerRun"
         "404":
           description: No client profile yet
 
@@ -2073,6 +2120,114 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Idea"
+
+    ManagerRunInput:
+      type: object
+      required: [instruction]
+      properties:
+        instruction:
+          type: string
+          description: One high-level instruction for the Manager to decompose and delegate.
+
+    ManagerProposalRef:
+      type: object
+      required: [title, rationale]
+      properties:
+        title:
+          type: string
+        rationale:
+          type: string
+
+    ManagerDraft:
+      type: object
+      required: [title, content, format]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        format:
+          type: string
+
+    ManagerTaskOutput:
+      type: object
+      description: Agent-specific output for a task. Which fields are set depends on the task's agent.
+      properties:
+        footprintSummary:
+          type: string
+        competitorCount:
+          type: integer
+        assistantMessageId:
+          type: integer
+        reply:
+          type: string
+        proposals:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManagerProposalRef"
+        planSummary:
+          type: string
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlannedSlot"
+        ideas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlannedIdea"
+        drafts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManagerDraft"
+        platform:
+          type: string
+
+    ManagerTask:
+      type: object
+      required: [id, agent, title, brief, status, resultSummary]
+      properties:
+        id:
+          type: string
+        agent:
+          type: string
+          enum: [investigator, strategist, planner, ghostwriter]
+        title:
+          type: string
+        brief:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed, skipped]
+        resultSummary:
+          type: string
+        error:
+          type: ["string", "null"]
+        output:
+          oneOf:
+            - $ref: "#/components/schemas/ManagerTaskOutput"
+            - type: "null"
+
+    ManagerRun:
+      type: object
+      required: [id, instruction, summary, status, tasks, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        instruction:
+          type: string
+        summary:
+          type: string
+        status:
+          type: string
+          enum: [completed, failed]
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManagerTask"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
 
     AuditRunInput:
       type: object

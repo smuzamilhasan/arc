@@ -10,3 +10,4 @@ export * from "./posts";
 export * from "./ideas";
 export * from "./assistantMessages";
 export * from "./assistantReviews";
+export * from "./managerRuns";

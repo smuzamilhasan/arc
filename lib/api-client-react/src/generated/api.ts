@@ -64,6 +64,8 @@ import type {
   IndustryOverview,
   IndustryOverviewGenerateInput,
   ListPostsParams,
+  ManagerRun,
+  ManagerRunInput,
   NarrativeGenerateInput,
   NarrativeProfile,
   NarrativeUpdateInput,
@@ -2069,6 +2071,155 @@ export const useApplyContentPlan = <TError = ErrorType<void>,
       > => {
       return useMutation(getApplyContentPlanMutationOptions(options));
     }
+
+export const getRunManagerUrl = () => {
+
+
+
+
+  return `/api/manager/run`
+}
+
+/**
+ * Breaks a single client instruction into an ordered set of delegated tasks, routes each to the right specialist agent (Investigator, Strategist, Planner, Ghostwriter) in research -> strategy -> planning -> writing order, runs them so each reads the latest upstream output, and returns the run with each task's status and outputs. Bounded — at most one task per agent. Outputs that change anything stay un-applied and are confirmed by the client through the existing per-agent surfaces.
+ * @summary Orchestrate the agent team from one high-level instruction
+ */
+export const runManager = async (managerRunInput: ManagerRunInput, options?: RequestInit): Promise<ManagerRun> => {
+
+  return customFetch<ManagerRun>(getRunManagerUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      managerRunInput,)
+  }
+);}
+
+
+
+
+export const getRunManagerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runManager>>, TError,{data: BodyType<ManagerRunInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runManager>>, TError,{data: BodyType<ManagerRunInput>}, TContext> => {
+
+const mutationKey = ['runManager'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runManager>>, {data: BodyType<ManagerRunInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  runManager(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunManagerMutationResult = NonNullable<Awaited<ReturnType<typeof runManager>>>
+    export type RunManagerMutationBody = BodyType<ManagerRunInput>
+    export type RunManagerMutationError = ErrorType<void>
+
+    /**
+ * @summary Orchestrate the agent team from one high-level instruction
+ */
+export const useRunManager = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runManager>>, TError,{data: BodyType<ManagerRunInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runManager>>,
+        TError,
+        {data: BodyType<ManagerRunInput>},
+        TContext
+      > => {
+      return useMutation(getRunManagerMutationOptions(options));
+    }
+
+export const getListManagerRunsUrl = () => {
+
+
+
+
+  return `/api/manager/runs`
+}
+
+/**
+ * @summary List past Manager runs for the client, newest first
+ */
+export const listManagerRuns = async ( options?: RequestInit): Promise<ManagerRun[]> => {
+
+  return customFetch<ManagerRun[]>(getListManagerRunsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListManagerRunsQueryKey = () => {
+    return [
+    `/api/manager/runs`
+    ] as const;
+    }
+
+
+export const getListManagerRunsQueryOptions = <TData = Awaited<ReturnType<typeof listManagerRuns>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listManagerRuns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListManagerRunsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listManagerRuns>>> = ({ signal }) => listManagerRuns({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listManagerRuns>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListManagerRunsQueryResult = NonNullable<Awaited<ReturnType<typeof listManagerRuns>>>
+export type ListManagerRunsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List past Manager runs for the client, newest first
+ */
+
+export function useListManagerRuns<TData = Awaited<ReturnType<typeof listManagerRuns>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listManagerRuns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListManagerRunsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getExtractPublicInfoUrl = () => {
 

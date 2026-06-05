@@ -19,3 +19,4 @@
 - [Regenerate feedback steering](regenerate-feedback-steering.md) — optional pre-regen feedback dialog; first-run skips it; audit feedback deliberately not fed to GEO model/judge to keep the audit honest.
 - [Assistant proactive suggestions](assistant-proactive-suggestions.md) — background scheduler posts unseen suggestions; debounced by state-hash+cooldown; unread/seen/stream(SSE) endpoints + launcher dot.
 - [Planner content calendar](planner-content-calendar.md) — Planner proposal is ephemeral (no new table); /generate returns it, /apply writes slots->posts + ideas->ideas scoped to client.
+- [Manager orchestration](manager-orchestration.md) — one instruction decomposed (the only AI call) then existing agents run sequentially; outputs are confirm/reject proposals; bounded to 1 decompose + <=4 agent calls.

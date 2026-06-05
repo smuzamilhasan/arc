@@ -591,6 +591,89 @@ export interface ContentPlanApplyResult {
   ideas: Idea[];
 }
 
+export interface ManagerRunInput {
+  /** One high-level instruction for the Manager to decompose and delegate. */
+  instruction: string;
+}
+
+export interface ManagerProposalRef {
+  title: string;
+  rationale: string;
+}
+
+export interface ManagerDraft {
+  title: string;
+  content: string;
+  format: string;
+}
+
+/**
+ * Agent-specific output for a task. Which fields are set depends on the task's agent.
+ */
+export interface ManagerTaskOutput {
+  footprintSummary?: string;
+  competitorCount?: number;
+  assistantMessageId?: number;
+  reply?: string;
+  proposals?: ManagerProposalRef[];
+  planSummary?: string;
+  slots?: PlannedSlot[];
+  ideas?: PlannedIdea[];
+  drafts?: ManagerDraft[];
+  platform?: string;
+}
+
+export type ManagerTaskAgent = typeof ManagerTaskAgent[keyof typeof ManagerTaskAgent];
+
+
+export const ManagerTaskAgent = {
+  investigator: 'investigator',
+  strategist: 'strategist',
+  planner: 'planner',
+  ghostwriter: 'ghostwriter',
+} as const;
+
+export type ManagerTaskStatus = typeof ManagerTaskStatus[keyof typeof ManagerTaskStatus];
+
+
+export const ManagerTaskStatus = {
+  pending: 'pending',
+  running: 'running',
+  completed: 'completed',
+  failed: 'failed',
+  skipped: 'skipped',
+} as const;
+
+export interface ManagerTask {
+  id: string;
+  agent: ManagerTaskAgent;
+  title: string;
+  brief: string;
+  status: ManagerTaskStatus;
+  resultSummary: string;
+  /** @nullable */
+  error?: string | null;
+  output?: ManagerTaskOutput | null;
+}
+
+export type ManagerRunStatus = typeof ManagerRunStatus[keyof typeof ManagerRunStatus];
+
+
+export const ManagerRunStatus = {
+  completed: 'completed',
+  failed: 'failed',
+} as const;
+
+export interface ManagerRun {
+  id: number;
+  instruction: string;
+  summary: string;
+  status: ManagerRunStatus;
+  tasks: ManagerTask[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AuditRunInput {
   /** Optional user revision notes to steer a regeneration. */
   feedback?: string;

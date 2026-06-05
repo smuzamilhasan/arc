@@ -38,6 +38,7 @@ import Foundation from "@/pages/foundation";
 import Calendar from "@/pages/calendar";
 import Content, { ContentStrategyPage } from "@/pages/content";
 import Ideas from "@/pages/ideas";
+import Manager from "@/pages/manager";
 import Assistant from "@/pages/assistant";
 import Account from "@/pages/account";
 import Admin from "@/pages/admin";
@@ -257,6 +258,7 @@ function ClerkProviderWithRoutes() {
                     <Route path="/content/strategy" component={ContentStrategyPage} />
                     <Route path="/content" component={Content} />
                     <Route path="/ideas" component={Ideas} />
+                    <Route path="/manager" component={Manager} />
                     <Route path="/assistant" component={Assistant} />
                     <Route path="/account" component={Account} />
                     <Route path="/admin" component={Admin} />

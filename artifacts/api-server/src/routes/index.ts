@@ -15,6 +15,7 @@ import onboardingRouter from "./onboarding";
 import adminRouter from "./admin";
 import assistantRouter from "./assistant";
 import plannerRouter from "./planner";
+import managerRouter from "./manager";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
@@ -37,5 +38,6 @@ router.use(onboardingRouter);
 router.use(adminRouter);
 router.use(assistantRouter);
 router.use(plannerRouter);
+router.use(managerRouter);
 
 export default router;

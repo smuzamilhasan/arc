@@ -20,6 +20,7 @@ import {
   Shield,
   Sparkles,
   MessagesSquare,
+  Network,
   X
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
@@ -194,6 +195,7 @@ const navItems: NavItem[] = [
   { href: "/calendar", icon: CalendarDays, label: "Content Calendar", gate: "content" },
   { href: "/content", icon: FileText, label: "Content", gate: "content" },
   { href: "/ideas", icon: Lightbulb, label: "Ideas" },
+  { href: "/manager", icon: Network, label: "Manager" },
   { href: "/assistant", icon: MessagesSquare, label: "Strategist" },
 ];
 

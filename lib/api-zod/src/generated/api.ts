@@ -1857,3 +1857,183 @@ export const RejectAssistantActionsResponse = zod.object({
 })
 
 
+/**
+ * @summary Get the caller's agency memberships and accessible clients
+ */
+export const GetAgencyContextResponse = zod.object({
+  "personalClientId": zod.number().nullable(),
+  "agencies": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['owner', 'member'])
+})),
+  "clients": zod.array(zod.object({
+  "id": zod.number(),
+  "fullName": zod.string(),
+  "headline": zod.string(),
+  "onboardingComplete": zod.boolean(),
+  "claimed": zod.boolean(),
+  "isOwn": zod.boolean(),
+  "agencyId": zod.number().nullable()
+}))
+})
+
+
+/**
+ * @summary Create an agency (caller becomes owner)
+ */
+export const createAgencyBodyNameMax = 120;
+
+
+
+export const CreateAgencyBody = zod.object({
+  "name": zod.string().min(1).max(createAgencyBodyNameMax)
+})
+
+
+/**
+ * @summary List agency members
+ */
+export const GetAgencyMembersParams = zod.object({
+  "agencyId": zod.coerce.number()
+})
+
+export const GetAgencyMembersResponse = zod.object({
+  "members": zod.array(zod.object({
+  "userId": zod.string(),
+  "role": zod.enum(['owner', 'member']),
+  "email": zod.string().nullable(),
+  "name": zod.string().nullable()
+}))
+})
+
+
+/**
+ * @summary Remove a member from the agency (owner only)
+ */
+export const RemoveAgencyMemberParams = zod.object({
+  "agencyId": zod.coerce.number(),
+  "memberUserId": zod.coerce.string()
+})
+
+
+/**
+ * @summary List pending invitations for an agency
+ */
+export const GetAgencyInvitationsParams = zod.object({
+  "agencyId": zod.coerce.number()
+})
+
+export const GetAgencyInvitationsResponse = zod.object({
+  "invitations": zod.array(zod.object({
+  "id": zod.number(),
+  "agencyId": zod.number(),
+  "email": zod.string(),
+  "kind": zod.enum(['member', 'client']),
+  "clientId": zod.number().nullable(),
+  "token": zod.string(),
+  "status": zod.enum(['pending', 'accepted', 'revoked']),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Invite a team member or prebuild and invite a client
+ */
+export const CreateInvitationParams = zod.object({
+  "agencyId": zod.coerce.number()
+})
+
+export const CreateInvitationBody = zod.object({
+  "kind": zod.enum(['member', 'client']),
+  "email": zod.string(),
+  "profile": zod.object({
+  "fullName": zod.string(),
+  "location": zod.string().optional(),
+  "headline": zod.string().optional(),
+  "currentRole": zod.string().optional(),
+  "company": zod.string().optional(),
+  "industry": zod.string().optional(),
+  "yearsExperience": zod.number().optional(),
+  "achievements": zod.array(zod.string()).optional(),
+  "goals": zod.string().optional(),
+  "bio": zod.string().optional(),
+  "dateOfBirth": zod.string().optional(),
+  "placeOfBirth": zod.string().optional(),
+  "earlyLife": zod.string().optional(),
+  "schooling": zod.string().optional(),
+  "university": zod.string().optional(),
+  "professionalJourney": zod.string().optional(),
+  "signatureAchievements": zod.string().optional(),
+  "awards": zod.string().optional(),
+  "quantifiableResults": zod.string().optional(),
+  "audienceImpact": zod.string().optional(),
+  "passions": zod.string().optional(),
+  "beliefs": zod.string().optional(),
+  "frustrations": zod.string().optional(),
+  "desiredChange": zod.string().optional(),
+  "positioning": zod.string().optional(),
+  "primaryAudience": zod.string().optional(),
+  "secondaryAudience": zod.string().optional(),
+  "geographyCulture": zod.string().optional(),
+  "brandValues": zod.string().optional(),
+  "nonNegotiables": zod.string().optional(),
+  "personalityTone": zod.string().optional(),
+  "desiredFeeling": zod.string().optional(),
+  "thesis": zod.string().optional(),
+  "coreBeliefs": zod.string().optional(),
+  "signatureFrameworks": zod.string().optional(),
+  "extractedInfo": zod.string().optional(),
+  "website": zod.string().optional(),
+  "newsletter": zod.string().optional(),
+  "linkedinUrl": zod.string().optional(),
+  "twitterUrl": zod.string().optional(),
+  "instagramUrl": zod.string().optional(),
+  "youtubeUrl": zod.string().optional(),
+  "onboardingComplete": zod.boolean().optional(),
+  "onboardingStep": zod.number().optional(),
+  "foundationConsolidatedAck": zod.boolean().optional()
+}).optional()
+})
+
+
+/**
+ * @summary Revoke a pending invitation
+ */
+export const RevokeInvitationParams = zod.object({
+  "agencyId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Preview an invitation by token
+ */
+export const GetInvitationPreviewParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetInvitationPreviewResponse = zod.object({
+  "kind": zod.enum(['member', 'client']),
+  "email": zod.string(),
+  "status": zod.enum(['pending', 'accepted', 'revoked']),
+  "agencyName": zod.string(),
+  "clientFullName": zod.string().nullable()
+})
+
+
+/**
+ * @summary Accept an invitation by token
+ */
+export const AcceptInvitationParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const AcceptInvitationResponse = zod.object({
+  "kind": zod.enum(['member', 'client']),
+  "agencyId": zod.number(),
+  "clientId": zod.number().nullish()
+})
+
+

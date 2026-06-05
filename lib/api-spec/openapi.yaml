@@ -1238,6 +1238,203 @@ paths:
         "404":
           description: No client profile yet
 
+  /agency/context:
+    get:
+      operationId: getAgencyContext
+      tags: [agency]
+      summary: Get the caller's agency memberships and accessible clients
+      responses:
+        "200":
+          description: Agency context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgencyContext"
+
+  /agency:
+    post:
+      operationId: createAgency
+      tags: [agency]
+      summary: Create an agency (caller becomes owner)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgencyInput"
+      responses:
+        "201":
+          description: Created agency
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agency"
+        "400":
+          description: Invalid input
+
+  /agency/{agencyId}/members:
+    get:
+      operationId: getAgencyMembers
+      tags: [agency]
+      summary: List agency members
+      parameters:
+        - name: agencyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgencyMembersResponse"
+        "403":
+          description: Forbidden
+
+  /agency/{agencyId}/members/{memberUserId}:
+    delete:
+      operationId: removeAgencyMember
+      tags: [agency]
+      summary: Remove a member from the agency (owner only)
+      parameters:
+        - name: agencyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: memberUserId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Removed
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+
+  /agency/{agencyId}/invitations:
+    get:
+      operationId: getAgencyInvitations
+      tags: [agency]
+      summary: List pending invitations for an agency
+      parameters:
+        - name: agencyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationListResponse"
+        "403":
+          description: Forbidden
+
+  /agency/{agencyId}/invite:
+    post:
+      operationId: createInvitation
+      tags: [agency]
+      summary: Invite a team member or prebuild and invite a client
+      parameters:
+        - name: agencyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvitationInput"
+      responses:
+        "201":
+          description: Created invitation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invitation"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden
+
+  /agency/{agencyId}/invitations/{id}:
+    delete:
+      operationId: revokeInvitation
+      tags: [agency]
+      summary: Revoke a pending invitation
+      parameters:
+        - name: agencyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Revoked
+        "403":
+          description: Forbidden
+
+  /invitations/{token}:
+    get:
+      operationId: getInvitationPreview
+      tags: [agency]
+      summary: Preview an invitation by token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invitation preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationPreview"
+        "404":
+          description: Not found
+
+  /invitations/{token}/accept:
+    post:
+      operationId: acceptInvitation
+      tags: [agency]
+      summary: Accept an invitation by token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcceptInvitationResult"
+        "404":
+          description: Not found
+        "409":
+          description: Conflict
+        "410":
+          description: Invitation no longer active
+
 components:
   schemas:
     HealthStatus:
@@ -2934,3 +3131,157 @@ components:
         time:
           type: string
           description: Time of day in HH:MM (24h). Defaults to 09:00.
+    Agency:
+      type: object
+      required: [id, name, ownerUserId, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        ownerUserId:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    AgencyInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+    AgencyMembership:
+      type: object
+      required: [id, name, role]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+          enum: [owner, member]
+    AgencyClientSummary:
+      type: object
+      required: [id, fullName, headline, onboardingComplete, claimed, isOwn, agencyId]
+      properties:
+        id:
+          type: integer
+        fullName:
+          type: string
+        headline:
+          type: string
+        onboardingComplete:
+          type: boolean
+        claimed:
+          type: boolean
+        isOwn:
+          type: boolean
+        agencyId:
+          type: ["integer", "null"]
+    AgencyContext:
+      type: object
+      required: [personalClientId, agencies, clients]
+      properties:
+        personalClientId:
+          type: ["integer", "null"]
+        agencies:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgencyMembership"
+        clients:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgencyClientSummary"
+    AgencyMemberInfo:
+      type: object
+      required: [userId, role, email, name]
+      properties:
+        userId:
+          type: string
+        role:
+          type: string
+          enum: [owner, member]
+        email:
+          type: ["string", "null"]
+        name:
+          type: ["string", "null"]
+    AgencyMembersResponse:
+      type: object
+      required: [members]
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgencyMemberInfo"
+    Invitation:
+      type: object
+      required: [id, agencyId, email, kind, clientId, token, status, createdAt]
+      properties:
+        id:
+          type: integer
+        agencyId:
+          type: integer
+        email:
+          type: string
+        kind:
+          type: string
+          enum: [member, client]
+        clientId:
+          type: ["integer", "null"]
+        token:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, revoked]
+        createdAt:
+          type: string
+    InvitationListResponse:
+      type: object
+      required: [invitations]
+      properties:
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invitation"
+    InvitationInput:
+      type: object
+      required: [kind, email]
+      properties:
+        kind:
+          type: string
+          enum: [member, client]
+        email:
+          type: string
+        profile:
+          $ref: "#/components/schemas/ClientProfileInput"
+    InvitationPreview:
+      type: object
+      required: [kind, email, status, agencyName, clientFullName]
+      properties:
+        kind:
+          type: string
+          enum: [member, client]
+        email:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, revoked]
+        agencyName:
+          type: string
+        clientFullName:
+          type: ["string", "null"]
+    AcceptInvitationResult:
+      type: object
+      required: [kind, agencyId]
+      properties:
+        kind:
+          type: string
+          enum: [member, client]
+        agencyId:
+          type: integer
+        clientId:
+          type: ["integer", "null"]

@@ -4,7 +4,12 @@ import { z } from "zod/v4";
 
 export const clientProfileTable = pgTable("client_profile", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull().unique(),
+  // Nullable: an agency can prebuild a profile that has no owner yet. When the
+  // invited client signs up they "claim" it and userId is set to their Clerk id.
+  userId: text("user_id").unique(),
+  // The agency that created this profile (if any). Access is granted via the
+  // agency_client_access table; this just records origin.
+  createdByAgencyId: integer("created_by_agency_id"),
   fullName: text("full_name").notNull(),
   location: text("location").notNull().default(""),
   headline: text("headline").notNull().default(""),

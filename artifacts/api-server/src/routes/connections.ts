@@ -2,7 +2,6 @@ import { Router } from "express";
 import { db, schedulerConnectionsTable } from "@workspace/db";
 import { SaveConnectionBody, DeleteConnectionParams } from "@workspace/api-zod";
 import { and, eq } from "drizzle-orm";
-import { getClientForUser } from "./client";
 import { externalApiRateLimit } from "../middlewares/aiRateLimit";
 import { getProvider, listProviderMeta } from "../services/schedulers";
 import { encryptSecret, isEncryptionConfigured } from "../lib/crypto";
@@ -27,7 +26,7 @@ router.get("/connections/providers", (_req, res) => {
 });
 
 router.get("/connections", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.json([]);
     return;
@@ -42,7 +41,7 @@ router.get("/connections", async (req, res) => {
 // Connect (or update) a scheduler. We verify the key against the provider FIRST,
 // then store it encrypted at rest. A bad key never gets persisted.
 router.post("/connections", externalApiRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -93,7 +92,7 @@ router.post("/connections", externalApiRateLimit, async (req, res) => {
 });
 
 router.delete("/connections/:provider", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "Not connected" });
     return;

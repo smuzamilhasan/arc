@@ -9,7 +9,6 @@ import {
 } from "@workspace/db";
 import { GenerateContentPlanBody, ApplyContentPlanBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
-import { getClientForUser } from "./client";
 import { isBlueprintComplete } from "../services/platforms";
 import { generateContentPlan } from "../services/planner";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
@@ -35,7 +34,7 @@ function serializeIdea(i: typeof ideasTable.$inferSelect) {
 }
 
 router.post("/planner/generate", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -95,7 +94,7 @@ router.post("/planner/generate", aiGenerationRateLimit, async (req, res) => {
 });
 
 router.post("/planner/apply", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;

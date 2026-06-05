@@ -17,7 +17,6 @@ import {
 } from "@workspace/db";
 import { asc, desc, eq, and } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { getClientForUser } from "./client";
 import {
   generateAssistantReply,
   buildDiff,
@@ -132,7 +131,7 @@ export function enrichActions(proposed: ProposedAction[], ctx: SystemContext): A
 }
 
 router.get("/assistant/messages", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -148,7 +147,7 @@ router.get("/assistant/messages", async (req, res) => {
 // Count unseen messages (the background strategist's proactive suggestions),
 // driving the launcher's unread indicator.
 router.get("/assistant/unread", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -163,7 +162,7 @@ router.get("/assistant/unread", async (req, res) => {
 // Mark every message for the client as seen. Called when the client opens the
 // strategist panel, clearing the unread indicator.
 router.post("/assistant/seen", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -179,7 +178,7 @@ router.post("/assistant/seen", async (req, res) => {
 // posts a new proactive suggestion for this client. Consumed via fetch +
 // ReadableStream (EventSource cannot send the Clerk bearer token).
 router.get("/assistant/stream", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -210,7 +209,7 @@ router.get("/assistant/stream", async (req, res) => {
 });
 
 router.post("/assistant/message", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -376,7 +375,7 @@ async function applyAction(
 }
 
 router.post("/assistant/actions/:actionId/confirm", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -464,7 +463,7 @@ async function resolveBatchScoped(
 }
 
 router.post("/assistant/actions/confirm-batch", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -480,7 +479,7 @@ router.post("/assistant/actions/confirm-batch", async (req, res) => {
 });
 
 router.post("/assistant/actions/reject-batch", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -496,7 +495,7 @@ router.post("/assistant/actions/reject-batch", async (req, res) => {
 });
 
 router.post("/assistant/actions/:actionId/reject", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;

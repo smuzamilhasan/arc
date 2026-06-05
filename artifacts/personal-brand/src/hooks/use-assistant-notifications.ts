@@ -6,6 +6,7 @@ import {
   getGetAssistantMessagesQueryKey,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { getActiveClientId } from "@/lib/active-client";
 
 // Subscribe to the assistant SSE stream so the unread indicator updates live
 // when the background strategist posts a proactive suggestion. EventSource
@@ -34,8 +35,14 @@ export function useAssistantNotifications(enabled: boolean) {
     const run = async () => {
       try {
         const token = await getToken();
+        const activeClientId = getActiveClientId();
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        if (activeClientId != null) {
+          headers["x-arc-client-id"] = String(activeClientId);
+        }
         const response = await fetch(`${import.meta.env.BASE_URL}api/assistant/stream`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          headers,
           signal: controller.signal,
         });
         if (!response.ok || !response.body) return;

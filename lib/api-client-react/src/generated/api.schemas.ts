@@ -1060,6 +1060,163 @@ export interface ScheduleBatchInput {
   time?: string;
 }
 
+export interface Agency {
+  id: number;
+  name: string;
+  ownerUserId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgencyInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+}
+
+export type AgencyMembershipRole = typeof AgencyMembershipRole[keyof typeof AgencyMembershipRole];
+
+
+export const AgencyMembershipRole = {
+  owner: 'owner',
+  member: 'member',
+} as const;
+
+export interface AgencyMembership {
+  id: number;
+  name: string;
+  role: AgencyMembershipRole;
+}
+
+export interface AgencyClientSummary {
+  id: number;
+  fullName: string;
+  headline: string;
+  onboardingComplete: boolean;
+  claimed: boolean;
+  isOwn: boolean;
+  /** @nullable */
+  agencyId: number | null;
+}
+
+export interface AgencyContext {
+  /** @nullable */
+  personalClientId: number | null;
+  agencies: AgencyMembership[];
+  clients: AgencyClientSummary[];
+}
+
+export type AgencyMemberInfoRole = typeof AgencyMemberInfoRole[keyof typeof AgencyMemberInfoRole];
+
+
+export const AgencyMemberInfoRole = {
+  owner: 'owner',
+  member: 'member',
+} as const;
+
+export interface AgencyMemberInfo {
+  userId: string;
+  role: AgencyMemberInfoRole;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  name: string | null;
+}
+
+export interface AgencyMembersResponse {
+  members: AgencyMemberInfo[];
+}
+
+export type InvitationKind = typeof InvitationKind[keyof typeof InvitationKind];
+
+
+export const InvitationKind = {
+  member: 'member',
+  client: 'client',
+} as const;
+
+export type InvitationStatus = typeof InvitationStatus[keyof typeof InvitationStatus];
+
+
+export const InvitationStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+  revoked: 'revoked',
+} as const;
+
+export interface Invitation {
+  id: number;
+  agencyId: number;
+  email: string;
+  kind: InvitationKind;
+  /** @nullable */
+  clientId: number | null;
+  token: string;
+  status: InvitationStatus;
+  createdAt: string;
+}
+
+export interface InvitationListResponse {
+  invitations: Invitation[];
+}
+
+export type InvitationInputKind = typeof InvitationInputKind[keyof typeof InvitationInputKind];
+
+
+export const InvitationInputKind = {
+  member: 'member',
+  client: 'client',
+} as const;
+
+export interface InvitationInput {
+  kind: InvitationInputKind;
+  email: string;
+  profile?: ClientProfileInput;
+}
+
+export type InvitationPreviewKind = typeof InvitationPreviewKind[keyof typeof InvitationPreviewKind];
+
+
+export const InvitationPreviewKind = {
+  member: 'member',
+  client: 'client',
+} as const;
+
+export type InvitationPreviewStatus = typeof InvitationPreviewStatus[keyof typeof InvitationPreviewStatus];
+
+
+export const InvitationPreviewStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+  revoked: 'revoked',
+} as const;
+
+export interface InvitationPreview {
+  kind: InvitationPreviewKind;
+  email: string;
+  status: InvitationPreviewStatus;
+  agencyName: string;
+  /** @nullable */
+  clientFullName: string | null;
+}
+
+export type AcceptInvitationResultKind = typeof AcceptInvitationResultKind[keyof typeof AcceptInvitationResultKind];
+
+
+export const AcceptInvitationResultKind = {
+  member: 'member',
+  client: 'client',
+} as const;
+
+export interface AcceptInvitationResult {
+  kind: AcceptInvitationResultKind;
+  agencyId: number;
+  /** @nullable */
+  clientId?: number | null;
+}
+
 export type ListPostsParams = {
 platform?: string;
 status?: string;

@@ -2,7 +2,6 @@ import { Router } from "express";
 import { db, platformStrategiesTable } from "@workspace/db";
 import { UpdatePlatformsBody, GeneratePlatformsBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
-import { getClientForUser } from "./client";
 import { generatePlatformStrategy, isBlueprintComplete } from "../services/platforms";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
 
@@ -17,7 +16,7 @@ function serializePlatformStrategy(s: typeof platformStrategiesTable.$inferSelec
 }
 
 router.get("/platforms", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -36,7 +35,7 @@ router.get("/platforms", async (req, res) => {
 });
 
 router.post("/platforms/generate", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -86,7 +85,7 @@ router.post("/platforms/generate", aiGenerationRateLimit, async (req, res) => {
 });
 
 router.put("/platforms", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;

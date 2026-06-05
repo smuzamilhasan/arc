@@ -8,7 +8,6 @@ import {
   type ClientProfile,
 } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
-import { getClientForUser } from "./client";
 import type { SystemContext } from "../services/assistant";
 import { generatePortrait, portraitSourceHash } from "../services/portrait";
 import { GeneratePortraitBody } from "@workspace/api-zod";
@@ -58,7 +57,7 @@ function serializePortrait(
 }
 
 router.get("/portrait", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -79,7 +78,7 @@ router.get("/portrait", async (req, res) => {
 });
 
 router.post("/portrait/generate", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;

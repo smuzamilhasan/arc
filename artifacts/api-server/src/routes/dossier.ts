@@ -2,7 +2,6 @@ import { Router } from "express";
 import { db, briefingDossiersTable, industryOverviewTable } from "@workspace/db";
 import { GenerateDossierBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
-import { getClientForUser } from "./client";
 import { generateDossier } from "../services/investigator";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
 
@@ -17,7 +16,7 @@ function serializeDossier(d: typeof briefingDossiersTable.$inferSelect) {
 }
 
 router.get("/dossier", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -36,7 +35,7 @@ router.get("/dossier", async (req, res) => {
 });
 
 router.post("/dossier/generate", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;

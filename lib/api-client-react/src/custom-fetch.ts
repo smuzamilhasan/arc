@@ -15,8 +15,21 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 // Module-level configuration
 // ---------------------------------------------------------------------------
 
+export type ActiveClientGetter = () => string | number | null;
+
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _activeClientGetter: ActiveClientGetter | null = null;
+
+/**
+ * Register a getter that supplies the active client id. Before every fetch the
+ * getter is invoked; when it returns a non-empty value, an `x-arc-client-id`
+ * header is attached so the server scopes the request to that client (used by
+ * agency members acting on a managed client). Pass `null` to clear.
+ */
+export function setActiveClientGetter(getter: ActiveClientGetter | null): void {
+  _activeClientGetter = getter;
+}
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -355,6 +368,14 @@ export async function customFetch<T = unknown>(
     const token = await _authTokenGetter();
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
+    }
+  }
+
+  // Attach the active client id so the server can scope to a managed client.
+  if (_activeClientGetter && !headers.has("x-arc-client-id")) {
+    const id = _activeClientGetter();
+    if (id != null && id !== "") {
+      headers.set("x-arc-client-id", String(id));
     }
   }
 

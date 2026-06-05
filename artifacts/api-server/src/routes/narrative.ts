@@ -2,7 +2,6 @@ import { Router } from "express";
 import { db, narrativeProfilesTable } from "@workspace/db";
 import { GenerateNarrativeBody, UpdateNarrativeBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
-import { getClientForUser } from "./client";
 import { generateNarrative } from "../services/narrative";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
 
@@ -17,7 +16,7 @@ function serializeNarrative(n: typeof narrativeProfilesTable.$inferSelect) {
 }
 
 router.get("/narrative", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -36,7 +35,7 @@ router.get("/narrative", async (req, res) => {
 });
 
 router.put("/narrative", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -76,7 +75,7 @@ router.put("/narrative", async (req, res) => {
 });
 
 router.post("/narrative/generate", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;

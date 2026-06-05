@@ -15,7 +15,6 @@ import {
 import { desc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { Request } from "express";
-import { getClientForUser } from "./client";
 import { loadContext, loadHistory, enrichActions } from "./assistant";
 import {
   decomposeInstruction,
@@ -260,7 +259,7 @@ async function executeTask(
 }
 
 router.post("/manager/run", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -328,7 +327,7 @@ router.post("/manager/run", aiGenerationRateLimit, async (req, res) => {
 });
 
 router.get("/manager/runs", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;

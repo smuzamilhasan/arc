@@ -108,7 +108,11 @@ router.get("/admin/users", requireAdmin, async (_req, res) => {
   const hasNarrative = new Set<number>();
   for (const n of narratives) if (n.coreNarrative) hasNarrative.add(n.clientId);
 
-  const userIds = [...new Set(clients.map((c) => c.userId))];
+  const userIds = [
+    ...new Set(
+      clients.map((c) => c.userId).filter((id): id is string => id !== null),
+    ),
+  ];
   const clerkMap = new Map<string, ClerkUser>();
   if (userIds.length) {
     try {
@@ -123,7 +127,7 @@ router.get("/admin/users", requireAdmin, async (_req, res) => {
   }
 
   const summaries = clients.map((c) => {
-    const clerkUser = clerkMap.get(c.userId);
+    const clerkUser = c.userId ? clerkMap.get(c.userId) : undefined;
     const audit = latestAudit.get(c.id);
     return {
       clientId: c.id,
@@ -188,10 +192,12 @@ router.get("/admin/users/:clientId", requireAdmin, async (req, res) => {
   ]);
 
   let clerkUser: ClerkUser | null = null;
-  try {
-    clerkUser = await clerkClient.users.getUser(client.userId);
-  } catch {
-    clerkUser = null;
+  if (client.userId) {
+    try {
+      clerkUser = await clerkClient.users.getUser(client.userId);
+    } catch {
+      clerkUser = null;
+    }
   }
 
   res.json({

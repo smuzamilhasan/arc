@@ -2,7 +2,6 @@ import { Router } from "express";
 import { db, postsTable, ideasTable, narrativeProfilesTable, schedulerConnectionsTable } from "@workspace/db";
 import { CreatePostBody, UpdatePostBody, ListPostsQueryParams, GetPostParams, UpdatePostParams, DeletePostParams, ScheduleBatchPostsBody, DraftPostsBody, HandoffPostParams, HandoffPostBody, HandoffBatchPostsBody } from "@workspace/api-zod";
 import { eq, and, desc, inArray } from "drizzle-orm";
-import { getClientForUser } from "./client";
 import { aiGenerationRateLimit, externalApiRateLimit } from "../middlewares/aiRateLimit";
 import { draftContent } from "../services/ghostwriter";
 import { getProvider } from "../services/schedulers";
@@ -21,7 +20,7 @@ function serializePost(p: typeof postsTable.$inferSelect) {
 }
 
 router.get("/posts", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.json([]);
     return;
@@ -48,7 +47,7 @@ router.get("/posts", async (req, res) => {
 });
 
 router.post("/posts", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -143,7 +142,7 @@ export async function scheduleClientPosts(
 }
 
 router.post("/posts/schedule-batch", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -173,7 +172,7 @@ router.post("/posts/schedule-batch", async (req, res) => {
 // want and saves them via the normal create-post route. Rate-limited because each
 // call is an AI generation.
 router.post("/posts/draft", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -298,7 +297,7 @@ async function handoffOne(
 // Push a single post into the client's connected scheduler. arc never publishes
 // directly — it only creates a draft/scheduled item in the client's own tool.
 router.post("/posts/:id/handoff", externalApiRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "Post not found" });
     return;
@@ -350,7 +349,7 @@ router.post("/posts/:id/handoff", externalApiRateLimit, async (req, res) => {
 // Hand off several posts at once, returning a per-post result so partial
 // failures are visible, plus the updated posts.
 router.post("/posts/handoff-batch", externalApiRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -400,7 +399,7 @@ router.post("/posts/handoff-batch", externalApiRateLimit, async (req, res) => {
 });
 
 router.get("/posts/:id", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "Post not found" });
     return;
@@ -422,7 +421,7 @@ router.get("/posts/:id", async (req, res) => {
 });
 
 router.patch("/posts/:id", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "Post not found" });
     return;
@@ -460,7 +459,7 @@ router.patch("/posts/:id", async (req, res) => {
 });
 
 router.delete("/posts/:id", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "Post not found" });
     return;

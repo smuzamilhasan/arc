@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PrerequisiteChecklist } from "@/components/locked-panel";
 import { auditReadinessPrerequisites } from "@/lib/blueprint";
+import { getActiveClientId } from "@/lib/active-client";
 import { useRegenerateFeedback } from "@/components/regenerate-feedback";
 
 type AuditProgress = {
@@ -78,10 +79,14 @@ export default function Audit() {
     setLiveResult(null);
 
     try {
+      const activeClientId = getActiveClientId();
       const response = await fetch(`${import.meta.env.BASE_URL}api/audit/run`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(activeClientId != null
+            ? { 'x-arc-client-id': String(activeClientId) }
+            : {}),
         },
         body: JSON.stringify(feedback ? { feedback } : {}),
       });

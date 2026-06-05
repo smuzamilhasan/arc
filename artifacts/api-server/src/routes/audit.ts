@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { db, auditResultsTable } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
-import { getClientForUser } from "./client";
 import { runAndSaveAudit, type AuditProgress } from "../services/audit";
 import {
   auditRateLimit,
@@ -33,7 +32,7 @@ async function getLatestAuditForClient(clientId: number) {
 }
 
 router.get("/audit/latest", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -53,7 +52,7 @@ router.get("/audit/refresh-status", async (req, res) => {
 });
 
 router.post("/audit/run", auditRateLimit, auditConcurrencyLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -90,7 +89,7 @@ router.post("/audit/run", auditRateLimit, auditConcurrencyLimit, async (req, res
 // first-ever audit.
 router.post("/audit/auto-refresh", auditRateLimit, async (req, res) => {
   const userId = req.userId!;
-  const client = await getClientForUser(userId);
+  const client = req.activeClient;
   if (!client) {
     res.json({ started: false, reason: "no_client" });
     return;

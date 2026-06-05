@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Logo } from "@/components/logo";
+import { setSignupIntent } from "@/lib/active-client";
 import {
   Search,
   BookOpen,
@@ -20,12 +21,26 @@ function HeaderCtas() {
   return (
     <div className="flex items-center gap-2 sm:gap-3">
       <Link href="/sign-in">
-        <button className="px-3 sm:px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-300">
+        <button
+          onClick={() => setSignupIntent("individual")}
+          className="px-3 sm:px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-300"
+        >
           Sign in
         </button>
       </Link>
       <Link href="/sign-up">
-        <button className="px-4 sm:px-5 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-300 shadow-sm">
+        <button
+          onClick={() => setSignupIntent("agency")}
+          className="hidden sm:inline-flex px-3 sm:px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-300"
+        >
+          For agencies
+        </button>
+      </Link>
+      <Link href="/sign-up">
+        <button
+          onClick={() => setSignupIntent("individual")}
+          className="px-4 sm:px-5 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-300 shadow-sm"
+        >
           Get started
         </button>
       </Link>
@@ -137,19 +152,25 @@ export default function Landing() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
                 <Link href="/sign-up">
-                  <button className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-300 shadow-sm">
+                  <button
+                    onClick={() => setSignupIntent("individual")}
+                    className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-300 shadow-sm"
+                  >
                     Get started
                     <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                   </button>
                 </Link>
-                <Link href="/sign-in">
-                  <button className="w-full sm:w-auto px-8 py-3.5 rounded-md border border-border text-foreground text-sm font-medium hover:bg-secondary/40 transition-colors duration-300">
-                    Sign in
+                <Link href="/sign-up">
+                  <button
+                    onClick={() => setSignupIntent("agency")}
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-md border border-border text-foreground text-sm font-medium hover:bg-secondary/40 transition-colors duration-300"
+                  >
+                    For agencies
                   </button>
                 </Link>
               </div>
               <p className="text-xs text-muted-foreground mt-6 tracking-wide">
-                One person. One strategy. End to end.
+                Individuals and agencies. One strategy each, end to end.
               </p>
             </div>
           </div>

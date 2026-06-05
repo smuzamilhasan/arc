@@ -2,7 +2,6 @@ import { Router } from "express";
 import { db, contentStrategiesTable, platformStrategiesTable } from "@workspace/db";
 import { UpdateContentStrategyBody, GenerateContentStrategyBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
-import { getClientForUser } from "./client";
 import { isBlueprintComplete } from "../services/platforms";
 import { generateContentStrategy } from "../services/contentStrategy";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
@@ -28,7 +27,7 @@ async function getPlatformStrategyForClient(clientId: number) {
 }
 
 router.get("/content-strategy", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -47,7 +46,7 @@ router.get("/content-strategy", async (req, res) => {
 });
 
 router.post("/content-strategy/generate", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -107,7 +106,7 @@ router.post("/content-strategy/generate", aiGenerationRateLimit, async (req, res
 });
 
 router.put("/content-strategy", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;

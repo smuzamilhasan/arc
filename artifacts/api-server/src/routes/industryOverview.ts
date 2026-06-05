@@ -8,7 +8,6 @@ import {
 } from "@workspace/db";
 import { GenerateIndustryOverviewBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
-import { getClientForUser } from "./client";
 import { generateIndustryOverview } from "../services/industryOverview";
 import { isBlueprintComplete } from "../services/platforms";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
@@ -56,7 +55,7 @@ async function isFoundationComplete(
 }
 
 router.get("/industry-overview", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -75,7 +74,7 @@ router.get("/industry-overview", async (req, res) => {
 });
 
 router.post("/industry-overview/generate", aiGenerationRateLimit, async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;

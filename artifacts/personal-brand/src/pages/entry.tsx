@@ -2,10 +2,12 @@ import { useLocation } from "wouter";
 import { useEffect, useRef } from "react";
 import { useGetClient, useAutoRefreshAudit } from "@workspace/api-client-react";
 import { getGetClientQueryKey } from "@workspace/api-client-react";
+import { useActiveClient, consumeSignupIntent } from "@/lib/active-client";
 import { Loader2 } from "lucide-react";
 
 export default function Entry() {
   const [, setLocation] = useLocation();
+  const { context, isLoading: ctxLoading } = useActiveClient();
   const { data: client, isLoading, isError } = useGetClient({
     query: {
       queryKey: getGetClientQueryKey(),
@@ -31,9 +33,39 @@ export default function Entry() {
     }
   }, [isLoading, client, autoRefresh]);
 
-  useEffect(() => {
-    if (isLoading) return;
+  const routedRef = useRef(false);
 
+  useEffect(() => {
+    if (isLoading || ctxLoading) return;
+    if (routedRef.current) return;
+
+    // Agency operators (existing members/owners) without a personal brand land
+    // on the agency hub.
+    if (
+      context &&
+      context.personalClientId == null &&
+      context.agencies.length > 0
+    ) {
+      routedRef.current = true;
+      setLocation("/agency");
+      return;
+    }
+
+    // A fresh sign-up that came through the "For agencies" path, with no profile
+    // or agency yet, goes to the agency hub to create one.
+    if (
+      context &&
+      context.personalClientId == null &&
+      context.agencies.length === 0 &&
+      (isError || !client) &&
+      consumeSignupIntent() === "agency"
+    ) {
+      routedRef.current = true;
+      setLocation("/agency");
+      return;
+    }
+
+    routedRef.current = true;
     if (isError || !client) {
       setLocation("/onboard");
     } else if (!client.onboardingComplete) {
@@ -41,7 +73,7 @@ export default function Entry() {
     } else {
       setLocation("/dashboard");
     }
-  }, [isLoading, isError, client, setLocation]);
+  }, [isLoading, ctxLoading, context, isError, client, setLocation]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

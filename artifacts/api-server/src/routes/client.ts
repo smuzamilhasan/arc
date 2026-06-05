@@ -15,6 +15,8 @@ import {
   profilePortraitsTable,
   managerRunsTable,
   schedulerConnectionsTable,
+  agencyClientAccessTable,
+  invitationsTable,
 } from "@workspace/db";
 import { UpsertClientBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
@@ -59,6 +61,14 @@ async function deleteClientData(clientId: number) {
     await tx
       .delete(schedulerConnectionsTable)
       .where(eq(schedulerConnectionsTable.clientId, clientId));
+    // Agency linkage rows reference this client by id with no FK cascade, so
+    // remove them here or they would dangle after the profile is deleted.
+    await tx
+      .delete(agencyClientAccessTable)
+      .where(eq(agencyClientAccessTable.clientId, clientId));
+    await tx
+      .delete(invitationsTable)
+      .where(eq(invitationsTable.clientId, clientId));
     await tx.delete(clientProfileTable).where(eq(clientProfileTable.id, clientId));
   });
 }
@@ -82,7 +92,7 @@ async function getClientForUser(userId: string) {
 }
 
 router.get("/client", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -146,7 +156,7 @@ router.put("/client", async (req, res) => {
     updatedAt: new Date(),
   };
 
-  const existing = await getClientForUser(req.userId!);
+  const existing = req.activeClient;
   let client: typeof clientProfileTable.$inferSelect;
   if (existing) {
     [client] = await db
@@ -164,7 +174,7 @@ router.put("/client", async (req, res) => {
 });
 
 router.post("/client/foundation-ack", async (req, res) => {
-  const existing = await getClientForUser(req.userId!);
+  const existing = req.activeClient;
   if (!existing) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -178,7 +188,7 @@ router.post("/client/foundation-ack", async (req, res) => {
 });
 
 router.post("/client/reset", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(204).end();
     return;

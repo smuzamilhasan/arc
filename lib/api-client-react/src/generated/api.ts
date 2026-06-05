@@ -20,9 +20,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AcceptInvitationResult,
   AdminAccess,
   AdminUserDetail,
   AdminUserSummary,
+  Agency,
+  AgencyContext,
+  AgencyInput,
+  AgencyMembersResponse,
   AssistantActionResult,
   AssistantBatchInput,
   AssistantBatchResult,
@@ -66,6 +71,10 @@ import type {
   IdeaUpdate,
   IndustryOverview,
   IndustryOverviewGenerateInput,
+  Invitation,
+  InvitationInput,
+  InvitationListResponse,
+  InvitationPreview,
   ListPostsParams,
   ManagerRun,
   ManagerRunInput,
@@ -4724,5 +4733,670 @@ export const useRejectAssistantActions = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRejectAssistantActionsMutationOptions(options));
+    }
+
+export const getGetAgencyContextUrl = () => {
+
+
+
+
+  return `/api/agency/context`
+}
+
+/**
+ * @summary Get the caller's agency memberships and accessible clients
+ */
+export const getAgencyContext = async ( options?: RequestInit): Promise<AgencyContext> => {
+
+  return customFetch<AgencyContext>(getGetAgencyContextUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgencyContextQueryKey = () => {
+    return [
+    `/api/agency/context`
+    ] as const;
+    }
+
+
+export const getGetAgencyContextQueryOptions = <TData = Awaited<ReturnType<typeof getAgencyContext>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgencyContext>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgencyContextQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgencyContext>>> = ({ signal }) => getAgencyContext({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgencyContext>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgencyContextQueryResult = NonNullable<Awaited<ReturnType<typeof getAgencyContext>>>
+export type GetAgencyContextQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the caller's agency memberships and accessible clients
+ */
+
+export function useGetAgencyContext<TData = Awaited<ReturnType<typeof getAgencyContext>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgencyContext>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgencyContextQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateAgencyUrl = () => {
+
+
+
+
+  return `/api/agency`
+}
+
+/**
+ * @summary Create an agency (caller becomes owner)
+ */
+export const createAgency = async (agencyInput: AgencyInput, options?: RequestInit): Promise<Agency> => {
+
+  return customFetch<Agency>(getCreateAgencyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      agencyInput,)
+  }
+);}
+
+
+
+
+export const getCreateAgencyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgency>>, TError,{data: BodyType<AgencyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAgency>>, TError,{data: BodyType<AgencyInput>}, TContext> => {
+
+const mutationKey = ['createAgency'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgency>>, {data: BodyType<AgencyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAgency(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAgencyMutationResult = NonNullable<Awaited<ReturnType<typeof createAgency>>>
+    export type CreateAgencyMutationBody = BodyType<AgencyInput>
+    export type CreateAgencyMutationError = ErrorType<void>
+
+    /**
+ * @summary Create an agency (caller becomes owner)
+ */
+export const useCreateAgency = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgency>>, TError,{data: BodyType<AgencyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAgency>>,
+        TError,
+        {data: BodyType<AgencyInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAgencyMutationOptions(options));
+    }
+
+export const getGetAgencyMembersUrl = (agencyId: number,) => {
+
+
+
+
+  return `/api/agency/${agencyId}/members`
+}
+
+/**
+ * @summary List agency members
+ */
+export const getAgencyMembers = async (agencyId: number, options?: RequestInit): Promise<AgencyMembersResponse> => {
+
+  return customFetch<AgencyMembersResponse>(getGetAgencyMembersUrl(agencyId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgencyMembersQueryKey = (agencyId: number,) => {
+    return [
+    `/api/agency/${agencyId}/members`
+    ] as const;
+    }
+
+
+export const getGetAgencyMembersQueryOptions = <TData = Awaited<ReturnType<typeof getAgencyMembers>>, TError = ErrorType<void>>(agencyId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgencyMembers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgencyMembersQueryKey(agencyId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgencyMembers>>> = ({ signal }) => getAgencyMembers(agencyId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(agencyId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgencyMembers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgencyMembersQueryResult = NonNullable<Awaited<ReturnType<typeof getAgencyMembers>>>
+export type GetAgencyMembersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List agency members
+ */
+
+export function useGetAgencyMembers<TData = Awaited<ReturnType<typeof getAgencyMembers>>, TError = ErrorType<void>>(
+ agencyId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgencyMembers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgencyMembersQueryOptions(agencyId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRemoveAgencyMemberUrl = (agencyId: number,
+    memberUserId: string,) => {
+
+
+
+
+  return `/api/agency/${agencyId}/members/${memberUserId}`
+}
+
+/**
+ * @summary Remove a member from the agency (owner only)
+ */
+export const removeAgencyMember = async (agencyId: number,
+    memberUserId: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRemoveAgencyMemberUrl(agencyId,memberUserId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRemoveAgencyMemberMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeAgencyMember>>, TError,{agencyId: number;memberUserId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeAgencyMember>>, TError,{agencyId: number;memberUserId: string}, TContext> => {
+
+const mutationKey = ['removeAgencyMember'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeAgencyMember>>, {agencyId: number;memberUserId: string}> = (props) => {
+          const {agencyId,memberUserId} = props ?? {};
+
+          return  removeAgencyMember(agencyId,memberUserId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveAgencyMemberMutationResult = NonNullable<Awaited<ReturnType<typeof removeAgencyMember>>>
+
+    export type RemoveAgencyMemberMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove a member from the agency (owner only)
+ */
+export const useRemoveAgencyMember = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeAgencyMember>>, TError,{agencyId: number;memberUserId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeAgencyMember>>,
+        TError,
+        {agencyId: number;memberUserId: string},
+        TContext
+      > => {
+      return useMutation(getRemoveAgencyMemberMutationOptions(options));
+    }
+
+export const getGetAgencyInvitationsUrl = (agencyId: number,) => {
+
+
+
+
+  return `/api/agency/${agencyId}/invitations`
+}
+
+/**
+ * @summary List pending invitations for an agency
+ */
+export const getAgencyInvitations = async (agencyId: number, options?: RequestInit): Promise<InvitationListResponse> => {
+
+  return customFetch<InvitationListResponse>(getGetAgencyInvitationsUrl(agencyId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgencyInvitationsQueryKey = (agencyId: number,) => {
+    return [
+    `/api/agency/${agencyId}/invitations`
+    ] as const;
+    }
+
+
+export const getGetAgencyInvitationsQueryOptions = <TData = Awaited<ReturnType<typeof getAgencyInvitations>>, TError = ErrorType<void>>(agencyId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgencyInvitations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgencyInvitationsQueryKey(agencyId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgencyInvitations>>> = ({ signal }) => getAgencyInvitations(agencyId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(agencyId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgencyInvitations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgencyInvitationsQueryResult = NonNullable<Awaited<ReturnType<typeof getAgencyInvitations>>>
+export type GetAgencyInvitationsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List pending invitations for an agency
+ */
+
+export function useGetAgencyInvitations<TData = Awaited<ReturnType<typeof getAgencyInvitations>>, TError = ErrorType<void>>(
+ agencyId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgencyInvitations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgencyInvitationsQueryOptions(agencyId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateInvitationUrl = (agencyId: number,) => {
+
+
+
+
+  return `/api/agency/${agencyId}/invite`
+}
+
+/**
+ * @summary Invite a team member or prebuild and invite a client
+ */
+export const createInvitation = async (agencyId: number,
+    invitationInput: InvitationInput, options?: RequestInit): Promise<Invitation> => {
+
+  return customFetch<Invitation>(getCreateInvitationUrl(agencyId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      invitationInput,)
+  }
+);}
+
+
+
+
+export const getCreateInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError,{agencyId: number;data: BodyType<InvitationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError,{agencyId: number;data: BodyType<InvitationInput>}, TContext> => {
+
+const mutationKey = ['createInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createInvitation>>, {agencyId: number;data: BodyType<InvitationInput>}> = (props) => {
+          const {agencyId,data} = props ?? {};
+
+          return  createInvitation(agencyId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createInvitation>>>
+    export type CreateInvitationMutationBody = BodyType<InvitationInput>
+    export type CreateInvitationMutationError = ErrorType<void>
+
+    /**
+ * @summary Invite a team member or prebuild and invite a client
+ */
+export const useCreateInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError,{agencyId: number;data: BodyType<InvitationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createInvitation>>,
+        TError,
+        {agencyId: number;data: BodyType<InvitationInput>},
+        TContext
+      > => {
+      return useMutation(getCreateInvitationMutationOptions(options));
+    }
+
+export const getRevokeInvitationUrl = (agencyId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/agency/${agencyId}/invitations/${id}`
+}
+
+/**
+ * @summary Revoke a pending invitation
+ */
+export const revokeInvitation = async (agencyId: number,
+    id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRevokeInvitationUrl(agencyId,id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeInvitation>>, TError,{agencyId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeInvitation>>, TError,{agencyId: number;id: number}, TContext> => {
+
+const mutationKey = ['revokeInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeInvitation>>, {agencyId: number;id: number}> = (props) => {
+          const {agencyId,id} = props ?? {};
+
+          return  revokeInvitation(agencyId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof revokeInvitation>>>
+
+    export type RevokeInvitationMutationError = ErrorType<void>
+
+    /**
+ * @summary Revoke a pending invitation
+ */
+export const useRevokeInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeInvitation>>, TError,{agencyId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeInvitation>>,
+        TError,
+        {agencyId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getRevokeInvitationMutationOptions(options));
+    }
+
+export const getGetInvitationPreviewUrl = (token: string,) => {
+
+
+
+
+  return `/api/invitations/${token}`
+}
+
+/**
+ * @summary Preview an invitation by token
+ */
+export const getInvitationPreview = async (token: string, options?: RequestInit): Promise<InvitationPreview> => {
+
+  return customFetch<InvitationPreview>(getGetInvitationPreviewUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvitationPreviewQueryKey = (token: string,) => {
+    return [
+    `/api/invitations/${token}`
+    ] as const;
+    }
+
+
+export const getGetInvitationPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getInvitationPreview>>, TError = ErrorType<void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvitationPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvitationPreviewQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvitationPreview>>> = ({ signal }) => getInvitationPreview(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(token), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvitationPreview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvitationPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getInvitationPreview>>>
+export type GetInvitationPreviewQueryError = ErrorType<void>
+
+
+/**
+ * @summary Preview an invitation by token
+ */
+
+export function useGetInvitationPreview<TData = Awaited<ReturnType<typeof getInvitationPreview>>, TError = ErrorType<void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvitationPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvitationPreviewQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAcceptInvitationUrl = (token: string,) => {
+
+
+
+
+  return `/api/invitations/${token}/accept`
+}
+
+/**
+ * @summary Accept an invitation by token
+ */
+export const acceptInvitation = async (token: string, options?: RequestInit): Promise<AcceptInvitationResult> => {
+
+  return customFetch<AcceptInvitationResult>(getAcceptInvitationUrl(token),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAcceptInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptInvitation>>, TError,{token: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptInvitation>>, TError,{token: string}, TContext> => {
+
+const mutationKey = ['acceptInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptInvitation>>, {token: string}> = (props) => {
+          const {token} = props ?? {};
+
+          return  acceptInvitation(token,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof acceptInvitation>>>
+
+    export type AcceptInvitationMutationError = ErrorType<void>
+
+    /**
+ * @summary Accept an invitation by token
+ */
+export const useAcceptInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptInvitation>>, TError,{token: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acceptInvitation>>,
+        TError,
+        {token: string},
+        TContext
+      > => {
+      return useMutation(getAcceptInvitationMutationOptions(options));
     }
 

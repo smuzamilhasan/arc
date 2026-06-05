@@ -19,6 +19,7 @@ import {
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { ActiveClientProvider } from "@/lib/active-client";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
@@ -43,6 +44,8 @@ import Connections from "@/pages/connections";
 import Assistant from "@/pages/assistant";
 import Account from "@/pages/account";
 import Admin from "@/pages/admin";
+import AgencyPage from "@/pages/agency";
+import Invite from "@/pages/invite";
 import NotFound from "@/pages/not-found";
 
 const clerkPubKey = publishableKeyFromHost(
@@ -231,11 +234,17 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ApiAuthTokenBridge />
         <ClerkQueryClientCacheInvalidator />
+        <ActiveClientProvider>
         <TooltipProvider>
           <Switch>
             <Route path="/" component={HomeRedirect} />
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            <Route path="/invite/:token">
+              <RequireAuth>
+                <Invite />
+              </RequireAuth>
+            </Route>
             <Route path="/onboard">
               <RequireAuth>
                 <Onboard />
@@ -246,6 +255,7 @@ function ClerkProviderWithRoutes() {
                 <Layout>
                   <Switch>
                     <Route path="/dashboard" component={Dashboard} />
+                    <Route path="/agency" component={AgencyPage} />
                     <Route path="/blueprint" component={Blueprint} />
                     <Route path="/blueprint/view" component={BlueprintView} />
                     <Route path="/blueprint/:pillar" component={PillarPage} />
@@ -272,6 +282,7 @@ function ClerkProviderWithRoutes() {
           </Switch>
           <Toaster />
         </TooltipProvider>
+        </ActiveClientProvider>
       </QueryClientProvider>
     </ClerkProvider>
   );

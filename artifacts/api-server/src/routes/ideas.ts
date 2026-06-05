@@ -2,7 +2,6 @@ import { Router } from "express";
 import { db, ideasTable } from "@workspace/db";
 import { CreateIdeaBody, DeleteIdeaParams, UpdateIdeaParams, UpdateIdeaBody } from "@workspace/api-zod";
 import { eq, and, desc } from "drizzle-orm";
-import { getClientForUser } from "./client";
 
 const router = Router();
 
@@ -15,7 +14,7 @@ function serializeIdea(i: typeof ideasTable.$inferSelect) {
 }
 
 router.get("/ideas", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.json([]);
     return;
@@ -29,7 +28,7 @@ router.get("/ideas", async (req, res) => {
 });
 
 router.post("/ideas", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
     return;
@@ -53,7 +52,7 @@ router.post("/ideas", async (req, res) => {
 });
 
 router.delete("/ideas/:id", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "Idea not found" });
     return;
@@ -75,7 +74,7 @@ router.delete("/ideas/:id", async (req, res) => {
 });
 
 router.patch("/ideas/:id", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "Idea not found" });
     return;

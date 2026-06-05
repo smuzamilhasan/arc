@@ -1,12 +1,11 @@
 import { Router } from "express";
 import { db, postsTable, ideasTable, auditResultsTable, narrativeProfilesTable } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
-import { getClientForUser } from "./client";
 
 const router = Router();
 
 router.get("/dashboard", async (req, res) => {
-  const client = await getClientForUser(req.userId!);
+  const client = req.activeClient;
 
   if (!client) {
     res.json({

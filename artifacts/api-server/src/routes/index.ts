@@ -18,12 +18,16 @@ import assistantRouter from "./assistant";
 import plannerRouter from "./planner";
 import managerRouter from "./manager";
 import { requireAuth } from "../middlewares/requireAuth";
+import { attachActiveClient } from "../middlewares/activeClient";
+import agencyRouter from "./agency";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 
 router.use(requireAuth);
+router.use(agencyRouter);
+router.use(attachActiveClient);
 router.use(clientRouter);
 router.use(auditRouter);
 router.use(dossierRouter);

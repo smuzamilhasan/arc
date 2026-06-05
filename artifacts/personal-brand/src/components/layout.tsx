@@ -22,9 +22,20 @@ import {
   Sparkles,
   MessagesSquare,
   Network,
+  ChevronsUpDown,
+  Check,
   X
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
+import { useActiveClient } from "@/lib/active-client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   useGetAdminAccess,
   useGetClient,
@@ -175,6 +186,64 @@ function UserMenu() {
         Sign out
       </button>
     </div>
+  );
+}
+
+function ClientSwitcher() {
+  const [, setLocation] = useLocation();
+  const { context, activeClientId, setActiveClient, hasAgency } =
+    useActiveClient();
+  const clients = context?.clients ?? [];
+
+  // Only meaningful when the user can act on more than one client or runs an
+  // agency; pure individuals never see it.
+  if (!hasAgency && clients.length <= 1) return null;
+
+  const active = clients.find((c) => c.id === activeClientId);
+  const label = active ? active.fullName : "Select a client";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex w-full items-center justify-between gap-2 rounded-md border border-border/60 bg-card px-3 py-2 text-left text-sm transition-colors hover:bg-secondary/30">
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-foreground">
+              {label}
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              {active?.isOwn ? "Your profile" : "Managed client"}
+            </span>
+          </span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-60">
+        <DropdownMenuLabel>Switch client</DropdownMenuLabel>
+        {clients.map((c) => (
+          <DropdownMenuItem
+            key={c.id}
+            onClick={() => {
+              if (c.id !== activeClientId) setActiveClient(c.id);
+              setLocation("/dashboard");
+            }}
+            className="flex items-center justify-between gap-2"
+          >
+            <span className="min-w-0 truncate">{c.fullName}</span>
+            {c.id === activeClientId ? (
+              <Check className="h-4 w-4 text-primary" />
+            ) : null}
+          </DropdownMenuItem>
+        ))}
+        {hasAgency ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setLocation("/agency")}>
+              <Building2 className="mr-2 h-4 w-4" /> Manage agency
+            </DropdownMenuItem>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -339,9 +408,13 @@ export function Layout({ children }: LayoutProps) {
       )
     : expandedItems;
 
+  const withAgency: NavItem[] = [
+    ...baseItems,
+    { href: "/agency", icon: Building2, label: "Agency" },
+  ];
   const items: NavItem[] = access?.isAdmin
-    ? [...baseItems, { href: "/admin", icon: Shield, label: "Admin" }]
-    : baseItems;
+    ? [...withAgency, { href: "/admin", icon: Shield, label: "Admin" }]
+    : withAgency;
 
   const NavLinks = () => (
     <div className="flex flex-col gap-1">
@@ -420,12 +493,13 @@ export function Layout({ children }: LayoutProps) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 flex-col border-r border-border/50 bg-background shrink-0">
         <div className="p-8 pb-4">
-          <div className="flex flex-col gap-1 mb-10">
+          <div className="flex flex-col gap-1 mb-6">
             <Logo className="text-3xl" />
             <span className="text-xs font-medium text-muted-foreground tracking-widest uppercase">Strategist</span>
           </div>
+          <ClientSwitcher />
         </div>
-        <div className="px-4">
+        <div className="px-4 mt-4">
           <NavLinks />
           <div className="mt-6 pt-4 border-t border-border/50">
             <StartOver />
@@ -447,12 +521,13 @@ export function Layout({ children }: LayoutProps) {
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0 bg-background border-r-border/50">
             <div className="p-8 pb-4">
-              <div className="flex flex-col gap-1 mb-10">
+              <div className="flex flex-col gap-1 mb-6">
                 <Logo className="text-3xl" />
                 <span className="text-xs font-medium text-muted-foreground tracking-widest uppercase">Strategist</span>
               </div>
+              <ClientSwitcher />
             </div>
-            <div className="px-4">
+            <div className="px-4 mt-4">
               <NavLinks />
             </div>
             <div className="px-4 mt-6 pt-4 border-t border-border/50">

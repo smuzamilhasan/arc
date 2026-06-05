@@ -23,7 +23,7 @@ import {
   Network,
   ChevronsUpDown,
   Check,
-  X
+  PenLine
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import { useActiveClient } from "@/lib/active-client";
@@ -55,7 +55,13 @@ import {
   type PanelGateId,
 } from "@/lib/blueprint";
 import { Logo } from "@/components/logo";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -82,6 +88,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useResetClient } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssistantChat } from "@/components/assistant-chat";
+import {
+  ManagerPanelView,
+  InvestigatorPanelView,
+  PlannerPanelView,
+  GhostwriterPanelView,
+} from "@/components/agent-panels";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -268,16 +280,42 @@ const navItems: NavItem[] = [
   { href: "/assistant", icon: MessagesSquare, label: "Strategist" },
 ];
 
+type PanelAgentId = "manager" | "investigator" | "strategist" | "planner" | "ghostwriter";
+
+const PANEL_AGENTS: {
+  id: PanelAgentId;
+  label: string;
+  icon: typeof Network;
+}[] = [
+  { id: "manager", label: "Manager", icon: Network },
+  { id: "investigator", label: "Investigator", icon: Telescope },
+  { id: "strategist", label: "Strategist", icon: MessagesSquare },
+  { id: "planner", label: "Planner", icon: CalendarDays },
+  { id: "ghostwriter", label: "Ghostwriter", icon: PenLine },
+];
+
 function AssistantPanel({ unreadCount }: { unreadCount: number }) {
   const [open, setOpen] = useState(false);
+  // Selection is intentionally not persisted: every open defaults to Manager.
+  const [agent, setAgent] = useState<PanelAgentId>("manager");
+
+  const handleOpenChange = (next: boolean) => {
+    if (next) setAgent("manager");
+    setOpen(next);
+  };
+
+  const active = PANEL_AGENTS.find((a) => a.id === agent) ?? PANEL_AGENTS[0];
+  const ActiveIcon = active.icon;
+  const close = () => setOpen(false);
+
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <button
-          aria-label={unreadCount > 0 ? "Open strategist (new suggestion)" : "Open strategist"}
+          aria-label={unreadCount > 0 ? "Open manager (new suggestion)" : "Open manager"}
           className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform duration-300 hover:scale-105"
         >
-          <Sparkles className="h-6 w-6 stroke-[1.75]" />
+          <Network className="h-6 w-6 stroke-[1.75]" />
           {unreadCount > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
@@ -290,21 +328,50 @@ function AssistantPanel({ unreadCount }: { unreadCount: number }) {
         side="right"
         className="flex w-full flex-col gap-0 p-0 sm:max-w-md"
       >
+        <SheetTitle className="sr-only">{active.label} agent</SheetTitle>
+        <SheetDescription className="sr-only">
+          Work with the {active.label} agent. Use the switcher to change agents.
+        </SheetDescription>
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="font-serif text-lg tracking-tight text-foreground">Strategist</span>
-          </div>
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Close strategist"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Switch agent"
+                className="flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-secondary/60"
+              >
+                <ActiveIcon className="h-4 w-4 text-primary" />
+                <span className="font-serif text-lg tracking-tight text-foreground">
+                  {active.label}
+                </span>
+                <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuLabel>Talk to an agent</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {PANEL_AGENTS.map((a) => {
+                const Icon = a.icon;
+                return (
+                  <DropdownMenuItem
+                    key={a.id}
+                    onSelect={() => setAgent(a.id)}
+                    className="gap-2"
+                  >
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <span className="flex-1">{a.label}</span>
+                    {a.id === agent && <Check className="h-3.5 w-3.5 text-primary" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <div className="min-h-0 flex-1">
-          <AssistantChat />
+          {agent === "manager" && <ManagerPanelView onNavigate={close} />}
+          {agent === "strategist" && <AssistantChat />}
+          {agent === "investigator" && <InvestigatorPanelView onNavigate={close} />}
+          {agent === "planner" && <PlannerPanelView onNavigate={close} />}
+          {agent === "ghostwriter" && <GhostwriterPanelView onNavigate={close} />}
         </div>
       </SheetContent>
     </Sheet>

@@ -16,6 +16,8 @@ tags:
     description: Digital presence audit operations
   - name: narrative
     description: Narrative development operations
+  - name: portrait
+    description: AI-synthesized foundational profile portrait
   - name: posts
     description: Content post operations
   - name: ideas
@@ -175,6 +177,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NarrativeProfile"
+
+  /portrait:
+    get:
+      operationId: getPortrait
+      tags: [portrait]
+      summary: Get the synthesized foundational profile portrait
+      responses:
+        "200":
+          description: Profile portrait
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePortrait"
+        "404":
+          description: Not found
+
+  /portrait/generate:
+    post:
+      operationId: generatePortrait
+      tags: [portrait]
+      summary: Generate (or regenerate) the foundational profile portrait from the current profile
+      responses:
+        "200":
+          description: Generated profile portrait
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePortrait"
+        "404":
+          description: Not found
 
   /platforms:
     get:
@@ -1514,6 +1546,38 @@ components:
           type: array
           items:
             type: string
+
+    PortraitSection:
+      type: object
+      required: [title, body]
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+
+    ProfilePortrait:
+      type: object
+      required: [id, clientId, headline, summary, sections, stale, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        headline:
+          type: string
+        summary:
+          type: string
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortraitSection"
+        stale:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
 
     Post:
       type: object

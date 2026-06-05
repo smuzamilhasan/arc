@@ -1,6 +1,7 @@
 export * from "./clientProfile";
 export * from "./auditResults";
 export * from "./narrativeProfiles";
+export * from "./profilePortraits";
 export * from "./platformStrategies";
 export * from "./contentStrategies";
 export * from "./posts";

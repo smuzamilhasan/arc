@@ -398,6 +398,22 @@ export interface NarrativeUpdateInput {
   contentHooks: string[];
 }
 
+export interface PortraitSection {
+  title: string;
+  body: string;
+}
+
+export interface ProfilePortrait {
+  id: number;
+  clientId: number;
+  headline: string;
+  summary: string;
+  sections: PortraitSection[];
+  stale: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type PostPlatform = typeof PostPlatform[keyof typeof PostPlatform];
 
 

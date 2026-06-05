@@ -57,6 +57,7 @@ import type {
   Post,
   PostInput,
   PostUpdate,
+  ProfilePortrait,
   ScheduleBatchInput
 } from './api.schemas';
 
@@ -804,6 +805,153 @@ export const useGenerateNarrative = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getGenerateNarrativeMutationOptions(options));
+    }
+
+export const getGetPortraitUrl = () => {
+
+
+
+
+  return `/api/portrait`
+}
+
+/**
+ * @summary Get the synthesized foundational profile portrait
+ */
+export const getPortrait = async ( options?: RequestInit): Promise<ProfilePortrait> => {
+
+  return customFetch<ProfilePortrait>(getGetPortraitUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPortraitQueryKey = () => {
+    return [
+    `/api/portrait`
+    ] as const;
+    }
+
+
+export const getGetPortraitQueryOptions = <TData = Awaited<ReturnType<typeof getPortrait>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPortrait>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPortraitQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortrait>>> = ({ signal }) => getPortrait({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPortrait>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPortraitQueryResult = NonNullable<Awaited<ReturnType<typeof getPortrait>>>
+export type GetPortraitQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the synthesized foundational profile portrait
+ */
+
+export function useGetPortrait<TData = Awaited<ReturnType<typeof getPortrait>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPortrait>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPortraitQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGeneratePortraitUrl = () => {
+
+
+
+
+  return `/api/portrait/generate`
+}
+
+/**
+ * @summary Generate (or regenerate) the foundational profile portrait from the current profile
+ */
+export const generatePortrait = async ( options?: RequestInit): Promise<ProfilePortrait> => {
+
+  return customFetch<ProfilePortrait>(getGeneratePortraitUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGeneratePortraitMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePortrait>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generatePortrait>>, TError,void, TContext> => {
+
+const mutationKey = ['generatePortrait'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generatePortrait>>, void> = () => {
+
+
+          return  generatePortrait(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GeneratePortraitMutationResult = NonNullable<Awaited<ReturnType<typeof generatePortrait>>>
+
+    export type GeneratePortraitMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate (or regenerate) the foundational profile portrait from the current profile
+ */
+export const useGeneratePortrait = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePortrait>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generatePortrait>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGeneratePortraitMutationOptions(options));
     }
 
 export const getGetPlatformsUrl = () => {

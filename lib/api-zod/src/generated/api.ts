@@ -315,6 +315,42 @@ export const GenerateNarrativeResponse = zod.object({
 
 
 /**
+ * @summary Get the synthesized foundational profile portrait
+ */
+export const GetPortraitResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "headline": zod.string(),
+  "summary": zod.string(),
+  "sections": zod.array(zod.object({
+  "title": zod.string(),
+  "body": zod.string()
+})),
+  "stale": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Generate (or regenerate) the foundational profile portrait from the current profile
+ */
+export const GeneratePortraitResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "headline": zod.string(),
+  "summary": zod.string(),
+  "sections": zod.array(zod.object({
+  "title": zod.string(),
+  "body": zod.string()
+})),
+  "stale": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
  * @summary Get the platform strategy
  */
 export const GetPlatformsResponse = zod.object({

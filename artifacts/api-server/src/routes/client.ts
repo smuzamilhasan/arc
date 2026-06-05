@@ -3,6 +3,7 @@ import {
   db,
   clientProfileTable,
   auditResultsTable,
+  briefingDossiersTable,
   narrativeProfilesTable,
   postsTable,
   ideasTable,
@@ -28,6 +29,9 @@ async function deleteClientData(clientId: number) {
     await tx
       .delete(auditResultsTable)
       .where(eq(auditResultsTable.clientId, clientId));
+    await tx
+      .delete(briefingDossiersTable)
+      .where(eq(briefingDossiersTable.clientId, clientId));
     await tx
       .delete(contentStrategiesTable)
       .where(eq(contentStrategiesTable.clientId, clientId));

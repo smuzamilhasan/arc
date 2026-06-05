@@ -172,6 +172,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuditAutoRefreshResult"
 
+  /dossier:
+    get:
+      operationId: getDossier
+      tags: [dossier]
+      summary: Get the latest briefing dossier
+      responses:
+        "200":
+          description: Briefing dossier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BriefingDossier"
+        "404":
+          description: Not found
+
+  /dossier/generate:
+    post:
+      operationId: generateDossier
+      tags: [dossier]
+      summary: Research the client and competitors into a briefing dossier
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DossierGenerateInput"
+      responses:
+        "200":
+          description: Generated briefing dossier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BriefingDossier"
+        "404":
+          description: No client profile yet
+        "502":
+          description: Generation failed
+
   /narrative:
     get:
       operationId: getNarrative
@@ -1432,6 +1470,58 @@ components:
         reason:
           type: string
           description: Why a refresh was not started (e.g. no_client, no_prior_audit, fresh, in_flight).
+
+    Competitor:
+      type: object
+      required: [name, description, positioning, differentiation]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        positioning:
+          type: string
+        differentiation:
+          type: string
+
+    DossierSource:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+
+    BriefingDossier:
+      type: object
+      required: [id, clientId, footprintSummary, competitors, sources, generatedAt, createdAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        footprintSummary:
+          type: string
+        competitors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Competitor"
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/DossierSource"
+        generatedAt:
+          type: string
+        createdAt:
+          type: string
+
+    DossierGenerateInput:
+      type: object
+      properties:
+        feedback:
+          type: string
+          description: Optional user revision notes to steer a regeneration.
 
     NarrativeTheme:
       type: object

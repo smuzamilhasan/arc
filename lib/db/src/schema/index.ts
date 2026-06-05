@@ -1,5 +1,6 @@
 export * from "./clientProfile";
 export * from "./auditResults";
+export * from "./briefingDossiers";
 export * from "./narrativeProfiles";
 export * from "./profilePortraits";
 export * from "./platformStrategies";

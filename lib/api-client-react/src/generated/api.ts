@@ -35,12 +35,14 @@ import type {
   AuditRefreshStatus,
   AuditResult,
   AuditRunInput,
+  BriefingDossier,
   ClientProfile,
   ClientProfileInput,
   ContentStrategy,
   ContentStrategyGenerateInput,
   ContentStrategyUpdateInput,
   DashboardSummary,
+  DossierGenerateInput,
   DraftPillarInput,
   DraftPillarResult,
   DraftPostsInput,
@@ -815,6 +817,154 @@ export const useAutoRefreshAudit = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAutoRefreshAuditMutationOptions(options));
+    }
+
+export const getGetDossierUrl = () => {
+
+
+
+
+  return `/api/dossier`
+}
+
+/**
+ * @summary Get the latest briefing dossier
+ */
+export const getDossier = async ( options?: RequestInit): Promise<BriefingDossier> => {
+
+  return customFetch<BriefingDossier>(getGetDossierUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDossierQueryKey = () => {
+    return [
+    `/api/dossier`
+    ] as const;
+    }
+
+
+export const getGetDossierQueryOptions = <TData = Awaited<ReturnType<typeof getDossier>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDossier>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDossierQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDossier>>> = ({ signal }) => getDossier({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDossier>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDossierQueryResult = NonNullable<Awaited<ReturnType<typeof getDossier>>>
+export type GetDossierQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the latest briefing dossier
+ */
+
+export function useGetDossier<TData = Awaited<ReturnType<typeof getDossier>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDossier>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDossierQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGenerateDossierUrl = () => {
+
+
+
+
+  return `/api/dossier/generate`
+}
+
+/**
+ * @summary Research the client and competitors into a briefing dossier
+ */
+export const generateDossier = async (dossierGenerateInput?: DossierGenerateInput, options?: RequestInit): Promise<BriefingDossier> => {
+
+  return customFetch<BriefingDossier>(getGenerateDossierUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      dossierGenerateInput,)
+  }
+);}
+
+
+
+
+export const getGenerateDossierMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateDossier>>, TError,{data?: BodyType<DossierGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateDossier>>, TError,{data?: BodyType<DossierGenerateInput>}, TContext> => {
+
+const mutationKey = ['generateDossier'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateDossier>>, {data?: BodyType<DossierGenerateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateDossier(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateDossierMutationResult = NonNullable<Awaited<ReturnType<typeof generateDossier>>>
+    export type GenerateDossierMutationBody = BodyType<DossierGenerateInput> | undefined
+    export type GenerateDossierMutationError = ErrorType<void>
+
+    /**
+ * @summary Research the client and competitors into a briefing dossier
+ */
+export const useGenerateDossier = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateDossier>>, TError,{data?: BodyType<DossierGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateDossier>>,
+        TError,
+        {data?: BodyType<DossierGenerateInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateDossierMutationOptions(options));
     }
 
 export const getGetNarrativeUrl = () => {

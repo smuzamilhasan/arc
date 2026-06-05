@@ -298,6 +298,54 @@ export const AutoRefreshAuditResponse = zod.object({
 
 
 /**
+ * @summary Get the latest briefing dossier
+ */
+export const GetDossierResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "footprintSummary": zod.string(),
+  "competitors": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string(),
+  "positioning": zod.string(),
+  "differentiation": zod.string()
+})),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "generatedAt": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Research the client and competitors into a briefing dossier
+ */
+export const GenerateDossierBody = zod.object({
+  "feedback": zod.string().optional().describe('Optional user revision notes to steer a regeneration.')
+})
+
+export const GenerateDossierResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "footprintSummary": zod.string(),
+  "competitors": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string(),
+  "positioning": zod.string(),
+  "differentiation": zod.string()
+})),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "generatedAt": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
  * @summary Get the narrative profile
  */
 export const GetNarrativeResponse = zod.object({

@@ -8,6 +8,7 @@ import type {
   Post,
   Idea,
   AuditResult,
+  BriefingDossier,
   AssistantAction,
   AssistantActionKind,
   AssistantDiffItem,
@@ -23,6 +24,7 @@ export type SystemContext = {
   posts: Post[];
   ideas: Idea[];
   audit?: AuditResult;
+  dossier?: BriefingDossier;
 };
 
 // A turn in the conversation, as fed back to the model for continuity.
@@ -299,6 +301,19 @@ export function buildSystemContext(ctx: SystemContext): string {
     parts.push(line("SEO summary", ctx.audit.seoFindings?.summary));
     parts.push(line("GEO summary", ctx.audit.geoFindings?.summary));
     parts.push(line("Recommendations", ctx.audit.recommendations));
+  }
+
+  if (ctx.dossier) {
+    parts.push("\n=== BRIEFING DOSSIER (Investigator research, read-only) ===");
+    parts.push(line("Public footprint", ctx.dossier.footprintSummary));
+    if (ctx.dossier.competitors?.length) {
+      parts.push("Competitive landscape:");
+      for (const comp of ctx.dossier.competitors) {
+        parts.push(
+          `- ${comp.name}: ${comp.description}${comp.positioning ? ` Positioning: ${comp.positioning}.` : ""}${comp.differentiation ? ` Differentiation: ${comp.differentiation}.` : ""}`,
+        );
+      }
+    }
   }
 
   if (ctx.narrative) {

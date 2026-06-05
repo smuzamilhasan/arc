@@ -21,6 +21,7 @@ import {
   ideasTable,
   narrativeProfilesTable,
   auditResultsTable,
+  briefingDossiersTable,
   platformStrategiesTable,
   contentStrategiesTable,
 } from "@workspace/db";
@@ -48,6 +49,9 @@ async function cleanupUser(userId: string) {
   await db
     .delete(auditResultsTable)
     .where(eq(auditResultsTable.clientId, client.id));
+  await db
+    .delete(briefingDossiersTable)
+    .where(eq(briefingDossiersTable.clientId, client.id));
   await db
     .delete(platformStrategiesTable)
     .where(eq(platformStrategiesTable.clientId, client.id));
@@ -534,6 +538,7 @@ describe("strategy data is purged on reset", () => {
 
     await db.insert(platformStrategiesTable).values({ clientId: client.id });
     await db.insert(contentStrategiesTable).values({ clientId: client.id });
+    await db.insert(briefingDossiersTable).values({ clientId: client.id });
 
     await request(app).post("/api/client/reset").set(as(USER_R)).expect(204);
 
@@ -545,9 +550,14 @@ describe("strategy data is purged on reset", () => {
       .select()
       .from(contentStrategiesTable)
       .where(eq(contentStrategiesTable.clientId, client.id));
+    const dossiers = await db
+      .select()
+      .from(briefingDossiersTable)
+      .where(eq(briefingDossiersTable.clientId, client.id));
 
     expect(platforms).toHaveLength(0);
     expect(content).toHaveLength(0);
+    expect(dossiers).toHaveLength(0);
   });
 });
 

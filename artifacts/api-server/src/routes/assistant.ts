@@ -9,6 +9,7 @@ import {
   postsTable,
   ideasTable,
   auditResultsTable,
+  briefingDossiersTable,
   type AssistantAction,
   type AssistantActionKind,
   type ClientProfile,
@@ -67,6 +68,12 @@ export async function loadContext(clientId: number, client: ClientProfile): Prom
     .where(eq(auditResultsTable.clientId, clientId))
     .orderBy(desc(auditResultsTable.id))
     .limit(1);
+  const [dossier] = await db
+    .select()
+    .from(briefingDossiersTable)
+    .where(eq(briefingDossiersTable.clientId, clientId))
+    .orderBy(desc(briefingDossiersTable.id))
+    .limit(1);
   const posts = await db
     .select()
     .from(postsTable)
@@ -78,7 +85,7 @@ export async function loadContext(clientId: number, client: ClientProfile): Prom
     .where(eq(ideasTable.clientId, clientId))
     .orderBy(desc(ideasTable.createdAt));
 
-  return { client, narrative, platforms, contentStrategy, audit, posts, ideas };
+  return { client, narrative, platforms, contentStrategy, audit, dossier, posts, ideas };
 }
 
 export async function loadHistory(clientId: number): Promise<HistoryTurn[]> {

@@ -285,6 +285,33 @@ export interface AuditAutoRefreshResult {
   reason?: string;
 }
 
+export interface Competitor {
+  name: string;
+  description: string;
+  positioning: string;
+  differentiation: string;
+}
+
+export interface DossierSource {
+  title: string;
+  url: string;
+}
+
+export interface BriefingDossier {
+  id: number;
+  clientId: number;
+  footprintSummary: string;
+  competitors: Competitor[];
+  sources: DossierSource[];
+  generatedAt: string;
+  createdAt: string;
+}
+
+export interface DossierGenerateInput {
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
+}
+
 export interface NarrativeTheme {
   title: string;
   description: string;

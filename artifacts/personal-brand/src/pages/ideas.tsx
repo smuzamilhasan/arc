@@ -270,10 +270,17 @@ export default function Ideas() {
                 <Button type="button" variant="ghost" onClick={() => setIsEditorOpen(false)} className="text-muted-foreground hover:text-foreground">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createIdea.isPending || updateIdea.isPending} className="gap-2 rounded-full px-8 bg-primary hover:bg-primary/90 h-11">
-                  {(createIdea.isPending || updateIdea.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingIdea ? "Save Updates" : "Save to Bank"}
-                </Button>
+                <div className="flex items-center gap-3">
+                  {editingIdea && (
+                    <Button type="button" variant="ghost" onClick={() => promoteToPost(editingIdea)} className="gap-1 text-primary hover:text-primary hover:bg-primary/5 rounded-full px-4 h-11">
+                      Use Idea <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Button type="submit" disabled={createIdea.isPending || updateIdea.isPending} className="gap-2 rounded-full px-8 bg-primary hover:bg-primary/90 h-11">
+                    {(createIdea.isPending || updateIdea.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {editingIdea ? "Save Updates" : "Save to Bank"}
+                  </Button>
+                </div>
               </div>
             </form>
           </Form>

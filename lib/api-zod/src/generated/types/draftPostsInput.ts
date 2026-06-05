@@ -16,6 +16,8 @@ export interface DraftPostsInput {
   brief?: string;
   /** Optional saved idea to ground the draft in (its title and notes are used). */
   ideaId?: number;
+  /** Optional existing post to expand. Its title and skeleton content are carried in as source material so the draft expands on them rather than starting from scratch. Scoped to the signed-in client. */
+  postId?: number;
   /** Optional narrative theme or angle title to anchor the draft to. */
   theme?: string;
   /** How many draft variants to produce (server-bounded). */

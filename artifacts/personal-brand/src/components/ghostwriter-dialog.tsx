@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   useDraftPosts,
   useCreatePost,
+  useUpdatePost,
   useGetNarrative,
   getGetNarrativeQueryKey,
   getListPostsQueryKey,
@@ -41,6 +42,10 @@ export type GhostwriterPrefill = {
   theme?: string;
   platform?: Platform;
   brief?: string;
+  // When launched to expand an existing post, these ground the draft in that
+  // post and enable applying an expanded draft back onto it in place.
+  postId?: number;
+  postTitle?: string;
 };
 
 type EditableDraft = DraftedPost & { saved?: boolean };
@@ -58,6 +63,7 @@ export function GhostwriterDialog({
   const queryClient = useQueryClient();
   const draftPosts = useDraftPosts();
   const createPost = useCreatePost();
+  const updatePost = useUpdatePost();
   const { data: narrative } = useGetNarrative({
     query: { queryKey: getGetNarrativeQueryKey(), retry: false },
   });
@@ -67,6 +73,8 @@ export function GhostwriterDialog({
   const [brief, setBrief] = useState("");
   const [theme, setTheme] = useState<string>("");
   const [ideaId, setIdeaId] = useState<number | undefined>(undefined);
+  const [postId, setPostId] = useState<number | undefined>(undefined);
+  const [appliedIndex, setAppliedIndex] = useState<number | null>(null);
   const [drafts, setDrafts] = useState<EditableDraft[]>([]);
 
   const { requestFeedback, dialog: feedbackDialog } = useRegenerateFeedback({
@@ -83,9 +91,11 @@ export function GhostwriterDialog({
     setBrief(prefill?.brief ?? "");
     setTheme(prefill?.theme ?? "");
     setIdeaId(prefill?.ideaId);
+    setPostId(prefill?.postId);
+    setAppliedIndex(null);
     setDrafts([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, prefill?.ideaId, prefill?.theme, prefill?.platform, prefill?.brief]);
+  }, [open, prefill?.ideaId, prefill?.theme, prefill?.platform, prefill?.brief, prefill?.postId]);
 
   const themes = narrative?.themes ?? [];
 
@@ -96,6 +106,7 @@ export function GhostwriterDialog({
       brief: brief.trim() || undefined,
       theme: theme.trim() || undefined,
       ideaId,
+      postId,
       feedback,
     };
     draftPosts.mutate(
@@ -153,6 +164,32 @@ export function GhostwriterDialog({
           toast({ title: "Saved to library", description: "Added as a draft post." });
         },
         onError: () => toast({ title: "Could not save draft", variant: "destructive" }),
+      },
+    );
+  };
+
+  // Apply an expanded draft back onto the post the Ghostwriter was launched
+  // from, in place. Only the title and content change — the post's status and
+  // scheduled date are left untouched so the calendar slot stays put.
+  const applyToPost = (index: number) => {
+    if (postId === undefined) return;
+    const d = drafts[index];
+    if (!d || !d.title.trim() || !d.content.trim()) {
+      toast({ title: "Add a title and content first", variant: "destructive" });
+      return;
+    }
+    updatePost.mutate(
+      { id: postId, data: { title: d.title.trim(), content: d.content.trim() } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+          setAppliedIndex(index);
+          toast({
+            title: "Post updated",
+            description: "The expanded draft was applied to your post.",
+          });
+        },
+        onError: () => toast({ title: "Could not update post", variant: "destructive" }),
       },
     );
   };
@@ -233,6 +270,19 @@ export function GhostwriterDialog({
             </div>
           )}
 
+          {postId !== undefined && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+              <span className="text-muted-foreground">Expanding post: </span>
+              <span className="font-medium text-foreground">
+                {prefill?.postTitle || "your post"}
+              </span>
+              <p className="mt-1 text-xs font-light text-muted-foreground">
+                The post&apos;s title and skeleton are used as source material. Apply an expanded
+                draft back to this post to fill its calendar slot in place.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label className="text-muted-foreground font-medium text-xs uppercase tracking-widest">
               Brief / topic (optional)
@@ -283,11 +333,15 @@ export function GhostwriterDialog({
                     onChange={(e) => updateDraft(i, { content: e.target.value, saved: false })}
                     className="min-h-[160px] resize-y bg-background border-border/50 p-3 font-light text-base leading-relaxed"
                   />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                      {d.saved ? "Saved to library" : `${d.format} · ${platform}`}
+                      {appliedIndex === i
+                        ? "Applied to post"
+                        : d.saved
+                          ? "Saved to library"
+                          : `${d.format} · ${platform}`}
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -296,11 +350,25 @@ export function GhostwriterDialog({
                       >
                         <X className="w-3.5 h-3.5" /> Discard
                       </Button>
+                      {postId !== undefined && (
+                        <Button
+                          size="sm"
+                          onClick={() => applyToPost(i)}
+                          disabled={updatePost.isPending || appliedIndex === i}
+                          className="rounded-full gap-1.5 bg-primary hover:bg-primary/90 px-4"
+                        >
+                          <Check className="w-3.5 h-3.5" />{" "}
+                          {appliedIndex === i ? "Updated" : "Update this post"}
+                        </Button>
+                      )}
                       <Button
+                        variant={postId !== undefined ? "outline" : "default"}
                         size="sm"
                         onClick={() => saveDraft(i)}
                         disabled={createPost.isPending || d.saved}
-                        className="rounded-full gap-1.5 bg-primary hover:bg-primary/90 px-4"
+                        className={`rounded-full gap-1.5 px-4 ${
+                          postId !== undefined ? "" : "bg-primary hover:bg-primary/90"
+                        }`}
                       >
                         <Check className="w-3.5 h-3.5" /> {d.saved ? "Saved" : "Add to library"}
                       </Button>

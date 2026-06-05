@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { ShareMenu } from "@/components/share-menu";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,6 +52,7 @@ export function PostEditorDialog({
   onOpenChange,
   post,
   initialScheduledAt,
+  onExpandWithGhostwriter,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -59,6 +60,14 @@ export function PostEditorDialog({
   post?: Post | null;
   // Prefill the schedule date when creating a new post (e.g. from a calendar day).
   initialScheduledAt?: string;
+  // Launch the Ghostwriter to expand the post being edited into a full draft.
+  // Receives the current form values so any in-progress edits carry over.
+  onExpandWithGhostwriter?: (source: {
+    id: number;
+    title: string;
+    content: string;
+    platform: PostPlatform;
+  }) => void;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -243,6 +252,23 @@ export function PostEditorDialog({
                 Cancel
               </Button>
               <div className="flex items-center gap-2">
+                {post && onExpandWithGhostwriter && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      onExpandWithGhostwriter({
+                        id: post.id,
+                        title: form.watch("title"),
+                        content: form.watch("content"),
+                        platform: form.watch("platform"),
+                      })
+                    }
+                    className="gap-2 rounded-full px-5 h-11 border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
+                  >
+                    <Sparkles className="w-4 h-4" /> Expand with Ghostwriter
+                  </Button>
+                )}
                 {post && (
                   <ShareMenu
                     post={{

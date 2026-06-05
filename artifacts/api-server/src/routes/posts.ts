@@ -200,6 +200,23 @@ router.post("/posts/draft", aiGenerationRateLimit, async (req, res) => {
     ideaNotes = idea.notes ?? undefined;
   }
 
+  // Optionally expand an existing post — its title + skeleton content become the
+  // source material the draft expands on. Scoped to this client.
+  let postTitle: string | undefined;
+  let postContent: string | undefined;
+  if (data.postId !== undefined) {
+    const [post] = await db
+      .select()
+      .from(postsTable)
+      .where(and(eq(postsTable.id, data.postId), eq(postsTable.clientId, client.id)));
+    if (!post) {
+      res.status(400).json({ error: "Post not found" });
+      return;
+    }
+    postTitle = post.title;
+    postContent = post.content;
+  }
+
   // Use the latest narrative for voice/themes if one exists; it's optional.
   const [narrative] = await db
     .select()
@@ -218,6 +235,8 @@ router.post("/posts/draft", aiGenerationRateLimit, async (req, res) => {
       feedback: data.feedback,
       ideaTitle,
       ideaNotes,
+      postTitle,
+      postContent,
     });
     if (result.drafts.length === 0) {
       res.status(502).json({ error: "The Ghostwriter could not produce a draft. Please try again." });

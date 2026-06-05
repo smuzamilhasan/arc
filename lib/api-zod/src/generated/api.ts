@@ -1164,6 +1164,7 @@ export const DraftPostsBody = zod.object({
   "platform": zod.enum(['linkedin', 'twitter', 'instagram', 'blog', 'other']),
   "brief": zod.string().optional().describe('Optional freeform topic, angle, or instruction the draft should be about.'),
   "ideaId": zod.number().optional().describe('Optional saved idea to ground the draft in (its title and notes are used).'),
+  "postId": zod.number().optional().describe('Optional existing post to expand. Its title and skeleton content are carried in as source material so the draft expands on them rather than starting from scratch. Scoped to the signed-in client.'),
   "theme": zod.string().optional().describe('Optional narrative theme or angle title to anchor the draft to.'),
   "count": zod.number().optional().describe('How many draft variants to produce (server-bounded).'),
   "feedback": zod.string().optional().describe('Optional revision notes to steer a regeneration.')

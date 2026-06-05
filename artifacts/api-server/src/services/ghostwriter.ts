@@ -13,6 +13,9 @@ export type DraftSource = {
   ideaNotes?: string;
   // A narrative theme / angle title to anchor the draft to.
   theme?: string;
+  // Title + skeleton content of an existing post to expand into a full draft.
+  postTitle?: string;
+  postContent?: string;
 };
 
 export type DraftContentInput = DraftSource & {
@@ -117,6 +120,10 @@ function buildVoiceAndMaterial(client: ClientProfile, narrative: NarrativeProfil
 
 function buildAssignment(input: DraftContentInput): string {
   const parts = [
+    input.postTitle &&
+      `Expand this existing post into a full, ready-to-publish draft. Keep its intent and angle; flesh out the skeleton with substance, structure, and the client's voice rather than starting over. Existing post title/hook: ${input.postTitle}`,
+    input.postContent &&
+      `Existing skeleton/notes to expand on: ${input.postContent}`,
     input.theme && `Anchor it to this content theme/angle: ${input.theme}`,
     input.ideaTitle && `Base it on this saved idea — title: ${input.ideaTitle}`,
     input.ideaNotes && `Idea notes: ${input.ideaNotes}`,

@@ -725,7 +725,22 @@ function ContentLibrary() {
       )}
 
       {/* Editor Dialog */}
-      <PostEditorDialog open={isEditorOpen} onOpenChange={setIsEditorOpen} post={editingPost} />
+      <PostEditorDialog
+        open={isEditorOpen}
+        onOpenChange={setIsEditorOpen}
+        post={editingPost}
+        onExpandWithGhostwriter={(source) => {
+          // Close the editor and launch the Ghostwriter grounded in this post so
+          // an expanded draft can be applied back onto it in place.
+          setIsEditorOpen(false);
+          setGhostwriterPrefill({
+            postId: source.id,
+            postTitle: source.title,
+            platform: source.platform,
+          });
+          setIsGhostwriterOpen(true);
+        }}
+      />
 
       {/* Ghostwriter Dialog */}
       <GhostwriterDialog open={isGhostwriterOpen} onOpenChange={setIsGhostwriterOpen} prefill={ghostwriterPrefill} />

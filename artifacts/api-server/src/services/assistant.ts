@@ -9,6 +9,7 @@ import type {
   Idea,
   AuditResult,
   BriefingDossier,
+  IndustryOverview,
   AssistantAction,
   AssistantActionKind,
   AssistantDiffItem,
@@ -25,6 +26,7 @@ export type SystemContext = {
   ideas: Idea[];
   audit?: AuditResult;
   dossier?: BriefingDossier;
+  industryOverview?: IndustryOverview;
 };
 
 // A turn in the conversation, as fed back to the model for continuity.
@@ -333,6 +335,34 @@ export function buildSystemContext(ctx: SystemContext): string {
     parts.push(line("Closing", ctx.platforms.closing));
   } else {
     parts.push("\n=== PLATFORM STRATEGY === (not generated yet)");
+  }
+
+  if (ctx.industryOverview) {
+    const io = ctx.industryOverview;
+    parts.push("\n=== INDUSTRY OVERVIEW ===");
+    parts.push(line("Industry", io.industry));
+    parts.push(line("Geography focus", io.geographyFocus));
+    parts.push(line("Landscape", io.landscapeContext));
+    if (io.competitors?.length) {
+      parts.push("Competitors to watch:");
+      for (const c of io.competitors) {
+        parts.push(`- ${c.name}: ${c.description}`);
+      }
+    }
+    if (io.thoughtLeaders?.length) {
+      parts.push("Thought leaders:");
+      for (const t of io.thoughtLeaders) {
+        parts.push(`- ${t.name}: ${t.description}`);
+      }
+    }
+    if (io.playbook?.length) {
+      parts.push("Industry personal-branding playbook:");
+      for (const m of io.playbook) {
+        parts.push(`- ${m.title}: ${m.detail}`);
+      }
+    }
+  } else {
+    parts.push("\n=== INDUSTRY OVERVIEW === (not generated yet)");
   }
 
   if (ctx.contentStrategy) {

@@ -61,6 +61,8 @@ import type {
   Idea,
   IdeaInput,
   IdeaUpdate,
+  IndustryOverview,
+  IndustryOverviewGenerateInput,
   ListPostsParams,
   NarrativeGenerateInput,
   NarrativeProfile,
@@ -1555,6 +1557,154 @@ export const useGeneratePlatforms = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getGeneratePlatformsMutationOptions(options));
+    }
+
+export const getGetIndustryOverviewUrl = () => {
+
+
+
+
+  return `/api/industry-overview`
+}
+
+/**
+ * @summary Get the latest industry overview
+ */
+export const getIndustryOverview = async ( options?: RequestInit): Promise<IndustryOverview> => {
+
+  return customFetch<IndustryOverview>(getGetIndustryOverviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIndustryOverviewQueryKey = () => {
+    return [
+    `/api/industry-overview`
+    ] as const;
+    }
+
+
+export const getGetIndustryOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getIndustryOverview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIndustryOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIndustryOverviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIndustryOverview>>> = ({ signal }) => getIndustryOverview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIndustryOverview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetIndustryOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getIndustryOverview>>>
+export type GetIndustryOverviewQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the latest industry overview
+ */
+
+export function useGetIndustryOverview<TData = Awaited<ReturnType<typeof getIndustryOverview>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIndustryOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetIndustryOverviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGenerateIndustryOverviewUrl = () => {
+
+
+
+
+  return `/api/industry-overview/generate`
+}
+
+/**
+ * @summary Research the client's industry landscape into an industry overview
+ */
+export const generateIndustryOverview = async (industryOverviewGenerateInput?: IndustryOverviewGenerateInput, options?: RequestInit): Promise<IndustryOverview> => {
+
+  return customFetch<IndustryOverview>(getGenerateIndustryOverviewUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      industryOverviewGenerateInput,)
+  }
+);}
+
+
+
+
+export const getGenerateIndustryOverviewMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateIndustryOverview>>, TError,{data?: BodyType<IndustryOverviewGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateIndustryOverview>>, TError,{data?: BodyType<IndustryOverviewGenerateInput>}, TContext> => {
+
+const mutationKey = ['generateIndustryOverview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateIndustryOverview>>, {data?: BodyType<IndustryOverviewGenerateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateIndustryOverview(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateIndustryOverviewMutationResult = NonNullable<Awaited<ReturnType<typeof generateIndustryOverview>>>
+    export type GenerateIndustryOverviewMutationBody = BodyType<IndustryOverviewGenerateInput> | undefined
+    export type GenerateIndustryOverviewMutationError = ErrorType<void>
+
+    /**
+ * @summary Research the client's industry landscape into an industry overview
+ */
+export const useGenerateIndustryOverview = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateIndustryOverview>>, TError,{data?: BodyType<IndustryOverviewGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateIndustryOverview>>,
+        TError,
+        {data?: BodyType<IndustryOverviewGenerateInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateIndustryOverviewMutationOptions(options));
     }
 
 export const getGetContentStrategyUrl = () => {

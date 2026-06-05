@@ -360,6 +360,46 @@ paths:
         "502":
           description: Generation failed
 
+  /industry-overview:
+    get:
+      operationId: getIndustryOverview
+      tags: [industryOverview]
+      summary: Get the latest industry overview
+      responses:
+        "200":
+          description: Industry overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndustryOverview"
+        "404":
+          description: Not found
+
+  /industry-overview/generate:
+    post:
+      operationId: generateIndustryOverview
+      tags: [industryOverview]
+      summary: Research the client's industry landscape into an industry overview
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IndustryOverviewGenerateInput"
+      responses:
+        "200":
+          description: Generated industry overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndustryOverview"
+        "403":
+          description: Foundation incomplete
+        "404":
+          description: No client profile yet
+        "502":
+          description: Generation failed
+
   /content-strategy:
     get:
       operationId: getContentStrategy
@@ -1690,6 +1730,90 @@ components:
           type: string
         updatedAt:
           type: string
+
+    IndustryPlayer:
+      type: object
+      required: [name, description, positioning]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        positioning:
+          type: string
+
+    PlaybookMove:
+      type: object
+      required: [title, detail]
+      properties:
+        title:
+          type: string
+        detail:
+          type: string
+
+    IndustrySource:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+
+    IndustryOverview:
+      type: object
+      required:
+        [
+          id,
+          clientId,
+          industry,
+          geographyFocus,
+          landscapeContext,
+          competitors,
+          thoughtLeaders,
+          playbook,
+          sources,
+          generatedAt,
+          createdAt,
+        ]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        industry:
+          type: string
+        geographyFocus:
+          type: string
+        landscapeContext:
+          type: string
+        competitors:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndustryPlayer"
+        thoughtLeaders:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndustryPlayer"
+        playbook:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaybookMove"
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndustrySource"
+        generatedAt:
+          type: string
+        createdAt:
+          type: string
+
+    IndustryOverviewGenerateInput:
+      type: object
+      properties:
+        feedback:
+          type: string
+          description: Optional user revision notes to steer a regeneration.
 
     PlatformCadence:
       type: object

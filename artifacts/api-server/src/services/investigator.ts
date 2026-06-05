@@ -1,8 +1,30 @@
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { ai } from "@workspace/integrations-gemini-ai";
-import type { ClientProfile, Competitor, DossierSource } from "@workspace/db";
+import type { ClientProfile, Competitor, DossierSource, IndustryOverview } from "@workspace/db";
 import { parseJsonLoose } from "./json";
 import { feedbackBlock } from "./feedback";
+
+// A compact, plain-text digest of a generated Industry Overview, used to ground
+// the investigator in the client's mapped industry landscape when one exists.
+function industryOverviewBlock(overview?: IndustryOverview): string {
+  if (!overview) return "";
+  const lines: string[] = [];
+  if (overview.industry) lines.push(`Industry: ${overview.industry}`);
+  if (overview.geographyFocus) lines.push(`Geography focus: ${overview.geographyFocus}`);
+  if (overview.landscapeContext) lines.push(`Landscape: ${overview.landscapeContext}`);
+  if (overview.competitors?.length) {
+    lines.push(
+      `Known competitors to watch: ${overview.competitors.map((c) => c.name).join(", ")}`,
+    );
+  }
+  if (overview.thoughtLeaders?.length) {
+    lines.push(
+      `Recognized thought leaders: ${overview.thoughtLeaders.map((t) => t.name).join(", ")}`,
+    );
+  }
+  if (lines.length === 0) return "";
+  return `\n\nKnown industry overview for this person (use as context to target the right field and people; do not contradict the live web):\n${lines.join("\n")}`;
+}
 
 export type DossierData = {
   footprintSummary: string;
@@ -28,12 +50,13 @@ function describeClient(client: ClientProfile): string {
 async function gatherResearch(
   subject: string,
   client: ClientProfile,
-  feedback?: string
+  feedback?: string,
+  overview?: IndustryOverview
 ): Promise<{ text: string; sources: DossierSource[] }> {
   const positioning = [client.positioning, client.industry, client.primaryAudience]
     .filter(Boolean)
     .join("; ");
-  const prompt = `You are a research analyst preparing a briefing on a person and the landscape they operate in.\n\nPerson: ${subject}\n${positioning ? `Positioning / field / audience: ${positioning}\n` : ""}\nUsing current public web information, do two things:\n1. Summarize this person's public footprint: who they are, their background, current work, notable achievements, and how visibly they show up online.\n2. Identify the most relevant competitors or peers — other people (or, where appropriate, organizations) competing for the same audience, attention, or authority in this person's field. For each, note what they are known for and how they are positioned.\n\nBase everything strictly on what is currently published on the web. Do not invent details. If little can be found about this specific person, say so plainly.${feedbackBlock(feedback, { focus: "Use this only to disambiguate or target the right person and the right competitive field; never fabricate information that is not on the web." })}`;
+  const prompt = `You are a research analyst preparing a briefing on a person and the landscape they operate in.\n\nPerson: ${subject}\n${positioning ? `Positioning / field / audience: ${positioning}\n` : ""}\nUsing current public web information, do two things:\n1. Summarize this person's public footprint: who they are, their background, current work, notable achievements, and how visibly they show up online.\n2. Identify the most relevant competitors or peers — other people (or, where appropriate, organizations) competing for the same audience, attention, or authority in this person's field. For each, note what they are known for and how they are positioned.\n\nBase everything strictly on what is currently published on the web. Do not invent details. If little can be found about this specific person, say so plainly.${industryOverviewBlock(overview)}${feedbackBlock(feedback, { focus: "Use this only to disambiguate or target the right person and the right competitive field; never fabricate information that is not on the web." })}`;
 
   let text = "";
   const sources: DossierSource[] = [];
@@ -68,10 +91,11 @@ async function gatherResearch(
 async function synthesizeDossier(
   subject: string,
   research: string,
-  feedback?: string
+  feedback?: string,
+  overview?: IndustryOverview
 ): Promise<{ footprintSummary: string; competitors: Competitor[] }> {
   const context = research.trim().slice(0, 8000) || "(no web information was retrieved)";
-  const prompt = `You are a personal brand strategist's research analyst. Using ONLY the web research provided below, produce a briefing dossier about this person and their competitive landscape.\n\nPerson: ${subject}\n\nWeb research:\n${context}\n\nReturn ONLY JSON in this exact shape:\n{\n  "footprintSummary": "2-4 sentence professional prose summary of the person's current public footprint — how strongly and where they show up, what they are known for, and notable gaps. No markdown, no URLs.",\n  "competitors": [\n    { "name": "competitor or peer name", "description": "one sentence on who they are and what they are known for", "positioning": "one sentence on how they are positioned in the field", "differentiation": "one sentence on how this person could differentiate from them" }\n  ]\n}\nInclude up to ${MAX_COMPETITORS} competitors, most relevant first. If the research does not support real competitors, return an empty competitors array. Do not invent people, facts, or details not present in the research.${feedbackBlock(feedback)}`;
+  const prompt = `You are a personal brand strategist's research analyst. Using ONLY the web research provided below, produce a briefing dossier about this person and their competitive landscape.\n\nPerson: ${subject}\n\nWeb research:\n${context}\n\nReturn ONLY JSON in this exact shape:\n{\n  "footprintSummary": "2-4 sentence professional prose summary of the person's current public footprint — how strongly and where they show up, what they are known for, and notable gaps. No markdown, no URLs.",\n  "competitors": [\n    { "name": "competitor or peer name", "description": "one sentence on who they are and what they are known for", "positioning": "one sentence on how they are positioned in the field", "differentiation": "one sentence on how this person could differentiate from them" }\n  ]\n}\nInclude up to ${MAX_COMPETITORS} competitors, most relevant first. If the research does not support real competitors, return an empty competitors array. Do not invent people, facts, or details not present in the research.${industryOverviewBlock(overview)}${feedbackBlock(feedback)}`;
 
   const resp = await openai.chat.completions.create({
     model: "gpt-5.4",
@@ -108,10 +132,16 @@ async function synthesizeDossier(
 // gathering, then structured synthesis. Bounded by MAX_* caps above.
 export async function generateDossier(
   client: ClientProfile,
-  feedback?: string
+  feedback?: string,
+  overview?: IndustryOverview
 ): Promise<DossierData> {
   const subject = describeClient(client);
-  const { text, sources } = await gatherResearch(subject, client, feedback);
-  const { footprintSummary, competitors } = await synthesizeDossier(subject, text, feedback);
+  const { text, sources } = await gatherResearch(subject, client, feedback, overview);
+  const { footprintSummary, competitors } = await synthesizeDossier(
+    subject,
+    text,
+    feedback,
+    overview
+  );
   return { footprintSummary, competitors, sources };
 }

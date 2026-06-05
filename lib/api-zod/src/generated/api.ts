@@ -619,6 +619,74 @@ export const GeneratePlatformsResponse = zod.object({
 
 
 /**
+ * @summary Get the latest industry overview
+ */
+export const GetIndustryOverviewResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "industry": zod.string(),
+  "geographyFocus": zod.string(),
+  "landscapeContext": zod.string(),
+  "competitors": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string(),
+  "positioning": zod.string()
+})),
+  "thoughtLeaders": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string(),
+  "positioning": zod.string()
+})),
+  "playbook": zod.array(zod.object({
+  "title": zod.string(),
+  "detail": zod.string()
+})),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "generatedAt": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Research the client's industry landscape into an industry overview
+ */
+export const GenerateIndustryOverviewBody = zod.object({
+  "feedback": zod.string().optional().describe('Optional user revision notes to steer a regeneration.')
+})
+
+export const GenerateIndustryOverviewResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "industry": zod.string(),
+  "geographyFocus": zod.string(),
+  "landscapeContext": zod.string(),
+  "competitors": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string(),
+  "positioning": zod.string()
+})),
+  "thoughtLeaders": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string(),
+  "positioning": zod.string()
+})),
+  "playbook": zod.array(zod.object({
+  "title": zod.string(),
+  "detail": zod.string()
+})),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "generatedAt": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
  * @summary Get the content strategy
  */
 export const GetContentStrategyResponse = zod.object({

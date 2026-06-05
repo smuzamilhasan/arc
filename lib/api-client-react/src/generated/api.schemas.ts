@@ -380,6 +380,41 @@ export interface PlatformStrategy {
   updatedAt: string;
 }
 
+export interface IndustryPlayer {
+  name: string;
+  description: string;
+  positioning: string;
+}
+
+export interface PlaybookMove {
+  title: string;
+  detail: string;
+}
+
+export interface IndustrySource {
+  title: string;
+  url: string;
+}
+
+export interface IndustryOverview {
+  id: number;
+  clientId: number;
+  industry: string;
+  geographyFocus: string;
+  landscapeContext: string;
+  competitors: IndustryPlayer[];
+  thoughtLeaders: IndustryPlayer[];
+  playbook: PlaybookMove[];
+  sources: IndustrySource[];
+  generatedAt: string;
+  createdAt: string;
+}
+
+export interface IndustryOverviewGenerateInput {
+  /** Optional user revision notes to steer a regeneration. */
+  feedback?: string;
+}
+
 export interface PlatformCadence {
   platform: string;
   frequency: string;

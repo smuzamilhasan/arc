@@ -33,6 +33,7 @@ import Audit from "@/pages/audit";
 import Dossier from "@/pages/dossier";
 import Narrative from "@/pages/narrative";
 import Platforms from "@/pages/platforms";
+import IndustryOverview from "@/pages/industry-overview";
 import Foundation from "@/pages/foundation";
 import Calendar from "@/pages/calendar";
 import Content, { ContentStrategyPage } from "@/pages/content";
@@ -251,6 +252,7 @@ function ClerkProviderWithRoutes() {
                     <Route path="/dossier" component={Dossier} />
                     <Route path="/narrative" component={Narrative} />
                     <Route path="/platforms" component={Platforms} />
+                    <Route path="/industry-overview" component={IndustryOverview} />
                     <Route path="/calendar" component={Calendar} />
                     <Route path="/content/strategy" component={ContentStrategyPage} />
                     <Route path="/content" component={Content} />

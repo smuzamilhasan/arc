@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, briefingDossiersTable } from "@workspace/db";
+import { db, briefingDossiersTable, industryOverviewTable } from "@workspace/db";
 import { GenerateDossierBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
 import { getClientForUser } from "./client";
@@ -45,8 +45,15 @@ router.post("/dossier/generate", aiGenerationRateLimit, async (req, res) => {
   const body = GenerateDossierBody.safeParse(req.body ?? {});
   const feedback = body.success ? body.data.feedback : undefined;
 
+  const [overview] = await db
+    .select()
+    .from(industryOverviewTable)
+    .where(eq(industryOverviewTable.clientId, client.id))
+    .orderBy(desc(industryOverviewTable.id))
+    .limit(1);
+
   try {
-    const data = await generateDossier(client, feedback);
+    const data = await generateDossier(client, feedback, overview);
 
     const values = {
       clientId: client.id,

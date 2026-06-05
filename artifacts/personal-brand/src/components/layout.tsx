@@ -9,6 +9,7 @@ import {
   Lightbulb,
   Compass,
   Radio,
+  Building2,
   CalendarDays,
   Layers,
   Lock,
@@ -189,6 +190,7 @@ const navItems: NavItem[] = [
   { href: "/dossier", icon: Telescope, label: "Investigator" },
   { href: "/narrative", icon: BookOpen, label: "Narrative" },
   { href: "/platforms", icon: Radio, label: "Platforms", gate: "platforms" },
+  { href: "/industry-overview", icon: Building2, label: "Industry Overview", gate: "industry" },
   { href: "/calendar", icon: CalendarDays, label: "Content Calendar", gate: "content" },
   { href: "/content", icon: FileText, label: "Content", gate: "content" },
   { href: "/ideas", icon: Lightbulb, label: "Ideas" },
@@ -267,6 +269,8 @@ export function Layout({ children }: LayoutProps) {
 
   const gateCtx = {
     client,
+    hasAudit: Boolean(dashboard?.auditComplete),
+    hasNarrative: Boolean(dashboard?.narrativeComplete),
     hasPlatformStrategy: Boolean(platformStrategy),
   };
 
@@ -314,7 +318,13 @@ export function Layout({ children }: LayoutProps) {
   // Key off the stable label, not href: expandedItems rewrites Blueprint's href
   // to /blueprint/view once complete, and foundationComplete implies that, so an
   // href check would never match and the Foundation item would never be inserted.
-  const foundationLabels = new Set(["Blueprint", "Audit", "Narrative", "Platforms"]);
+  const foundationLabels = new Set([
+    "Blueprint",
+    "Audit",
+    "Narrative",
+    "Platforms",
+    "Industry Overview",
+  ]);
   const baseItems: NavItem[] = foundationComplete
     ? expandedItems.flatMap((item) =>
         item.label === "Blueprint"
@@ -338,9 +348,14 @@ export function Layout({ children }: LayoutProps) {
         // and the Content nav highlighted across the Create + Strategy sub-routes.
         const active =
           item.label === "Foundation"
-            ? ["/foundation", "/blueprint", "/audit", "/narrative", "/platforms"].some(
-                (p) => location.startsWith(p),
-              )
+            ? [
+                "/foundation",
+                "/blueprint",
+                "/audit",
+                "/narrative",
+                "/platforms",
+                "/industry-overview",
+              ].some((p) => location.startsWith(p))
             : item.label === "Blueprint"
             ? location.startsWith("/blueprint")
             : item.label === "Content"

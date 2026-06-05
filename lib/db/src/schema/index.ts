@@ -4,6 +4,7 @@ export * from "./briefingDossiers";
 export * from "./narrativeProfiles";
 export * from "./profilePortraits";
 export * from "./platformStrategies";
+export * from "./industryOverview";
 export * from "./contentStrategies";
 export * from "./posts";
 export * from "./ideas";

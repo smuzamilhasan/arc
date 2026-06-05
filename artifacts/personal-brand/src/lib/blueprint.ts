@@ -617,11 +617,14 @@ export function pillarUnlockPrerequisites(
 // its locked state and how to compute the prerequisites that unlock it. New
 // gated panels register here and automatically get the same explanatory locked
 // UX (the shared LockedPanel component) and a clickable, explained sidebar item.
-export type PanelGateId = "platforms" | "content";
+export type PanelGateId = "platforms" | "content" | "industry";
 
 export type PanelGateContext = {
   client: ClientProfile | undefined;
   hasPlatformStrategy: boolean;
+  // Only the capstone "industry" gate reads these; other gates leave them unset.
+  hasAudit?: boolean;
+  hasNarrative?: boolean;
 };
 
 type PanelGateConfig = {
@@ -643,6 +646,35 @@ export const PANEL_GATES: Record<PanelGateId, PanelGateConfig> = {
       "arc builds your content strategy from a complete Blueprint and a Platforms strategy. Finish the sections below and this panel opens on its own.",
     prerequisites: (ctx) => [
       ...blueprintPrerequisites(ctx.client),
+      {
+        id: "platforms",
+        label: "Platforms & Presence strategy",
+        href: "/platforms",
+        complete: ctx.hasPlatformStrategy,
+        detail: ctx.hasPlatformStrategy ? undefined : "Generate your platform strategy",
+      },
+    ],
+  },
+  industry: {
+    title: "Industry Overview",
+    description:
+      "arc maps your industry landscape once your whole foundation is in place. Finish everything below and this capstone panel opens on its own.",
+    prerequisites: (ctx) => [
+      ...blueprintPrerequisites(ctx.client),
+      {
+        id: "audit",
+        label: "Digital presence audit",
+        href: "/audit",
+        complete: Boolean(ctx.hasAudit),
+        detail: ctx.hasAudit ? undefined : "Run your first audit",
+      },
+      {
+        id: "narrative",
+        label: "Narrative",
+        href: "/narrative",
+        complete: Boolean(ctx.hasNarrative),
+        detail: ctx.hasNarrative ? undefined : "Synthesize your narrative",
+      },
       {
         id: "platforms",
         label: "Platforms & Presence strategy",

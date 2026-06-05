@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Compass, Search, BookOpen, Radio } from "lucide-react";
+import { Compass, Search, BookOpen, Radio, Building2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BlueprintView from "@/pages/blueprint-view";
 import Audit from "@/pages/audit";
 import Narrative from "@/pages/narrative";
 import Platforms from "@/pages/platforms";
+import IndustryOverview from "@/pages/industry-overview";
 
 const TABS = [
   { value: "blueprint", label: "Blueprint", icon: Compass, Component: BlueprintView },
   { value: "audit", label: "Audit", icon: Search, Component: Audit },
   { value: "narrative", label: "Narrative", icon: BookOpen, Component: Narrative },
   { value: "platforms", label: "Platforms", icon: Radio, Component: Platforms },
+  { value: "industry", label: "Industry Overview", icon: Building2, Component: IndustryOverview },
 ] as const;
 
 export default function Foundation() {

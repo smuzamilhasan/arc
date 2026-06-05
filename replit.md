@@ -43,7 +43,9 @@ arc (short for "story arc") is a single-client personal brand strategy tool: it 
 
 ## Product
 
-Flow: onboarding questionnaire -> automated digital presence audit (SEO + GEO scores 0-100 with findings + recommendations) -> narrative point-of-view interview synthesized into positioning/themes/platforms -> content posts and ideas.
+Flow: onboarding questionnaire -> automated digital presence audit (SEO + GEO scores 0-100 with findings + recommendations) -> narrative point-of-view interview synthesized into positioning/themes/platforms -> Industry Overview capstone -> content posts and ideas.
+
+Industry Overview is the capstone foundational panel: locked until Blueprint + Audit + Narrative + Platforms are complete, and (unlike Platforms) it does NOT auto-generate — the user must explicitly confirm they are happy with all prior panels first. It then maps the principal industry, geography focus, competitors to watch, thought leaders, an industry personal-branding playbook, and landscape context via Gemini Google Search grounding + gpt-5.4 synthesis. No manual editing — regenerate-with-feedback only. Stored per-client (`industry_overview` table), wired into deleteClientData cleanup, and fed into both the Strategist (assistant) and Investigator (dossier) agent context.
 
 ## User preferences
 

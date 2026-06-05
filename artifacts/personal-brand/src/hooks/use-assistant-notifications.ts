@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetAssistantUnreadQueryKey,
   getGetAssistantMessagesQueryKey,
+  getGetAssistantInsightsQueryKey,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { getActiveClientId } from "@/lib/active-client";
@@ -30,6 +31,10 @@ export function useAssistantNotifications(enabled: boolean) {
         title: "Your strategist has a suggestion",
         description: "Open the strategist to review the proposed change.",
       });
+    };
+
+    const onInsights = () => {
+      queryClient.invalidateQueries({ queryKey: getGetAssistantInsightsQueryKey() });
     };
 
     const run = async () => {
@@ -63,6 +68,7 @@ export function useAssistantNotifications(enabled: boolean) {
             try {
               const data = JSON.parse(dataLine.slice(6));
               if (data.type === "proactive") onProactive();
+              else if (data.type === "insights") onInsights();
             } catch {
               // ignore malformed events
             }

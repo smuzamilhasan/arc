@@ -1118,6 +1118,46 @@ export interface PlannerBatchResult {
   actions: PlannerAction[];
 }
 
+export type AssistantInsightPillar = typeof AssistantInsightPillar[keyof typeof AssistantInsightPillar];
+
+
+export const AssistantInsightPillar = {
+  patience: 'patience',
+  authentic_input: 'authentic_input',
+  ai_augments: 'ai_augments',
+  creative_thought: 'creative_thought',
+  brand_reflects_life: 'brand_reflects_life',
+} as const;
+
+export type AssistantInsightContextsItem = typeof AssistantInsightContextsItem[keyof typeof AssistantInsightContextsItem];
+
+
+export const AssistantInsightContextsItem = {
+  general: 'general',
+  dashboard: 'dashboard',
+  blueprint: 'blueprint',
+  audit: 'audit',
+  narrative: 'narrative',
+  platforms: 'platforms',
+  content: 'content',
+} as const;
+
+export interface AssistantInsight {
+  id: number;
+  pillar: AssistantInsightPillar;
+  contexts: AssistantInsightContextsItem[];
+  /** @nullable */
+  stage?: string | null;
+  title: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface AssistantInsightDismissResult {
+  id: number;
+  dismissed: boolean;
+}
+
 export interface ScheduleBatchInput {
   /** Post IDs to schedule, in the order they should be laid out. */
   postIds: number[];

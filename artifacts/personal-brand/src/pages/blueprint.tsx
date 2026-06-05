@@ -15,6 +15,7 @@ import {
   unlockHint,
   blueprintStages,
 } from "@/lib/blueprint";
+import { ContextualInsight } from "@/components/contextual-insight";
 import { BlueprintModeToggle } from "@/components/blueprint-mode-toggle";
 import { BlueprintStepper } from "@/components/blueprint-stepper";
 
@@ -61,6 +62,8 @@ export default function Blueprint() {
         </div>
         <BlueprintModeToggle active="edit" />
       </header>
+
+      <ContextualInsight context="blueprint" />
 
       <section className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-center justify-between gap-4 mb-4">

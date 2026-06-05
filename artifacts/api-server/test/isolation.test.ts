@@ -24,6 +24,7 @@ import {
   briefingDossiersTable,
   platformStrategiesTable,
   contentStrategiesTable,
+  assistantInsightsTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -58,6 +59,9 @@ async function cleanupUser(userId: string) {
   await db
     .delete(contentStrategiesTable)
     .where(eq(contentStrategiesTable.clientId, client.id));
+  await db
+    .delete(assistantInsightsTable)
+    .where(eq(assistantInsightsTable.clientId, client.id));
   await db.delete(clientProfileTable).where(eq(clientProfileTable.id, client.id));
 }
 
@@ -539,6 +543,14 @@ describe("strategy data is purged on reset", () => {
     await db.insert(platformStrategiesTable).values({ clientId: client.id });
     await db.insert(contentStrategiesTable).values({ clientId: client.id });
     await db.insert(briefingDossiersTable).values({ clientId: client.id });
+    await db.insert(assistantInsightsTable).values({
+      clientId: client.id,
+      pillar: "patience",
+      contexts: ["dashboard"],
+      stage: "foundation",
+      title: "Slow is smooth",
+      body: "A world-class brand compounds over years, not weeks.",
+    });
 
     await request(app).post("/api/client/reset").set(as(USER_R)).expect(204);
 
@@ -554,10 +566,15 @@ describe("strategy data is purged on reset", () => {
       .select()
       .from(briefingDossiersTable)
       .where(eq(briefingDossiersTable.clientId, client.id));
+    const insights = await db
+      .select()
+      .from(assistantInsightsTable)
+      .where(eq(assistantInsightsTable.clientId, client.id));
 
     expect(platforms).toHaveLength(0);
     expect(content).toHaveLength(0);
     expect(dossiers).toHaveLength(0);
+    expect(insights).toHaveLength(0);
   });
 });
 

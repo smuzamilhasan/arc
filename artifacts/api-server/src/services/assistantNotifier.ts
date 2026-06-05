@@ -23,10 +23,12 @@ export function unsubscribe(clientId: number, res: Response): void {
   if (set.size === 0) subscribers.delete(clientId);
 }
 
-export function notify(clientId: number): void {
+export type NotifyType = "proactive" | "insights";
+
+export function notify(clientId: number, type: NotifyType = "proactive"): void {
   const set = subscribers.get(clientId);
   if (!set || set.size === 0) return;
-  const payload = `data: ${JSON.stringify({ type: "proactive" })}\n\n`;
+  const payload = `data: ${JSON.stringify({ type })}\n\n`;
   for (const res of set) {
     try {
       res.write(payload);

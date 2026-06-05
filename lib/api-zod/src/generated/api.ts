@@ -2100,6 +2100,35 @@ export const RejectPlannerActionsResponse = zod.object({
 
 
 /**
+ * Short, journey-aware educational/encouraging notes the strategist generates on its own initiative. Distinct from action proposals; never applied to the system.
+ * @summary Get the client's active educational insights
+ */
+export const GetAssistantInsightsResponseItem = zod.object({
+  "id": zod.number(),
+  "pillar": zod.enum(['patience', 'authentic_input', 'ai_augments', 'creative_thought', 'brand_reflects_life']),
+  "contexts": zod.array(zod.enum(['general', 'dashboard', 'blueprint', 'audit', 'narrative', 'platforms', 'content'])),
+  "stage": zod.string().nullish(),
+  "title": zod.string(),
+  "body": zod.string(),
+  "createdAt": zod.string()
+})
+export const GetAssistantInsightsResponse = zod.array(GetAssistantInsightsResponseItem)
+
+
+/**
+ * @summary Dismiss a single educational insight
+ */
+export const DismissAssistantInsightParams = zod.object({
+  "insightId": zod.coerce.number()
+})
+
+export const DismissAssistantInsightResponse = zod.object({
+  "id": zod.number(),
+  "dismissed": zod.boolean()
+})
+
+
+/**
  * @summary Get the caller's agency memberships and accessible clients
  */
 export const GetAgencyContextResponse = zod.object({

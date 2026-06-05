@@ -2,6 +2,7 @@ import { Router, type Request } from "express";
 import {
   db,
   assistantMessagesTable,
+  assistantInsightsTable,
   clientProfileTable,
   narrativeProfilesTable,
   platformStrategiesTable,
@@ -13,6 +14,7 @@ import {
   industryOverviewTable,
   type AssistantAction,
   type AssistantActionKind,
+  type AssistantInsight,
   type ClientProfile,
 } from "@workspace/db";
 import { asc, desc, eq, and } from "drizzle-orm";
@@ -40,6 +42,18 @@ function serializeMessage(m: typeof assistantMessagesTable.$inferSelect) {
     actions: m.actions,
     seen: m.seen,
     createdAt: m.createdAt.toISOString(),
+  };
+}
+
+function serializeInsight(i: AssistantInsight) {
+  return {
+    id: i.id,
+    pillar: i.pillar,
+    contexts: i.contexts,
+    stage: i.stage,
+    title: i.title,
+    body: i.body,
+    createdAt: i.createdAt.toISOString(),
   };
 }
 
@@ -172,6 +186,57 @@ router.post("/assistant/seen", async (req, res) => {
     .set({ seen: true })
     .where(and(eq(assistantMessagesTable.clientId, client.id), eq(assistantMessagesTable.seen, false)));
   res.json({ count: 0 });
+});
+
+// The client's active (non-dismissed) educational insights, most recent first.
+// These are encouragement/teaching notes — distinct from action proposals — and
+// are surfaced both in the strategist panel and as contextual cards.
+router.get("/assistant/insights", async (req, res) => {
+  const client = req.activeClient;
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const rows = await db
+    .select()
+    .from(assistantInsightsTable)
+    .where(
+      and(
+        eq(assistantInsightsTable.clientId, client.id),
+        eq(assistantInsightsTable.dismissed, false),
+      ),
+    )
+    .orderBy(desc(assistantInsightsTable.id));
+  res.json(rows.map(serializeInsight));
+});
+
+// Dismiss a single insight, scoped to the client. Idempotent.
+router.post("/assistant/insights/:insightId/dismiss", async (req, res) => {
+  const client = req.activeClient;
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const insightId = Number(req.params.insightId);
+  if (!Number.isInteger(insightId)) {
+    res.status(404).json({ error: "Insight not found" });
+    return;
+  }
+  const [updated] = await db
+    .update(assistantInsightsTable)
+    .set({ dismissed: true })
+    .where(
+      and(
+        eq(assistantInsightsTable.id, insightId),
+        eq(assistantInsightsTable.clientId, client.id),
+      ),
+    )
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Insight not found" });
+    return;
+  }
+  res.json({ id: updated.id, dismissed: updated.dismissed });
 });
 
 // Server-Sent Events stream: emits an event whenever the background scheduler

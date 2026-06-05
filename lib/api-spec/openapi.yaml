@@ -1410,6 +1410,45 @@ paths:
         "404":
           description: No client profile yet
 
+  /assistant/insights:
+    get:
+      operationId: getAssistantInsights
+      tags: [assistant]
+      summary: Get the client's active educational insights
+      description: Short, journey-aware educational/encouraging notes the strategist generates on its own initiative. Distinct from action proposals; never applied to the system.
+      responses:
+        "200":
+          description: Active (non-dismissed) insights, most recent first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssistantInsight"
+        "404":
+          description: No client profile yet
+
+  /assistant/insights/{insightId}/dismiss:
+    post:
+      operationId: dismissAssistantInsight
+      tags: [assistant]
+      summary: Dismiss a single educational insight
+      parameters:
+        - name: insightId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: The insight was dismissed (idempotent)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantInsightDismissResult"
+        "404":
+          description: Insight not found
+
   /agency/context:
     get:
       operationId: getAgencyContext
@@ -3366,6 +3405,46 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PlannerAction"
+
+    AssistantInsight:
+      type: object
+      required: [id, pillar, contexts, title, body, createdAt]
+      properties:
+        id:
+          type: integer
+        pillar:
+          type: string
+          enum:
+            [
+              patience,
+              authentic_input,
+              ai_augments,
+              creative_thought,
+              brand_reflects_life,
+            ]
+        contexts:
+          type: array
+          items:
+            type: string
+            enum:
+              [general, dashboard, blueprint, audit, narrative, platforms, content]
+        stage:
+          type: ["string", "null"]
+        title:
+          type: string
+        body:
+          type: string
+        createdAt:
+          type: string
+
+    AssistantInsightDismissResult:
+      type: object
+      required: [id, dismissed]
+      properties:
+        id:
+          type: integer
+        dismissed:
+          type: boolean
 
     ScheduleBatchInput:
       type: object

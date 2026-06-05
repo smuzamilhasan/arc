@@ -6,6 +6,7 @@ import {
   narrativeProfilesTable,
   assistantMessagesTable,
   assistantReviewsTable,
+  assistantInsightsTable,
   type ClientProfile,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
@@ -14,7 +15,7 @@ import {
   loadHistory,
   enrichActions,
 } from "../routes/assistant";
-import { generateProactiveSuggestion } from "./assistant";
+import { generateProactiveSuggestion, generateEducationalInsights } from "./assistant";
 import { notify } from "./assistantNotifier";
 
 // How often the scheduler wakes up to look for clients to review.
@@ -24,6 +25,12 @@ const TICK_INTERVAL_MS = 5 * 60 * 1000;
 const PER_CLIENT_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 // Max clients reviewed per tick, bounding model cost and request load.
 const MAX_PER_TICK = 3;
+// Educational insights refresh on a slower cadence than proactive suggestions —
+// they are evergreen encouragement, so once a batch exists we only regenerate
+// after a long interval OR when the brand state meaningfully changes.
+const INSIGHTS_REFRESH_MS = 7 * 24 * 60 * 60 * 1000;
+// Max clients whose insights are (re)generated per tick, bounding model cost.
+const INSIGHTS_MAX_PER_TICK = 3;
 
 // Hash the macro brand foundation the strategist actually reasons about, so we
 // can skip a review when nothing meaningful changed since last time.
@@ -104,6 +111,90 @@ async function upsertReview(clientId: number, stateHash: string): Promise<void> 
   }
 }
 
+async function recordInsightsRun(clientId: number, stateHash: string): Promise<void> {
+  const existing = await getReview(clientId);
+  const now = new Date();
+  if (existing) {
+    await db
+      .update(assistantReviewsTable)
+      .set({ lastInsightsAt: now, lastInsightsStateHash: stateHash, updatedAt: now })
+      .where(eq(assistantReviewsTable.id, existing.id));
+  } else {
+    await db.insert(assistantReviewsTable).values({
+      clientId,
+      lastInsightsAt: now,
+      lastInsightsStateHash: stateHash,
+      updatedAt: now,
+    });
+  }
+}
+
+async function countActiveInsights(clientId: number): Promise<number> {
+  const rows = await db
+    .select({ id: assistantInsightsTable.id })
+    .from(assistantInsightsTable)
+    .where(
+      and(
+        eq(assistantInsightsTable.clientId, clientId),
+        eq(assistantInsightsTable.dismissed, false),
+      ),
+    );
+  return rows.length;
+}
+
+// Generate (or refresh) a client's educational insights when warranted. Runs on
+// a slower cadence than proactive suggestions and for ALL profiles (insights are
+// useful from the very start of the journey, not only once a narrative exists).
+// Returns true if a fresh batch was generated, so the tick can bound its budget.
+async function maybeRefreshInsights(client: ClientProfile): Promise<boolean> {
+  const review = await getReview(client.id);
+  const activeCount = await countActiveInsights(client.id);
+
+  const ctx = await loadContext(client.id, client);
+  const stateHash = computeStateHash(ctx);
+
+  const elapsed = review?.lastInsightsAt
+    ? Date.now() - review.lastInsightsAt.getTime()
+    : Infinity;
+  const stale = elapsed >= INSIGHTS_REFRESH_MS;
+  const stateChanged = !review || review.lastInsightsStateHash !== stateHash;
+
+  // Skip when we already have a live batch that is neither stale nor outdated.
+  if (activeCount > 0 && !stale && !stateChanged) return false;
+
+  const insights = await generateEducationalInsights(ctx);
+  if (insights.length === 0) {
+    // Record the run so we don't retry the model every tick on a dud response.
+    await recordInsightsRun(client.id, stateHash);
+    return false;
+  }
+
+  // Refresh the live set: clear the current non-dismissed batch, then insert the
+  // new one. Dismissed rows are left untouched so they never resurface.
+  await db
+    .delete(assistantInsightsTable)
+    .where(
+      and(
+        eq(assistantInsightsTable.clientId, client.id),
+        eq(assistantInsightsTable.dismissed, false),
+      ),
+    );
+  await db.insert(assistantInsightsTable).values(
+    insights.map((i) => ({
+      clientId: client.id,
+      pillar: i.pillar,
+      contexts: i.contexts,
+      stage: i.stage,
+      title: i.title,
+      body: i.body,
+    })),
+  );
+
+  await recordInsightsRun(client.id, stateHash);
+  notify(client.id, "insights");
+  return true;
+}
+
 // Run one proactive review for a single client. Returns true if a suggestion
 // was posted (so the tick can respect its per-tick budget).
 async function reviewClient(client: ClientProfile): Promise<boolean> {
@@ -147,7 +238,8 @@ async function reviewClient(client: ClientProfile): Promise<boolean> {
 }
 
 async function runTick(): Promise<void> {
-  // Only clients with a narrative have a foundation worth reviewing.
+  // Only clients with a narrative have a foundation worth reviewing for
+  // strategic action proposals.
   const rows = await db
     .select({ client: clientProfileTable })
     .from(clientProfileTable)
@@ -168,6 +260,25 @@ async function runTick(): Promise<void> {
       if (didPost) posted++;
     } catch (err) {
       logger.error({ err, clientId: client.id }, "Proactive review failed");
+    }
+  }
+
+  // Educational insights are useful from the very start of the journey, so they
+  // run for ALL profiles (not just those with a narrative), on their own slower
+  // cadence and budget.
+  const allClients = await db
+    .select()
+    .from(clientProfileTable)
+    .orderBy(desc(clientProfileTable.updatedAt));
+
+  let refreshed = 0;
+  for (const client of allClients) {
+    if (refreshed >= INSIGHTS_MAX_PER_TICK) break;
+    try {
+      const didRefresh = await maybeRefreshInsights(client);
+      if (didRefresh) refreshed++;
+    } catch (err) {
+      logger.error({ err, clientId: client.id }, "Insight refresh failed");
     }
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { LockedPanel } from "@/components/locked-panel";
+import { ContextualInsight } from "@/components/contextual-insight";
 import {
   useGetClient,
   getGetClientQueryKey,
@@ -443,6 +444,7 @@ function PillarEditor({ pillar }: { pillar: Pillar }) {
             <ArrowLeft className="w-4 h-4" /> Back to Blueprint
           </div>
         </Link>
+        <ContextualInsight context="blueprint" />
         <div className="flex items-start gap-3">
           <div className="rounded-lg bg-secondary/50 p-2.5 mt-1">
             <pillar.icon className="w-5 h-5 text-primary stroke-[1.5]" />

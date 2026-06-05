@@ -12,6 +12,7 @@ export * from "./ideas";
 export * from "./assistantMessages";
 export * from "./plannerMessages";
 export * from "./assistantReviews";
+export * from "./assistantInsights";
 export * from "./managerRuns";
 export * from "./agencies";
 export * from "./agencyMembers";

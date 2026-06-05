@@ -31,6 +31,8 @@ import type {
   AssistantActionResult,
   AssistantBatchInput,
   AssistantBatchResult,
+  AssistantInsight,
+  AssistantInsightDismissResult,
   AssistantMessage,
   AssistantRejectInput,
   AssistantReply,
@@ -5316,6 +5318,154 @@ export const useRejectPlannerActions = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRejectPlannerActionsMutationOptions(options));
+    }
+
+export const getGetAssistantInsightsUrl = () => {
+
+
+
+
+  return `/api/assistant/insights`
+}
+
+/**
+ * Short, journey-aware educational/encouraging notes the strategist generates on its own initiative. Distinct from action proposals; never applied to the system.
+ * @summary Get the client's active educational insights
+ */
+export const getAssistantInsights = async ( options?: RequestInit): Promise<AssistantInsight[]> => {
+
+  return customFetch<AssistantInsight[]>(getGetAssistantInsightsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAssistantInsightsQueryKey = () => {
+    return [
+    `/api/assistant/insights`
+    ] as const;
+    }
+
+
+export const getGetAssistantInsightsQueryOptions = <TData = Awaited<ReturnType<typeof getAssistantInsights>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAssistantInsights>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAssistantInsightsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAssistantInsights>>> = ({ signal }) => getAssistantInsights({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAssistantInsights>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAssistantInsightsQueryResult = NonNullable<Awaited<ReturnType<typeof getAssistantInsights>>>
+export type GetAssistantInsightsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the client's active educational insights
+ */
+
+export function useGetAssistantInsights<TData = Awaited<ReturnType<typeof getAssistantInsights>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAssistantInsights>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAssistantInsightsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getDismissAssistantInsightUrl = (insightId: number,) => {
+
+
+
+
+  return `/api/assistant/insights/${insightId}/dismiss`
+}
+
+/**
+ * @summary Dismiss a single educational insight
+ */
+export const dismissAssistantInsight = async (insightId: number, options?: RequestInit): Promise<AssistantInsightDismissResult> => {
+
+  return customFetch<AssistantInsightDismissResult>(getDismissAssistantInsightUrl(insightId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getDismissAssistantInsightMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dismissAssistantInsight>>, TError,{insightId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof dismissAssistantInsight>>, TError,{insightId: number}, TContext> => {
+
+const mutationKey = ['dismissAssistantInsight'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof dismissAssistantInsight>>, {insightId: number}> = (props) => {
+          const {insightId} = props ?? {};
+
+          return  dismissAssistantInsight(insightId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DismissAssistantInsightMutationResult = NonNullable<Awaited<ReturnType<typeof dismissAssistantInsight>>>
+
+    export type DismissAssistantInsightMutationError = ErrorType<void>
+
+    /**
+ * @summary Dismiss a single educational insight
+ */
+export const useDismissAssistantInsight = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dismissAssistantInsight>>, TError,{insightId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof dismissAssistantInsight>>,
+        TError,
+        {insightId: number},
+        TContext
+      > => {
+      return useMutation(getDismissAssistantInsightMutationOptions(options));
     }
 
 export const getGetAgencyContextUrl = () => {

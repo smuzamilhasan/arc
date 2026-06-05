@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { overallCompletion, nextPillar, isFoundationComplete } from "@/lib/blueprint";
+import { ContextualInsight } from "@/components/contextual-insight";
 
 function ScoreDial({ label, score, hint }: { label: string; score: number | null | undefined; hint: string }) {
   const has = typeof score === "number";
@@ -175,6 +176,8 @@ export default function Dashboard() {
           {client?.headline || "A clear view of where your personal brand stands today, and what comes next."}
         </p>
       </header>
+
+      <ContextualInsight context="dashboard" />
 
       {/* Presence scores */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">

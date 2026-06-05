@@ -13,6 +13,7 @@ import {
   assistantMessagesTable,
   plannerMessagesTable,
   assistantReviewsTable,
+  assistantInsightsTable,
   profilePortraitsTable,
   managerRunsTable,
   schedulerConnectionsTable,
@@ -56,6 +57,9 @@ async function deleteClientData(clientId: number) {
     await tx
       .delete(assistantReviewsTable)
       .where(eq(assistantReviewsTable.clientId, clientId));
+    await tx
+      .delete(assistantInsightsTable)
+      .where(eq(assistantInsightsTable.clientId, clientId));
     await tx
       .delete(profilePortraitsTable)
       .where(eq(profilePortraitsTable.clientId, clientId));

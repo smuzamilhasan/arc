@@ -23,7 +23,8 @@ import {
   Network,
   ChevronsUpDown,
   Check,
-  PenLine
+  PenLine,
+  GraduationCap
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import { useActiveClient } from "@/lib/active-client";
@@ -281,6 +282,7 @@ const navItems: NavItem[] = [
   { href: "/manager", icon: Network, label: "Manager" },
   { href: "/assistant", icon: MessagesSquare, label: "Strategist" },
   { href: "/planner", icon: CalendarDays, label: "Planner" },
+  { href: "/learn", icon: GraduationCap, label: "Learn" },
 ];
 
 type PanelAgentId = "manager" | "investigator" | "strategist" | "planner" | "ghostwriter";

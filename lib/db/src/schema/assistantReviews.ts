@@ -9,6 +9,11 @@ export const assistantReviewsTable = pgTable("assistant_reviews", {
   clientId: integer("client_id").notNull().unique(),
   lastReviewedAt: timestamp("last_reviewed_at"),
   lastStateHash: text("last_state_hash").notNull().default(""),
+  // Bookkeeping for the educational-insight generator, which runs on its own
+  // (longer) cadence than the proactive suggestion review and refreshes when the
+  // brand state meaningfully changes.
+  lastInsightsAt: timestamp("last_insights_at"),
+  lastInsightsStateHash: text("last_insights_state_hash").notNull().default(""),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

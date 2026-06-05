@@ -12,6 +12,7 @@ import { PrerequisiteChecklist } from "@/components/locked-panel";
 import { auditReadinessPrerequisites } from "@/lib/blueprint";
 import { getActiveClientId } from "@/lib/active-client";
 import { useRegenerateFeedback } from "@/components/regenerate-feedback";
+import { ContextualInsight } from "@/components/contextual-insight";
 
 type AuditProgress = {
   step: "start" | "seo" | "geo" | "synthesis";
@@ -292,6 +293,8 @@ export default function Audit() {
           </Button>
         </div>
       </div>
+
+      <ContextualInsight context="audit" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card className="lg:col-span-1 border-border/50 bg-card overflow-hidden relative shadow-md flex flex-col justify-center">

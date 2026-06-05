@@ -22,6 +22,8 @@ export * from './assistantMessageRole';
 export * from './assistantRejectInput';
 export * from './assistantReply';
 export * from './assistantSendInput';
+export * from './auditAutoRefreshResult';
+export * from './auditRefreshStatus';
 export * from './auditResult';
 export * from './auditRunInput';
 export * from './clientProfile';

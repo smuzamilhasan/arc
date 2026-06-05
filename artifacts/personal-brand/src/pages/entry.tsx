@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
-import { useEffect } from "react";
-import { useGetClient } from "@workspace/api-client-react";
+import { useEffect, useRef } from "react";
+import { useGetClient, useAutoRefreshAudit } from "@workspace/api-client-react";
 import { getGetClientQueryKey } from "@workspace/api-client-react";
 import { Loader2 } from "lucide-react";
 
@@ -12,6 +12,24 @@ export default function Entry() {
       retry: false,
     }
   });
+
+  // Fire-and-forget staleness check on sign-in. The server only starts a fresh
+  // audit if the latest one is 14+ days old; this never blocks the redirect.
+  const autoRefresh = useAutoRefreshAudit();
+  const triggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (triggeredRef.current) return;
+    if (client && client.onboardingComplete) {
+      triggeredRef.current = true;
+      autoRefresh.mutate(undefined, {
+        onError: () => {
+          // Best-effort only; never surfaced to the user.
+        },
+      });
+    }
+  }, [isLoading, client, autoRefresh]);
 
   useEffect(() => {
     if (isLoading) return;

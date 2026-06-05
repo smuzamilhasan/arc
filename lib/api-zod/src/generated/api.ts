@@ -221,6 +221,24 @@ export const RunAuditBody = zod.object({
 
 
 /**
+ * @summary Whether a background audit refresh is currently running for the user
+ */
+export const GetAuditRefreshStatusResponse = zod.object({
+  "refreshing": zod.boolean().describe('True if a background audit refresh is currently running for the user.')
+})
+
+
+/**
+ * Triggered on sign-in. If the client already has at least one audit that is 14+ days old and no audit is currently running, a fresh audit starts in the background and the response indicates it was started. Otherwise nothing is started. Never starts the first-ever audit.
+ * @summary Start a background audit refresh if the latest audit is stale
+ */
+export const AutoRefreshAuditResponse = zod.object({
+  "started": zod.boolean().describe('True if a background audit refresh was started by this request.'),
+  "reason": zod.string().optional().describe('Why a refresh was not started (e.g. no_client, no_prior_audit, fresh, in_flight).')
+})
+
+
+/**
  * @summary Get the narrative profile
  */
 export const GetNarrativeResponse = zod.object({

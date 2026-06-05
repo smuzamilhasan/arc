@@ -30,6 +30,8 @@ import type {
   AssistantRejectInput,
   AssistantReply,
   AssistantSendInput,
+  AuditAutoRefreshResult,
+  AuditRefreshStatus,
   AuditResult,
   AuditRunInput,
   ClientProfile,
@@ -591,6 +593,154 @@ export const useRunAudit = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getRunAuditMutationOptions(options));
+    }
+
+export const getGetAuditRefreshStatusUrl = () => {
+
+
+
+
+  return `/api/audit/refresh-status`
+}
+
+/**
+ * @summary Whether a background audit refresh is currently running for the user
+ */
+export const getAuditRefreshStatus = async ( options?: RequestInit): Promise<AuditRefreshStatus> => {
+
+  return customFetch<AuditRefreshStatus>(getGetAuditRefreshStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAuditRefreshStatusQueryKey = () => {
+    return [
+    `/api/audit/refresh-status`
+    ] as const;
+    }
+
+
+export const getGetAuditRefreshStatusQueryOptions = <TData = Awaited<ReturnType<typeof getAuditRefreshStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAuditRefreshStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAuditRefreshStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuditRefreshStatus>>> = ({ signal }) => getAuditRefreshStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAuditRefreshStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAuditRefreshStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getAuditRefreshStatus>>>
+export type GetAuditRefreshStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Whether a background audit refresh is currently running for the user
+ */
+
+export function useGetAuditRefreshStatus<TData = Awaited<ReturnType<typeof getAuditRefreshStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAuditRefreshStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAuditRefreshStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAutoRefreshAuditUrl = () => {
+
+
+
+
+  return `/api/audit/auto-refresh`
+}
+
+/**
+ * Triggered on sign-in. If the client already has at least one audit that is 14+ days old and no audit is currently running, a fresh audit starts in the background and the response indicates it was started. Otherwise nothing is started. Never starts the first-ever audit.
+ * @summary Start a background audit refresh if the latest audit is stale
+ */
+export const autoRefreshAudit = async ( options?: RequestInit): Promise<AuditAutoRefreshResult> => {
+
+  return customFetch<AuditAutoRefreshResult>(getAutoRefreshAuditUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAutoRefreshAuditMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof autoRefreshAudit>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof autoRefreshAudit>>, TError,void, TContext> => {
+
+const mutationKey = ['autoRefreshAudit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof autoRefreshAudit>>, void> = () => {
+
+
+          return  autoRefreshAudit(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AutoRefreshAuditMutationResult = NonNullable<Awaited<ReturnType<typeof autoRefreshAudit>>>
+
+    export type AutoRefreshAuditMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Start a background audit refresh if the latest audit is stale
+ */
+export const useAutoRefreshAudit = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof autoRefreshAudit>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof autoRefreshAudit>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAutoRefreshAuditMutationOptions(options));
     }
 
 export const getGetNarrativeUrl = () => {

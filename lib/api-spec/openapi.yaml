@@ -131,6 +131,33 @@ paths:
               schema:
                 type: string
 
+  /audit/refresh-status:
+    get:
+      operationId: getAuditRefreshStatus
+      tags: [audit]
+      summary: Whether a background audit refresh is currently running for the user
+      responses:
+        "200":
+          description: Refresh status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditRefreshStatus"
+
+  /audit/auto-refresh:
+    post:
+      operationId: autoRefreshAudit
+      tags: [audit]
+      summary: Start a background audit refresh if the latest audit is stale
+      description: Triggered on sign-in. If the client already has at least one audit that is 14+ days old and no audit is currently running, a fresh audit starts in the background and the response indicates it was started. Otherwise nothing is started. Never starts the first-ever audit.
+      responses:
+        "200":
+          description: Whether a refresh was started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditAutoRefreshResult"
+
   /narrative:
     get:
       operationId: getNarrative
@@ -1298,6 +1325,25 @@ components:
           type: string
         createdAt:
           type: string
+
+    AuditRefreshStatus:
+      type: object
+      required: [refreshing]
+      properties:
+        refreshing:
+          type: boolean
+          description: True if a background audit refresh is currently running for the user.
+
+    AuditAutoRefreshResult:
+      type: object
+      required: [started]
+      properties:
+        started:
+          type: boolean
+          description: True if a background audit refresh was started by this request.
+        reason:
+          type: string
+          description: Why a refresh was not started (e.g. no_client, no_prior_audit, fresh, in_flight).
 
     NarrativeTheme:
       type: object

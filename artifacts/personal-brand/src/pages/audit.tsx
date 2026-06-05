@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { useGetLatestAudit, getGetLatestAuditQueryKey, getGetDashboardQueryKey, useGetClient, getGetClientQueryKey, AuditResult } from "@workspace/api-client-react";
+import { useGetLatestAudit, getGetLatestAuditQueryKey, getGetDashboardQueryKey, useGetClient, getGetClientQueryKey, useGetAuditRefreshStatus, getGetAuditRefreshStatusQueryKey, AuditResult } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Search, Loader2, AlertCircle, ChevronRight, Globe, BrainCircuit, ExternalLink, CheckCircle2 } from "lucide-react";
+import { Search, Loader2, AlertCircle, ChevronRight, Globe, BrainCircuit, ExternalLink, CheckCircle2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -35,6 +35,27 @@ export default function Audit() {
   const { data: client } = useGetClient({
     query: { queryKey: getGetClientQueryKey(), retry: false },
   });
+
+  // Poll for a background auto-refresh that may have been kicked off on sign-in.
+  // When it finishes, pull in the new scores/findings.
+  const { data: refreshStatus } = useGetAuditRefreshStatus({
+    query: {
+      queryKey: getGetAuditRefreshStatusQueryKey(),
+      retry: false,
+      refetchInterval: (query) => (query.state.data?.refreshing ? 4000 : 15000),
+    },
+  });
+  const isAutoRefreshing = Boolean(refreshStatus?.refreshing) && !isRunning;
+  const wasRefreshingRef = useRef(false);
+
+  useEffect(() => {
+    const refreshing = Boolean(refreshStatus?.refreshing);
+    if (wasRefreshingRef.current && !refreshing) {
+      queryClient.invalidateQueries({ queryKey: getGetLatestAuditQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+    }
+    wasRefreshingRef.current = refreshing;
+  }, [refreshStatus?.refreshing, queryClient]);
 
   const activeAudit = liveResult || audit;
 
@@ -254,9 +275,17 @@ export default function Audit() {
           <h1 className="text-4xl font-serif text-foreground tracking-tight">Digital Presence Audit</h1>
           <p className="text-muted-foreground text-lg font-light">How the world and AI models see you today.</p>
         </div>
-        <Button onClick={handleRerun} variant="outline" className="shrink-0 rounded-full bg-card hover:bg-secondary border-border/50">
-          Run Fresh Audit
-        </Button>
+        <div className="flex items-center gap-4 shrink-0">
+          {isAutoRefreshing && (
+            <span className="inline-flex items-center gap-2 text-sm font-light text-muted-foreground">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Refreshing your audit…
+            </span>
+          )}
+          <Button onClick={handleRerun} variant="outline" className="rounded-full bg-card hover:bg-secondary border-border/50">
+            Run Fresh Audit
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

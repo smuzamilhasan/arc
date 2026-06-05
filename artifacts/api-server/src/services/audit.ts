@@ -1,6 +1,7 @@
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { ai } from "@workspace/integrations-gemini-ai";
+import { db, auditResultsTable } from "@workspace/db";
 import type {
   ClientProfile,
   SeoFindings,
@@ -346,4 +347,29 @@ export async function runAudit(
   onProgress({ type: "progress", step: "synthesis", status: "done", message: "Audit complete" });
 
   return { seoScore, geoScore, seoFindings, geoFindings, recommendations };
+}
+
+// Runs the full audit and persists the result as a new audit_results row.
+// Shared by the manual SSE route and the background auto-refresh so both use the
+// exact same run-then-save logic. The SSE route streams progress; the background
+// path passes a no-op onProgress.
+export async function runAndSaveAudit(
+  client: ClientProfile,
+  onProgress: (p: AuditProgress) => void,
+  feedback?: string,
+): Promise<typeof auditResultsTable.$inferSelect> {
+  const data = await runAudit(client, onProgress, feedback);
+  const [saved] = await db
+    .insert(auditResultsTable)
+    .values({
+      clientId: client.id,
+      seoScore: data.seoScore,
+      geoScore: data.geoScore,
+      seoFindings: data.seoFindings,
+      geoFindings: data.geoFindings,
+      recommendations: data.recommendations,
+      status: "complete",
+    })
+    .returning();
+  return saved;
 }

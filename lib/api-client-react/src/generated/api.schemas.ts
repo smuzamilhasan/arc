@@ -271,6 +271,18 @@ export interface AuditResult {
   createdAt: string;
 }
 
+export interface AuditRefreshStatus {
+  /** True if a background audit refresh is currently running for the user. */
+  refreshing: boolean;
+}
+
+export interface AuditAutoRefreshResult {
+  /** True if a background audit refresh was started by this request. */
+  started: boolean;
+  /** Why a refresh was not started (e.g. no_client, no_prior_audit, fresh, in_flight). */
+  reason?: string;
+}
+
 export interface NarrativeTheme {
   title: string;
   description: string;

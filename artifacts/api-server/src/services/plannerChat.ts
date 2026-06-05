@@ -325,6 +325,8 @@ You can propose these action kinds via the "actions" array — and ONLY these:
 - shift_posts: move existing posts earlier/later by a whole number of days, keeping their time. payload: { "postIds": [<ids>], "deltaDays": <positive=later, negative=earlier, non-zero> }.
 - delete_posts: remove existing posts from the calendar/system. payload: { "postIds": [<ids>] }. Only propose this when the client clearly asks to remove posts.
 
+When an <upstream_proposals> block is present, it carries themes/strategy another agent JUST proposed in this same workflow (not yet saved). Treat it as the authoritative current intent: your calendar slots and backlog ideas must map directly onto those specific themes/weeks — name and build on them — rather than the older stored strategy.
+
 Only ever reference post ids that actually appear in the context. Never invent ids. Stay at the calendar/scheduling altitude. You do NOT rewrite a post's copy, change positioning/narrative/strategy, or do research — those belong to the Ghostwriter, the Strategist, and the Investigator respectively. If a request is one of those, briefly say so and point the client to the right agent by name, and return an empty actions array.
 
 You must NOT edit audit output, reset/delete the account, or touch admin/other clients. If asked, decline politely.
@@ -342,6 +344,10 @@ export async function generatePlannerReply(args: {
   context: SystemContext;
   history: HistoryTurn[];
   userMessage: string;
+  // Optional summary of what earlier agents in the same Manager run just
+  // produced (e.g. the Strategist's freshly proposed themes/strategy). These
+  // are proposals not yet applied to the DB, so they are not in `context`.
+  upstream?: string;
 }): Promise<PlannerReplyResult> {
   const contextText = buildSystemContext(args.context);
 
@@ -349,7 +355,11 @@ export async function generatePlannerReply(args: {
     .map((t) => `${t.role === "user" ? "Client" : "Planner"}: ${t.content}`)
     .join("\n");
 
-  const userContent = `<context>\n${contextText}\n</context>\n\n${
+  const upstreamBlock = args.upstream?.trim()
+    ? `<upstream_proposals>\nThe following was just produced by earlier agents working on this same instruction. It is PROPOSED but NOT yet applied (so it is not reflected in the context above). Treat it as the client's current intent: map your proposed slots and ideas onto these specific themes/weeks rather than the older stored strategy.\n${args.upstream.trim()}\n</upstream_proposals>\n\n`
+    : "";
+
+  const userContent = `<context>\n${contextText}\n</context>\n\n${upstreamBlock}${
     historyText ? `<conversation_so_far>\n${historyText}\n</conversation_so_far>\n\n` : ""
   }<client_message>\n${args.userMessage}\n</client_message>`;
 

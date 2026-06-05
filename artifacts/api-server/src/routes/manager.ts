@@ -98,11 +98,17 @@ async function buildSnapshot(client: ClientProfile): Promise<string> {
 // (e.g. the freshly persisted dossier is in the strategist's context). Outputs
 // that mutate strategy/content stay UN-applied here — they surface as
 // proposals/drafts the client confirms through the existing per-agent surfaces.
+// Carried forward between agents in one run: a completed agent's task plus a
+// compact, model-readable summary of what it just produced (for downstream
+// agents). `handoff` is null when there is nothing useful to pass on.
+type ExecuteResult = { task: ManagerTask; handoff: string | null };
+
 async function executeTask(
   req: Request,
   client: ClientProfile,
   task: ProposedManagerTask,
-): Promise<ManagerTask> {
+  upstream: string,
+): Promise<ExecuteResult> {
   const result: ManagerTask = {
     id: randomUUID(),
     agent: task.agent,
@@ -113,6 +119,7 @@ async function executeTask(
     error: null,
     output: null,
   };
+  const upstreamText = upstream.trim() ? upstream.trim() : undefined;
 
   try {
     switch (task.agent) {
@@ -145,7 +152,12 @@ async function executeTask(
           competitorCount: data.competitors.length,
         };
         result.resultSummary = `Researched your public footprint and ${data.competitors.length} competitor${data.competitors.length === 1 ? "" : "s"}. Saved to the Investigator.`;
-        return result;
+        const competitorNames = data.competitors
+          .map((c) => c.name)
+          .filter(Boolean)
+          .join(", ");
+        const handoff = `Investigator just researched the client's public footprint and ${data.competitors.length} competitor${data.competitors.length === 1 ? "" : "s"}.\nFootprint summary: ${data.footprintSummary}${competitorNames ? `\nCompetitors to watch: ${competitorNames}` : ""}`;
+        return { task: result, handoff };
       }
 
       case "strategist": {
@@ -155,6 +167,7 @@ async function executeTask(
           context: ctx,
           history,
           userMessage: task.brief,
+          upstream: upstreamText,
         });
         const actions = enrichActions(reply.actions, ctx);
         // Persist as an assistant message so the client confirms/rejects in the
@@ -181,7 +194,17 @@ async function executeTask(
           actions.length > 0
             ? `Proposed ${actions.length} strategic change${actions.length === 1 ? "" : "s"}. Review and confirm in the Strategist.`
             : "Reviewed your strategy; no changes proposed.";
-        return result;
+        // Hand the actual proposed content (incl. payloads like new themes)
+        // forward so downstream agents can build on the specifics, not just
+        // the headline. These changes are NOT yet applied to the DB.
+        const proposalDetail = actions
+          .map((a) => {
+            const payloadStr = a.payload ? JSON.stringify(a.payload) : "";
+            return `- [${a.kind}] ${a.title}${a.rationale ? `: ${a.rationale}` : ""}${payloadStr ? `\n  proposed content: ${payloadStr}` : ""}`;
+          })
+          .join("\n");
+        const handoff = `Strategist just proposed (NOT yet applied):\n${reply.reply}${proposalDetail ? `\nProposed changes:\n${proposalDetail}` : ""}`;
+        return { task: result, handoff };
       }
 
       case "planner": {
@@ -192,7 +215,7 @@ async function executeTask(
           result.status = "skipped";
           result.resultSummary =
             "Skipped: complete your Blueprint before planning a calendar.";
-          return result;
+          return { task: result, handoff: null };
         }
         const [contentStrategy] = await db
           .select({ id: contentStrategiesTable.id })
@@ -204,13 +227,14 @@ async function executeTask(
           result.status = "skipped";
           result.resultSummary =
             "Skipped: generate a content strategy before planning a calendar.";
-          return result;
+          return { task: result, handoff: null };
         }
         const ctx = await loadContext(client.id, client);
         const reply = await generatePlannerReply({
           context: ctx,
           history: [],
           userMessage: task.brief,
+          upstream: upstreamText,
         });
         const actions = enrichPlannerActions(reply.actions, ctx);
         // Persist as a Planner message (unseen) so the client reviews and
@@ -237,7 +261,16 @@ async function executeTask(
           actions.length > 0
             ? `Proposed ${actions.length} calendar change${actions.length === 1 ? "" : "s"}. Review and confirm in the Planner.`
             : "Reviewed your calendar; no changes proposed.";
-        return result;
+        // Pass the actual proposed calendar (slots/ideas in the payloads)
+        // forward so a downstream ghostwriter can write to those slots.
+        const plannerDetail = actions
+          .map((a) => {
+            const payloadStr = a.payload ? JSON.stringify(a.payload) : "";
+            return `- [${a.kind}] ${a.title}${a.rationale ? `: ${a.rationale}` : ""}${payloadStr ? `\n  proposed content: ${payloadStr}` : ""}`;
+          })
+          .join("\n");
+        const handoff = `Planner just proposed (NOT yet applied):\n${reply.reply}${plannerDetail ? `\nProposed calendar:\n${plannerDetail}` : ""}`;
+        return { task: result, handoff };
       }
 
       case "ghostwriter": {
@@ -248,14 +281,20 @@ async function executeTask(
           .orderBy(desc(narrativeProfilesTable.id))
           .limit(1);
         const platform = "linkedin";
+        // Fold any upstream proposals (fresh themes/strategy/calendar) into the
+        // brief so drafts are grounded in this run's current intent, not just
+        // the older stored state. draftContent already accepts a freeform brief.
+        const brief = upstreamText
+          ? `${task.brief}\n\n[Context from earlier agents in this same workflow — proposed but NOT yet applied. Ground the drafts in this current intent:]\n${upstreamText}`
+          : task.brief;
         const data = await draftContent(client, narrative ?? null, {
           format: "post",
           platform,
-          brief: task.brief,
+          brief,
         });
         result.output = { drafts: data.drafts, platform };
         result.resultSummary = `Drafted ${data.drafts.length} post${data.drafts.length === 1 ? "" : "s"} for ${platform}. Review and save the ones you want.`;
-        return result;
+        return { task: result, handoff: null };
       }
     }
   } catch (err) {
@@ -263,10 +302,10 @@ async function executeTask(
     result.status = "failed";
     result.error = "This agent could not complete its task.";
     result.resultSummary = "Failed to complete.";
-    return result;
+    return { task: result, handoff: null };
   }
 
-  return result;
+  return { task: result, handoff: null };
 }
 
 router.post("/manager/run", aiGenerationRateLimit, async (req, res) => {
@@ -315,9 +354,23 @@ router.post("/manager/run", aiGenerationRateLimit, async (req, res) => {
     }
 
     // Execute sequentially so each agent reads the latest upstream output.
+    // Intermediate agents' outputs are UN-applied proposals (not yet in the DB),
+    // so we accumulate a compact summary of each and thread it into the next
+    // agent's brief/prompt — keeping the chain coherent (e.g. the Planner plans
+    // around the themes the Strategist just proposed).
     const tasks: ManagerTask[] = [];
+    let upstream = "";
     for (const task of decomposition.tasks) {
-      tasks.push(await executeTask(req, client, task));
+      const { task: completed, handoff } = await executeTask(
+        req,
+        client,
+        task,
+        upstream,
+      );
+      tasks.push(completed);
+      if (handoff && completed.status === "completed") {
+        upstream += (upstream ? "\n\n" : "") + handoff;
+      }
     }
 
     const [run] = await db

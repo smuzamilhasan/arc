@@ -440,6 +440,10 @@ export async function generateAssistantReply(args: {
   context: SystemContext;
   history: HistoryTurn[];
   userMessage: string;
+  // Optional summary of what earlier agents in the same Manager run just
+  // produced. These are proposals not yet applied to the DB, so they are not
+  // in `context`; we surface them so this agent stays coherent with the chain.
+  upstream?: string;
 }): Promise<AssistantReplyResult> {
   const contextText = buildSystemContext(args.context);
 
@@ -447,7 +451,11 @@ export async function generateAssistantReply(args: {
     .map((t) => `${t.role === "user" ? "Client" : "Assistant"}: ${t.content}`)
     .join("\n");
 
-  const userContent = `<context>\n${contextText}\n</context>\n\n${
+  const upstreamBlock = args.upstream?.trim()
+    ? `<upstream_proposals>\nThe following was just produced by earlier agents working on this same instruction. It is PROPOSED but NOT yet applied (so it is not reflected in the context above). Treat it as the client's current intent and build directly on it.\n${args.upstream.trim()}\n</upstream_proposals>\n\n`
+    : "";
+
+  const userContent = `<context>\n${contextText}\n</context>\n\n${upstreamBlock}${
     historyText ? `<conversation_so_far>\n${historyText}\n</conversation_so_far>\n\n` : ""
   }<client_message>\n${args.userMessage}\n</client_message>`;
 

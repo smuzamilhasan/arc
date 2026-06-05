@@ -60,6 +60,7 @@ import { rescheduleToDay, shiftByDays } from "@/lib/schedule";
 import { GenerateGate } from "@/components/locked-panel";
 import { PostEditorDialog } from "@/components/post-editor";
 import { GhostwriterDialog, type GhostwriterPrefill } from "@/components/ghostwriter-dialog";
+import { ShareMenu } from "@/components/share-menu";
 import { ContentModeToggle, type ContentMode } from "@/components/content-mode-toggle";
 import { useLocation, useSearch } from "wouter";
 
@@ -682,6 +683,9 @@ function ContentLibrary() {
                     )}
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <ShareMenu post={post} />
+                    </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => {
                       e.stopPropagation();
                       setPostToDelete(post.id);
@@ -1301,12 +1305,21 @@ function ScheduleCalendar({
                         <CalendarClock className="h-3.5 w-3.5" />
                         {format(new Date(post.scheduledAt!), "h:mm a")}
                       </span>
-                      <Badge
-                        variant="outline"
-                        className={`capitalize border ${getStatusColor(post.status)} rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider`}
-                      >
-                        {post.status}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge
+                          variant="outline"
+                          className={`capitalize border ${getStatusColor(post.status)} rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider`}
+                        >
+                          {post.status}
+                        </Badge>
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          onDragStart={(e) => e.stopPropagation()}
+                          draggable={false}
+                        >
+                          <ShareMenu post={post} className="h-7 w-7" />
+                        </div>
+                      </div>
                     </div>
                     <p className="line-clamp-2 font-serif text-base leading-tight text-foreground">{post.title}</p>
                     <span className="mt-2 block text-[10px] uppercase tracking-widest text-muted-foreground">

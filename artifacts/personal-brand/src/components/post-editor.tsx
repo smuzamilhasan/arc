@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { ShareMenu } from "@/components/share-menu";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -241,10 +242,23 @@ export function PostEditorDialog({
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-muted-foreground hover:text-foreground">
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving} className="gap-2 rounded-full px-8 bg-primary hover:bg-primary/90 h-11">
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                {post ? "Save Changes" : "Save to Library"}
-              </Button>
+              <div className="flex items-center gap-2">
+                {post && (
+                  <ShareMenu
+                    post={{
+                      title: form.watch("title"),
+                      content: form.watch("content"),
+                      platform: form.watch("platform"),
+                    }}
+                    variant="button"
+                    align="end"
+                  />
+                )}
+                <Button type="submit" disabled={saving} className="gap-2 rounded-full px-8 bg-primary hover:bg-primary/90 h-11">
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {post ? "Save Changes" : "Save to Library"}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>

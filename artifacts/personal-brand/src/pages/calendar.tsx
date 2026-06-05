@@ -36,6 +36,7 @@ import { PANEL_GATES, panelGatePrerequisites, isPanelUnlocked } from "@/lib/blue
 import { groupPostsByDay } from "@/lib/calendar";
 import { LockedPanel } from "@/components/locked-panel";
 import { PostEditorDialog } from "@/components/post-editor";
+import { ShareMenu } from "@/components/share-menu";
 
 // Color coding per platform, kept consistent between the legend and the cards.
 const PLATFORM_STYLES: Record<
@@ -185,18 +186,27 @@ function FilterBar({
 function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
   const style = platformStyle(post.platform);
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={post.title}
+    <div
       className={cn(
-        "flex w-full items-center gap-1.5 rounded-md border px-2 py-1 text-left text-[11px] font-medium leading-tight transition-colors",
+        "group/card relative flex w-full items-center gap-1.5 rounded-md border pl-2 pr-1 text-[11px] font-medium leading-tight transition-colors",
         style.card,
       )}
     >
-      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
-      <span className="truncate">{post.title}</span>
-    </button>
+      <button
+        type="button"
+        onClick={onClick}
+        title={post.title}
+        className="flex flex-1 items-center gap-1.5 overflow-hidden py-1 text-left"
+      >
+        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
+        <span className="truncate">{post.title}</span>
+      </button>
+      <ShareMenu
+        post={post}
+        align="start"
+        className="h-5 w-5 shrink-0 opacity-0 focus-within:opacity-100 group-hover/card:opacity-100 [&_svg]:h-3 [&_svg]:w-3"
+      />
+    </div>
   );
 }
 
@@ -206,29 +216,36 @@ function PostRow({ post, onClick }: { post: Post; onClick: () => void }) {
   const at = post.scheduledAt ? new Date(post.scheduledAt) : null;
   const time = at && !Number.isNaN(at.getTime()) ? format(at, "h:mm a") : null;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={post.title}
+    <div
       className={cn(
-        "flex w-full flex-col gap-1 rounded-md border px-2.5 py-2 text-left transition-colors",
+        "group/row relative flex w-full flex-col gap-1 rounded-md border px-2.5 py-2 transition-colors",
         style.card,
       )}
     >
-      <div className="flex items-center gap-1.5">
-        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
-        <span className="truncate text-xs font-semibold leading-tight">{post.title}</span>
+      <button
+        type="button"
+        onClick={onClick}
+        title={post.title}
+        className="flex flex-col gap-1 text-left"
+      >
+        <div className="flex items-center gap-1.5 pr-7">
+          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
+          <span className="truncate text-xs font-semibold leading-tight">{post.title}</span>
+        </div>
+        <div className="flex items-center gap-2 pl-3 text-[10px] font-medium uppercase tracking-wide opacity-80">
+          <span>{style.label}</span>
+          {time && (
+            <>
+              <span aria-hidden>·</span>
+              <span className="normal-case tracking-normal">{time}</span>
+            </>
+          )}
+        </div>
+      </button>
+      <div className="absolute right-1 top-1">
+        <ShareMenu post={post} className="h-7 w-7 opacity-0 focus-within:opacity-100 group-hover/row:opacity-100" />
       </div>
-      <div className="flex items-center gap-2 pl-3 text-[10px] font-medium uppercase tracking-wide opacity-80">
-        <span>{style.label}</span>
-        {time && (
-          <>
-            <span aria-hidden>·</span>
-            <span className="normal-case tracking-normal">{time}</span>
-          </>
-        )}
-      </div>
-    </button>
+    </div>
   );
 }
 

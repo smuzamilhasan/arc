@@ -30,6 +30,7 @@ import type {
   AssistantRejectInput,
   AssistantReply,
   AssistantSendInput,
+  AssistantUnread,
   AuditAutoRefreshResult,
   AuditRefreshStatus,
   AuditResult,
@@ -2941,6 +2942,231 @@ export function useGetAssistantMessages<TData = Awaited<ReturnType<typeof getAss
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAssistantMessagesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAssistantUnreadUrl = () => {
+
+
+
+
+  return `/api/assistant/unread`
+}
+
+/**
+ * @summary Count unseen proactive assistant messages for the client
+ */
+export const getAssistantUnread = async ( options?: RequestInit): Promise<AssistantUnread> => {
+
+  return customFetch<AssistantUnread>(getGetAssistantUnreadUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAssistantUnreadQueryKey = () => {
+    return [
+    `/api/assistant/unread`
+    ] as const;
+    }
+
+
+export const getGetAssistantUnreadQueryOptions = <TData = Awaited<ReturnType<typeof getAssistantUnread>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAssistantUnread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAssistantUnreadQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAssistantUnread>>> = ({ signal }) => getAssistantUnread({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAssistantUnread>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAssistantUnreadQueryResult = NonNullable<Awaited<ReturnType<typeof getAssistantUnread>>>
+export type GetAssistantUnreadQueryError = ErrorType<void>
+
+
+/**
+ * @summary Count unseen proactive assistant messages for the client
+ */
+
+export function useGetAssistantUnread<TData = Awaited<ReturnType<typeof getAssistantUnread>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAssistantUnread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAssistantUnreadQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getMarkAssistantSeenUrl = () => {
+
+
+
+
+  return `/api/assistant/seen`
+}
+
+/**
+ * @summary Mark all assistant messages for the client as seen
+ */
+export const markAssistantSeen = async ( options?: RequestInit): Promise<AssistantUnread> => {
+
+  return customFetch<AssistantUnread>(getMarkAssistantSeenUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getMarkAssistantSeenMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAssistantSeen>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markAssistantSeen>>, TError,void, TContext> => {
+
+const mutationKey = ['markAssistantSeen'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markAssistantSeen>>, void> = () => {
+
+
+          return  markAssistantSeen(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkAssistantSeenMutationResult = NonNullable<Awaited<ReturnType<typeof markAssistantSeen>>>
+
+    export type MarkAssistantSeenMutationError = ErrorType<void>
+
+    /**
+ * @summary Mark all assistant messages for the client as seen
+ */
+export const useMarkAssistantSeen = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAssistantSeen>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markAssistantSeen>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getMarkAssistantSeenMutationOptions(options));
+    }
+
+export const getStreamAssistantUrl = () => {
+
+
+
+
+  return `/api/assistant/stream`
+}
+
+/**
+ * Streams Server-Sent Events when the background strategist posts a new proactive suggestion. Consume with fetch + ReadableStream, not generated hooks.
+ * @summary Live notifications of new proactive assistant messages (SSE stream)
+ */
+export const streamAssistant = async ( options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getStreamAssistantUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStreamAssistantQueryKey = () => {
+    return [
+    `/api/assistant/stream`
+    ] as const;
+    }
+
+
+export const getStreamAssistantQueryOptions = <TData = Awaited<ReturnType<typeof streamAssistant>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof streamAssistant>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStreamAssistantQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamAssistant>>> = ({ signal }) => streamAssistant({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamAssistant>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type StreamAssistantQueryResult = NonNullable<Awaited<ReturnType<typeof streamAssistant>>>
+export type StreamAssistantQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Live notifications of new proactive assistant messages (SSE stream)
+ */
+
+export function useStreamAssistant<TData = Awaited<ReturnType<typeof streamAssistant>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof streamAssistant>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getStreamAssistantQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

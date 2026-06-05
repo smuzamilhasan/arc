@@ -22,6 +22,7 @@ export * from './assistantMessageRole';
 export * from './assistantRejectInput';
 export * from './assistantReply';
 export * from './assistantSendInput';
+export * from './assistantUnread';
 export * from './auditAutoRefreshResult';
 export * from './auditRefreshStatus';
 export * from './auditResult';

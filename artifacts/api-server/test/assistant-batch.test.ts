@@ -14,8 +14,6 @@ import {
   db,
   pool,
   clientProfileTable,
-  postsTable,
-  ideasTable,
   assistantMessagesTable,
   type AssistantAction,
 } from "@workspace/db";
@@ -45,44 +43,15 @@ async function cleanupUser(userId: string) {
     .where(eq(clientProfileTable.userId, userId));
   if (!client) return;
   await db.delete(assistantMessagesTable).where(eq(assistantMessagesTable.clientId, client.id));
-  await db.delete(postsTable).where(eq(postsTable.clientId, client.id));
-  await db.delete(ideasTable).where(eq(ideasTable.clientId, client.id));
   await db.delete(clientProfileTable).where(eq(clientProfileTable.id, client.id));
 }
 
-function proposedPost(title: string): AssistantAction {
+// A strategist-scoped action: edit a macro profile field. Each proposal targets
+// a distinct field so applying several in one batch produces observable changes.
+function proposedProfile(title: string, payload: Record<string, unknown>): AssistantAction {
   return {
     id: randomUUID(),
-    kind: "create_post",
-    title,
-    rationale: "",
-    status: "proposed",
-    rejectionComment: null,
-    diff: [],
-    payload: { title, content: "body", platform: "linkedin", status: "draft" },
-  };
-}
-
-function proposedIdea(title: string): AssistantAction {
-  return {
-    id: randomUUID(),
-    kind: "create_idea",
-    title,
-    rationale: "",
-    status: "proposed",
-    rejectionComment: null,
-    diff: [],
-    payload: { title },
-  };
-}
-
-function proposedSchedule(
-  title: string,
-  payload: { postIds: number[]; startDate: string; intervalDays?: number; time?: string },
-): AssistantAction {
-  return {
-    id: randomUUID(),
-    kind: "schedule_posts",
+    kind: "update_profile",
     title,
     rationale: "",
     status: "proposed",
@@ -97,7 +66,7 @@ async function seedProposals(clientId: number, actions: AssistantAction[]): Prom
   await db.insert(assistantMessagesTable).values({
     clientId,
     role: "assistant",
-    content: "Here are some drafts.",
+    content: "Here are some proposals.",
     actions,
   });
   return actions.map((a) => a.id);
@@ -144,12 +113,12 @@ describe("assistant batch confirm/reject", () => {
       .expect(400);
   });
 
-  it("confirm-batch applies every proposed action and creates rows", async () => {
+  it("confirm-batch applies every proposed action to the underlying profile", async () => {
     const clientId = await clientIdFor(USER_A);
     const ids = await seedProposals(clientId, [
-      proposedPost("Post one"),
-      proposedPost("Post two"),
-      proposedIdea("Idea one"),
+      proposedProfile("Set headline", { headline: "Batched headline" }),
+      proposedProfile("Set positioning", { positioning: "Batched positioning" }),
+      proposedProfile("Set industry", { industry: "Batched industry" }),
     ]);
 
     const res = await request(app)
@@ -161,79 +130,45 @@ describe("assistant batch confirm/reject", () => {
     expect(res.body.actions).toHaveLength(3);
     expect(res.body.actions.every((a: AssistantAction) => a.status === "applied")).toBe(true);
 
-    const posts = await db.select().from(postsTable).where(eq(postsTable.clientId, clientId));
-    const ideas = await db.select().from(ideasTable).where(eq(ideasTable.clientId, clientId));
-    expect(posts.map((p) => p.title).sort()).toEqual(["Post one", "Post two"]);
-    expect(ideas.map((i) => i.title)).toEqual(["Idea one"]);
+    const [client] = await db
+      .select()
+      .from(clientProfileTable)
+      .where(eq(clientProfileTable.id, clientId));
+    expect(client.headline).toBe("Batched headline");
+    expect(client.positioning).toBe("Batched positioning");
+    expect(client.industry).toBe("Batched industry");
   });
 
   it("confirm-batch is idempotent: already-resolved actions are skipped", async () => {
     const clientId = await clientIdFor(USER_A);
-    const ids = await seedProposals(clientId, [proposedPost("Once only")]);
+    const ids = await seedProposals(clientId, [
+      proposedProfile("One-time change", { headline: "Idempotent headline" }),
+    ]);
 
     await request(app)
       .post("/api/assistant/actions/confirm-batch")
       .set(as(USER_A))
       .send({ actionIds: ids })
       .expect(200);
-    // Second confirm should not produce a duplicate post.
+    // Second confirm should skip the already-applied action.
     const res = await request(app)
       .post("/api/assistant/actions/confirm-batch")
       .set(as(USER_A))
       .send({ actionIds: ids })
       .expect(200);
     expect(res.body.actions).toHaveLength(0);
+  });
 
-    const posts = await db
+  it("reject-batch dismisses every proposed action without applying changes", async () => {
+    const clientId = await clientIdFor(USER_A);
+    const [before] = await db
       .select()
-      .from(postsTable)
-      .where(eq(postsTable.clientId, clientId));
-    expect(posts.filter((p) => p.title === "Once only")).toHaveLength(1);
-  });
+      .from(clientProfileTable)
+      .where(eq(clientProfileTable.id, clientId));
 
-  it("confirming a schedule_posts action spreads existing posts across dates", async () => {
-    const clientId = await clientIdFor(USER_A);
-    const [p1] = await db
-      .insert(postsTable)
-      .values({ clientId, title: "Sched A", content: "", platform: "linkedin", status: "draft" })
-      .returning();
-    const [p2] = await db
-      .insert(postsTable)
-      .values({ clientId, title: "Sched B", content: "", platform: "linkedin", status: "draft" })
-      .returning();
-
-    const [id] = await seedProposals(clientId, [
-      proposedSchedule("Schedule two posts", {
-        postIds: [p1.id, p2.id],
-        startDate: "2099-01-10",
-        intervalDays: 3,
-        time: "09:00",
-      }),
-    ]);
-
-    const res = await request(app)
-      .post(`/api/assistant/actions/${id}/confirm`)
-      .set(as(USER_A))
-      .expect(200);
-    expect(res.body.action.status).toBe("applied");
-
-    const [first] = await db.select().from(postsTable).where(eq(postsTable.id, p1.id));
-    const [second] = await db.select().from(postsTable).where(eq(postsTable.id, p2.id));
-    expect(first.status).toBe("scheduled");
-    expect(second.status).toBe("scheduled");
-    expect(first.scheduledAt).toBeTruthy();
-    expect(second.scheduledAt).toBeTruthy();
-    // Second post lands intervalDays (3) after the first.
-    const gapDays =
-      (second.scheduledAt!.getTime() - first.scheduledAt!.getTime()) / (1000 * 60 * 60 * 24);
-    expect(Math.round(gapDays)).toBe(3);
-  });
-
-  it("reject-batch dismisses every proposed action without creating rows", async () => {
-    const clientId = await clientIdFor(USER_A);
     const ids = await seedProposals(clientId, [
-      proposedPost("Rejected post"),
-      proposedIdea("Rejected idea"),
+      proposedProfile("Rejected headline", { headline: "Should not stick" }),
+      proposedProfile("Rejected bio", { bio: "Should not stick either" }),
     ]);
 
     const res = await request(app)
@@ -245,13 +180,19 @@ describe("assistant batch confirm/reject", () => {
     expect(res.body.actions).toHaveLength(2);
     expect(res.body.actions.every((a: AssistantAction) => a.status === "rejected")).toBe(true);
 
-    const posts = await db.select().from(postsTable).where(eq(postsTable.clientId, clientId));
-    expect(posts.some((p) => p.title === "Rejected post")).toBe(false);
+    const [after] = await db
+      .select()
+      .from(clientProfileTable)
+      .where(eq(clientProfileTable.id, clientId));
+    expect(after.headline).toBe(before.headline);
+    expect(after.bio).toBe(before.bio);
   });
 
   it("does not touch another client's proposed actions", async () => {
     const clientB = await clientIdFor(USER_B);
-    const ids = await seedProposals(clientB, [proposedPost("B's draft")]);
+    const ids = await seedProposals(clientB, [
+      proposedProfile("B's change", { headline: "B's new headline" }),
+    ]);
 
     // User A tries to confirm User B's action ids.
     const res = await request(app)
@@ -261,13 +202,16 @@ describe("assistant batch confirm/reject", () => {
       .expect(200);
     expect(res.body.actions).toHaveLength(0);
 
-    // B's action is still proposed and no post was created for B.
+    // B's action is still proposed and B's profile is unchanged.
     const [row] = await db
       .select()
       .from(assistantMessagesTable)
       .where(eq(assistantMessagesTable.clientId, clientB));
     expect(row.actions[0].status).toBe("proposed");
-    const posts = await db.select().from(postsTable).where(eq(postsTable.clientId, clientB));
-    expect(posts.some((p) => p.title === "B's draft")).toBe(false);
+    const [client] = await db
+      .select()
+      .from(clientProfileTable)
+      .where(eq(clientProfileTable.id, clientB));
+    expect(client.headline).toBe("B headline");
   });
 });

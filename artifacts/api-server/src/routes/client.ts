@@ -9,6 +9,7 @@ import {
   platformStrategiesTable,
   contentStrategiesTable,
   assistantMessagesTable,
+  assistantReviewsTable,
   profilePortraitsTable,
 } from "@workspace/db";
 import { UpsertClientBody } from "@workspace/api-zod";
@@ -36,6 +37,9 @@ async function deleteClientData(clientId: number) {
     await tx
       .delete(assistantMessagesTable)
       .where(eq(assistantMessagesTable.clientId, clientId));
+    await tx
+      .delete(assistantReviewsTable)
+      .where(eq(assistantReviewsTable.clientId, clientId));
     await tx
       .delete(profilePortraitsTable)
       .where(eq(profilePortraitsTable.clientId, clientId));

@@ -1108,7 +1108,7 @@ export const GetAssistantMessagesResponseItem = zod.object({
   "content": zod.string(),
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1120,9 +1120,26 @@ export const GetAssistantMessagesResponseItem = zod.object({
 })),
   "payload": zod.record(zod.string(), zod.unknown()).nullish()
 })),
+  "seen": zod.boolean(),
   "createdAt": zod.string()
 })
 export const GetAssistantMessagesResponse = zod.array(GetAssistantMessagesResponseItem)
+
+
+/**
+ * @summary Count unseen proactive assistant messages for the client
+ */
+export const GetAssistantUnreadResponse = zod.object({
+  "count": zod.number()
+})
+
+
+/**
+ * @summary Mark all assistant messages for the client as seen
+ */
+export const MarkAssistantSeenResponse = zod.object({
+  "count": zod.number()
+})
 
 
 /**
@@ -1139,7 +1156,7 @@ export const SendAssistantMessageResponse = zod.object({
   "content": zod.string(),
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1151,6 +1168,7 @@ export const SendAssistantMessageResponse = zod.object({
 })),
   "payload": zod.record(zod.string(), zod.unknown()).nullish()
 })),
+  "seen": zod.boolean(),
   "createdAt": zod.string()
 }),
   "assistantMessage": zod.object({
@@ -1159,7 +1177,7 @@ export const SendAssistantMessageResponse = zod.object({
   "content": zod.string(),
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1171,6 +1189,7 @@ export const SendAssistantMessageResponse = zod.object({
 })),
   "payload": zod.record(zod.string(), zod.unknown()).nullish()
 })),
+  "seen": zod.boolean(),
   "createdAt": zod.string()
 })
 })
@@ -1186,7 +1205,7 @@ export const ConfirmAssistantActionParams = zod.object({
 export const ConfirmAssistantActionResponse = zod.object({
   "action": zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1204,7 +1223,7 @@ export const ConfirmAssistantActionResponse = zod.object({
   "content": zod.string(),
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1216,6 +1235,7 @@ export const ConfirmAssistantActionResponse = zod.object({
 })),
   "payload": zod.record(zod.string(), zod.unknown()).nullish()
 })),
+  "seen": zod.boolean(),
   "createdAt": zod.string()
 }),zod.null()]).optional()
 })
@@ -1235,7 +1255,7 @@ export const RejectAssistantActionBody = zod.object({
 export const RejectAssistantActionResponse = zod.object({
   "action": zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1253,7 +1273,7 @@ export const RejectAssistantActionResponse = zod.object({
   "content": zod.string(),
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1265,6 +1285,7 @@ export const RejectAssistantActionResponse = zod.object({
 })),
   "payload": zod.record(zod.string(), zod.unknown()).nullish()
 })),
+  "seen": zod.boolean(),
   "createdAt": zod.string()
 }),zod.null()]).optional()
 })
@@ -1280,7 +1301,7 @@ export const ConfirmAssistantActionsBody = zod.object({
 export const ConfirmAssistantActionsResponse = zod.object({
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),
@@ -1305,7 +1326,7 @@ export const RejectAssistantActionsBody = zod.object({
 export const RejectAssistantActionsResponse = zod.object({
   "actions": zod.array(zod.object({
   "id": zod.string(),
-  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms', 'create_post', 'update_post', 'schedule_posts', 'create_idea', 'update_idea']),
+  "kind": zod.enum(['update_profile', 'update_narrative', 'regenerate_narrative', 'update_content_strategy', 'update_platforms']),
   "title": zod.string(),
   "rationale": zod.string(),
   "status": zod.enum(['proposed', 'applied', 'rejected']),

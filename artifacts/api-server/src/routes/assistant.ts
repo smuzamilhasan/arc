@@ -16,7 +16,6 @@ import {
 import { asc, desc, eq, and } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { getClientForUser } from "./client";
-import { scheduleClientPosts } from "./posts";
 import {
   generateAssistantReply,
   buildDiff,
@@ -26,6 +25,7 @@ import {
 } from "../services/assistant";
 import { generateNarrative } from "../services/narrative";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
+import { subscribe, unsubscribe } from "../services/assistantNotifier";
 
 const ASSISTANT_MESSAGE_MAX_LENGTH = 4000;
 
@@ -37,11 +37,12 @@ function serializeMessage(m: typeof assistantMessagesTable.$inferSelect) {
     role: m.role,
     content: m.content,
     actions: m.actions,
+    seen: m.seen,
     createdAt: m.createdAt.toISOString(),
   };
 }
 
-async function loadContext(clientId: number, client: ClientProfile): Promise<SystemContext> {
+export async function loadContext(clientId: number, client: ClientProfile): Promise<SystemContext> {
   const [narrative] = await db
     .select()
     .from(narrativeProfilesTable)
@@ -80,7 +81,7 @@ async function loadContext(clientId: number, client: ClientProfile): Promise<Sys
   return { client, narrative, platforms, contentStrategy, audit, posts, ideas };
 }
 
-async function loadHistory(clientId: number): Promise<HistoryTurn[]> {
+export async function loadHistory(clientId: number): Promise<HistoryTurn[]> {
   const rows = await db
     .select()
     .from(assistantMessagesTable)
@@ -93,7 +94,7 @@ async function loadHistory(clientId: number): Promise<HistoryTurn[]> {
 
 // Turn the model's proposed actions into persisted AssistantAction records,
 // enriching each with an id, "proposed" status, and a computed before -> after diff.
-function enrichActions(proposed: ProposedAction[], ctx: SystemContext): AssistantAction[] {
+export function enrichActions(proposed: ProposedAction[], ctx: SystemContext): AssistantAction[] {
   return proposed.map((p) => ({
     id: randomUUID(),
     kind: p.kind,
@@ -118,6 +119,70 @@ router.get("/assistant/messages", async (req, res) => {
     .where(eq(assistantMessagesTable.clientId, client.id))
     .orderBy(asc(assistantMessagesTable.id));
   res.json(rows.map(serializeMessage));
+});
+
+// Count unseen messages (the background strategist's proactive suggestions),
+// driving the launcher's unread indicator.
+router.get("/assistant/unread", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const rows = await db
+    .select()
+    .from(assistantMessagesTable)
+    .where(and(eq(assistantMessagesTable.clientId, client.id), eq(assistantMessagesTable.seen, false)));
+  res.json({ count: rows.length });
+});
+
+// Mark every message for the client as seen. Called when the client opens the
+// strategist panel, clearing the unread indicator.
+router.post("/assistant/seen", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  await db
+    .update(assistantMessagesTable)
+    .set({ seen: true })
+    .where(and(eq(assistantMessagesTable.clientId, client.id), eq(assistantMessagesTable.seen, false)));
+  res.json({ count: 0 });
+});
+
+// Server-Sent Events stream: emits an event whenever the background scheduler
+// posts a new proactive suggestion for this client. Consumed via fetch +
+// ReadableStream (EventSource cannot send the Clerk bearer token).
+router.get("/assistant/stream", async (req, res) => {
+  const client = await getClientForUser(req.userId!);
+  if (!client) {
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+  });
+  res.write(": connected\n\n");
+
+  subscribe(client.id, res);
+
+  // Periodic comment keeps intermediaries from closing an idle connection.
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(": ping\n\n");
+    } catch {
+      // ignored; close handler does cleanup
+    }
+  }, 25000);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    unsubscribe(client.id, res);
+  });
 });
 
 router.post("/assistant/message", aiGenerationRateLimit, async (req, res) => {
@@ -279,63 +344,6 @@ async function applyAction(
         .update(platformStrategiesTable)
         .set({ ...(payload ?? {}), updatedAt: new Date() })
         .where(eq(platformStrategiesTable.id, existing.id));
-      return;
-    }
-    case "create_post": {
-      const p = payload ?? {};
-      await db.insert(postsTable).values({
-        clientId: client.id,
-        title: p.title as string,
-        content: (p.content as string) ?? "",
-        platform: p.platform as string,
-        status: p.status as string,
-        scheduledAt: p.scheduledAt ? new Date(p.scheduledAt as string) : null,
-        tags: (p.tags as string[]) ?? [],
-      });
-      return;
-    }
-    case "update_post": {
-      const p = payload ?? {};
-      const { id, scheduledAt, ...rest } = p as Record<string, unknown>;
-      const updates: Record<string, unknown> = { ...rest, updatedAt: new Date() };
-      if (scheduledAt !== undefined) updates.scheduledAt = new Date(scheduledAt as string);
-      const updated = await db
-        .update(postsTable)
-        .set(updates)
-        .where(and(eq(postsTable.id, id as number), eq(postsTable.clientId, client.id)))
-        .returning();
-      if (updated.length === 0) throw new Error("Post not found");
-      return;
-    }
-    case "schedule_posts": {
-      const p = payload ?? {};
-      await scheduleClientPosts(client.id, {
-        postIds: (p.postIds as number[]) ?? [],
-        startDate: p.startDate as string,
-        intervalDays: p.intervalDays as number | undefined,
-        time: p.time as string | undefined,
-      });
-      return;
-    }
-    case "create_idea": {
-      const p = payload ?? {};
-      await db.insert(ideasTable).values({
-        clientId: client.id,
-        title: p.title as string,
-        notes: (p.notes as string) ?? "",
-        platform: (p.platform as string) ?? null,
-      });
-      return;
-    }
-    case "update_idea": {
-      const p = payload ?? {};
-      const { id, ...rest } = p as Record<string, unknown>;
-      const updated = await db
-        .update(ideasTable)
-        .set(rest)
-        .where(and(eq(ideasTable.id, id as number), eq(ideasTable.clientId, client.id)))
-        .returning();
-      if (updated.length === 0) throw new Error("Idea not found");
       return;
     }
     default:

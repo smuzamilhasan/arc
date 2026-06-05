@@ -8,12 +8,12 @@ import {
   useRejectAssistantAction,
   useConfirmAssistantActions,
   useRejectAssistantActions,
+  useMarkAssistantSeen,
+  getGetAssistantUnreadQueryKey,
   getGetClientQueryKey,
   getGetNarrativeQueryKey,
   getGetPlatformsQueryKey,
   getGetContentStrategyQueryKey,
-  getListPostsQueryKey,
-  getListIdeasQueryKey,
   getGetDashboardQueryKey,
 } from "@workspace/api-client-react";
 import type {
@@ -34,11 +34,6 @@ const ACTION_LABELS: Record<AssistantActionKind, string> = {
   regenerate_narrative: "Regenerate narrative",
   update_content_strategy: "Update content strategy",
   update_platforms: "Update platform strategy",
-  create_post: "Create post",
-  update_post: "Update post",
-  schedule_posts: "Schedule posts",
-  create_idea: "Create idea",
-  update_idea: "Update idea",
 };
 
 function queryKeysForKind(kind: AssistantActionKind): readonly (readonly unknown[])[] {
@@ -52,13 +47,6 @@ function queryKeysForKind(kind: AssistantActionKind): readonly (readonly unknown
       return [getGetContentStrategyQueryKey()];
     case "update_platforms":
       return [getGetPlatformsQueryKey()];
-    case "create_post":
-    case "update_post":
-    case "schedule_posts":
-      return [getListPostsQueryKey(), getGetDashboardQueryKey()];
-    case "create_idea":
-    case "update_idea":
-      return [getListIdeasQueryKey(), getGetDashboardQueryKey()];
     default:
       return [];
   }
@@ -393,11 +381,24 @@ export function AssistantChat({ className }: { className?: string }) {
     query: { queryKey: getGetAssistantMessagesQueryKey(), retry: false },
   });
   const send = useSendAssistantMessage();
+  const markSeen = useMarkAssistantSeen();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesKey = getGetAssistantMessagesQueryKey();
+  const markSeenMutate = markSeen.mutate;
+
+  // The panel only renders while it is open (Radix unmounts it on close), so
+  // mounting means the client is looking — clear any unread proactive messages.
+  useEffect(() => {
+    markSeenMutate(undefined, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetAssistantUnreadQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAssistantMessagesQueryKey() });
+      },
+    });
+  }, [markSeenMutate, queryClient]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -449,9 +450,9 @@ export function AssistantChat({ className }: { className?: string }) {
             <div className="rounded-lg border border-border bg-card/60 p-4 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Your brand strategist</p>
               <p className="mt-1">
-                Ask for feedback on your positioning, tighten your narrative, draft posts,
-                or brainstorm ideas. I will propose changes you can review and confirm before
-                anything is saved.
+                Ask for feedback on your positioning, sharpen your narrative and point of view,
+                or rethink your themes and platform strategy. I will propose changes you can
+                review and confirm before anything is saved.
               </p>
             </div>
           )}

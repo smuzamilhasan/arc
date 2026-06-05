@@ -15,9 +15,4 @@ export const AssistantActionKind = {
   regenerate_narrative: 'regenerate_narrative',
   update_content_strategy: 'update_content_strategy',
   update_platforms: 'update_platforms',
-  create_post: 'create_post',
-  update_post: 'update_post',
-  schedule_posts: 'schedule_posts',
-  create_idea: 'create_idea',
-  update_idea: 'update_idea',
 } as const;

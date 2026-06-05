@@ -26,7 +26,10 @@ import {
   getGetClientQueryKey,
   useGetPlatforms,
   getGetPlatformsQueryKey,
+  useGetAssistantUnread,
+  getGetAssistantUnreadQueryKey,
 } from "@workspace/api-client-react";
+import { useAssistantNotifications } from "@/hooks/use-assistant-notifications";
 import { isPanelUnlocked, nextPillar, type PanelGateId } from "@/lib/blueprint";
 import { Logo } from "@/components/logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -173,16 +176,22 @@ const navItems: NavItem[] = [
   { href: "/assistant", icon: MessagesSquare, label: "Strategist" },
 ];
 
-function AssistantPanel() {
+function AssistantPanel({ unreadCount }: { unreadCount: number }) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <button
-          aria-label="Open strategist"
+          aria-label={unreadCount > 0 ? "Open strategist (new suggestion)" : "Open strategist"}
           className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform duration-300 hover:scale-105"
         >
           <Sparkles className="h-6 w-6 stroke-[1.75]" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+              <span className="relative inline-flex h-3.5 w-3.5 rounded-full border-2 border-background bg-destructive" />
+            </span>
+          )}
         </button>
       </SheetTrigger>
       <SheetContent
@@ -220,6 +229,16 @@ export function Layout({ children }: LayoutProps) {
   const { data: platformStrategy } = useGetPlatforms({
     query: { queryKey: getGetPlatformsQueryKey(), retry: false },
   });
+  const { data: unread } = useGetAssistantUnread({
+    query: {
+      queryKey: getGetAssistantUnreadQueryKey(),
+      retry: false,
+      refetchInterval: 60000,
+    },
+  });
+  const unreadCount = unread?.count ?? 0;
+
+  useAssistantNotifications(Boolean(client));
 
   const gateCtx = {
     client,
@@ -292,6 +311,9 @@ export function Layout({ children }: LayoutProps) {
             >
               <item.icon className="w-4 h-4 stroke-[1.5]" />
               {item.label}
+              {item.label === "Strategist" && unreadCount > 0 && (
+                <span className="ml-auto h-2 w-2 rounded-full bg-destructive" aria-hidden />
+              )}
             </div>
           </Link>
         );
@@ -356,7 +378,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </main>
 
-      {location !== "/assistant" && <AssistantPanel />}
+      {location !== "/assistant" && <AssistantPanel unreadCount={unreadCount} />}
     </div>
   );
 }

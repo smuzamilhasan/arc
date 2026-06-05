@@ -651,11 +651,6 @@ export const AssistantActionKind = {
   regenerate_narrative: 'regenerate_narrative',
   update_content_strategy: 'update_content_strategy',
   update_platforms: 'update_platforms',
-  create_post: 'create_post',
-  update_post: 'update_post',
-  schedule_posts: 'schedule_posts',
-  create_idea: 'create_idea',
-  update_idea: 'update_idea',
 } as const;
 
 export type AssistantActionStatus = typeof AssistantActionStatus[keyof typeof AssistantActionStatus];
@@ -698,7 +693,12 @@ export interface AssistantMessage {
   role: AssistantMessageRole;
   content: string;
   actions: AssistantAction[];
+  seen: boolean;
   createdAt: string;
+}
+
+export interface AssistantUnread {
+  count: number;
 }
 
 export interface AssistantSendInput {

@@ -724,6 +724,50 @@ paths:
         "404":
           description: No client profile yet
 
+  /assistant/unread:
+    get:
+      operationId: getAssistantUnread
+      tags: [assistant]
+      summary: Count unseen proactive assistant messages for the client
+      responses:
+        "200":
+          description: Number of unseen messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantUnread"
+        "404":
+          description: No client profile yet
+
+  /assistant/seen:
+    post:
+      operationId: markAssistantSeen
+      tags: [assistant]
+      summary: Mark all assistant messages for the client as seen
+      responses:
+        "200":
+          description: Remaining unseen count (always zero)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantUnread"
+        "404":
+          description: No client profile yet
+
+  /assistant/stream:
+    get:
+      operationId: streamAssistant
+      tags: [assistant]
+      summary: Live notifications of new proactive assistant messages (SSE stream)
+      description: Streams Server-Sent Events when the background strategist posts a new proactive suggestion. Consume with fetch + ReadableStream, not generated hooks.
+      responses:
+        "200":
+          description: SSE stream of assistant notifications
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
   /assistant/message:
     post:
       operationId: sendAssistantMessage
@@ -1950,11 +1994,6 @@ components:
               regenerate_narrative,
               update_content_strategy,
               update_platforms,
-              create_post,
-              update_post,
-              schedule_posts,
-              create_idea,
-              update_idea,
             ]
         title:
           type: string
@@ -1975,7 +2014,7 @@ components:
 
     AssistantMessage:
       type: object
-      required: [id, role, content, actions, createdAt]
+      required: [id, role, content, actions, seen, createdAt]
       properties:
         id:
           type: integer
@@ -1988,8 +2027,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AssistantAction"
+        seen:
+          type: boolean
         createdAt:
           type: string
+
+    AssistantUnread:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer
 
     AssistantSendInput:
       type: object

@@ -13,5 +13,6 @@ export interface AssistantMessage {
   role: AssistantMessageRole;
   content: string;
   actions: AssistantAction[];
+  seen: boolean;
   createdAt: string;
 }

@@ -2,12 +2,14 @@ import { useMemo, useState } from "react";
 import {
   useListPosts,
   getListPostsQueryKey,
+  getListIdeasQueryKey,
   useGetClient,
   getGetClientQueryKey,
   useGetPlatforms,
   getGetPlatformsQueryKey,
 } from "@workspace/api-client-react";
 import type { Post } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   addDays,
   addMonths,
@@ -27,8 +29,10 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarDays,
+  CalendarClock,
   Plus,
   Download,
+  Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +49,7 @@ import { groupPostsByDay } from "@/lib/calendar";
 import { LockedPanel } from "@/components/locked-panel";
 import { PostEditorDialog } from "@/components/post-editor";
 import { ShareMenu } from "@/components/share-menu";
+import { BatchScheduleDialog, PlannerDialog } from "@/components/scheduling-dialogs";
 
 // Color coding per platform, kept consistent between the legend and the cards.
 const PLATFORM_STYLES: Record<
@@ -732,9 +737,12 @@ function CalendarBoard({
 }
 
 export default function Calendar() {
+  const queryClient = useQueryClient();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [newPostDate, setNewPostDate] = useState<string | undefined>(undefined);
+  const [isPlanOpen, setIsPlanOpen] = useState(false);
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
 
   const { data: client, isLoading: isClientLoading } = useGetClient({
     query: { queryKey: getGetClientQueryKey(), retry: false },
@@ -765,6 +773,8 @@ export default function Calendar() {
     setIsEditorOpen(true);
   };
 
+  const schedulablePosts = posts.filter((p) => p.status !== "published");
+
   if (isClientLoading || isPlatformsLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -794,25 +804,42 @@ export default function Calendar() {
             and day views, and click any post to edit it.
           </p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              disabled={posts.length === 0}
-              className="rounded-full gap-2 h-11 px-5 shrink-0"
-            >
-              <Download className="w-4 h-4" /> Export plan
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => exportPostsCsv(posts)}>
-              Download CSV (spreadsheet)
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => exportPostsIcs(posts)}>
-              Download ICS (calendar)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setIsGenerateOpen(true)}
+            className="rounded-full gap-2 h-11 px-5"
+          >
+            <Wand2 className="w-4 h-4" /> Generate calendar
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setIsPlanOpen(true)}
+            disabled={schedulablePosts.length === 0}
+            className="rounded-full gap-2 h-11 px-5"
+          >
+            <CalendarClock className="w-4 h-4" /> Plan schedule
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={posts.length === 0}
+                className="rounded-full gap-2 h-11 px-5"
+              >
+                <Download className="w-4 h-4" /> Export plan
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportPostsCsv(posts)}>
+                Download CSV (spreadsheet)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportPostsIcs(posts)}>
+                Download ICS (calendar)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       {isPostsLoading ? (
@@ -822,6 +849,22 @@ export default function Calendar() {
       ) : (
         <CalendarBoard posts={posts} onPostClick={handlePostClick} onAddPost={handleAddPost} />
       )}
+
+      <BatchScheduleDialog
+        open={isPlanOpen}
+        onOpenChange={setIsPlanOpen}
+        posts={schedulablePosts}
+      />
+
+      <PlannerDialog
+        open={isGenerateOpen}
+        onOpenChange={setIsGenerateOpen}
+        onApplied={() => {
+          queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getListIdeasQueryKey() });
+          setIsGenerateOpen(false);
+        }}
+      />
 
       <PostEditorDialog
         open={isEditorOpen}

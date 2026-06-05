@@ -27,7 +27,7 @@ import {
   useGetPlatforms,
   getGetPlatformsQueryKey,
 } from "@workspace/api-client-react";
-import { isPanelUnlocked, type PanelGateId } from "@/lib/blueprint";
+import { isPanelUnlocked, nextPillar, type PanelGateId } from "@/lib/blueprint";
 import { Logo } from "@/components/logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -226,14 +226,29 @@ export function Layout({ children }: LayoutProps) {
     hasPlatformStrategy: Boolean(platformStrategy),
   };
 
+  // Once the Blueprint is fully complete, default the nav to the read-only
+  // View overview; until then keep landing on Edit so it can be filled in.
+  const blueprintComplete = nextPillar(client) === null;
+  const baseItems: NavItem[] = navItems.map((item) =>
+    item.href === "/blueprint"
+      ? { ...item, href: blueprintComplete ? "/blueprint/view" : "/blueprint" }
+      : item,
+  );
+
   const items: NavItem[] = access?.isAdmin
-    ? [...navItems, { href: "/admin", icon: Shield, label: "Admin" }]
-    : navItems;
+    ? [...baseItems, { href: "/admin", icon: Shield, label: "Admin" }]
+    : baseItems;
 
   const NavLinks = () => (
     <div className="flex flex-col gap-1">
       {items.map((item) => {
         const locked = item.gate ? !isPanelUnlocked(item.gate, gateCtx) : false;
+        // Keep the Blueprint nav highlighted across Edit, View, and pillar
+        // pages, since its href can point at either /blueprint or /blueprint/view.
+        const active =
+          item.label === "Blueprint"
+            ? location.startsWith("/blueprint")
+            : location === item.href;
 
         // Locked items stay clickable: they navigate to the panel, which now
         // explains why it's locked and exactly what's left to unlock it. We keep
@@ -245,7 +260,7 @@ export function Layout({ children }: LayoutProps) {
                 title="Locked — open to see what's needed to unlock it"
                 className={cn(
                   "flex items-center justify-between gap-3 px-4 py-2.5 rounded-none border-l-2 text-sm font-medium cursor-pointer transition-all duration-300",
-                  location === item.href
+                  active
                     ? "text-foreground/70 border-primary/40 bg-primary/5"
                     : "text-muted-foreground/50 border-transparent hover:text-muted-foreground hover:bg-secondary/20 hover:border-secondary-foreground/20"
                 )}
@@ -266,7 +281,7 @@ export function Layout({ children }: LayoutProps) {
             <div
               className={cn(
                 "flex items-center gap-3 px-4 py-2.5 rounded-none transition-all duration-300 cursor-pointer text-sm font-medium",
-                location === item.href
+                active
                   ? "text-primary border-l-2 border-primary bg-primary/5"
                   : "text-muted-foreground border-l-2 border-transparent hover:text-foreground hover:bg-secondary/30 hover:border-secondary-foreground/20"
               )}

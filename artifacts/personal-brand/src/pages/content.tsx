@@ -1100,21 +1100,12 @@ function ScheduleCalendar({
                         <CalendarClock className="h-3.5 w-3.5" />
                         {format(new Date(post.scheduledAt!), "h:mm a")}
                       </span>
-                      <div className="flex items-center gap-1">
-                        <Badge
-                          variant="outline"
-                          className={`capitalize border ${getStatusColor(post.status)} rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider`}
-                        >
-                          {post.status}
-                        </Badge>
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          onDragStart={(e) => e.stopPropagation()}
-                          draggable={false}
-                        >
-                          <ShareMenu post={post} className="h-7 w-7" />
-                        </div>
-                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`capitalize border ${getStatusColor(post.status)} rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider`}
+                      >
+                        {post.status}
+                      </Badge>
                     </div>
                     <p className="line-clamp-2 font-serif text-base leading-tight text-foreground">{post.title}</p>
                     <span className="mt-2 block text-[10px] uppercase tracking-widest text-muted-foreground">

@@ -16,6 +16,7 @@ import onboardingRouter from "./onboarding";
 import adminRouter from "./admin";
 import assistantRouter from "./assistant";
 import plannerRouter from "./planner";
+import plannerChatRouter from "./plannerChat";
 import managerRouter from "./manager";
 import { requireAuth } from "../middlewares/requireAuth";
 import { attachActiveClient } from "../middlewares/activeClient";
@@ -44,6 +45,7 @@ router.use(onboardingRouter);
 router.use(adminRouter);
 router.use(assistantRouter);
 router.use(plannerRouter);
+router.use(plannerChatRouter);
 router.use(managerRouter);
 
 export default router;

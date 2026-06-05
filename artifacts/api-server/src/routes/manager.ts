@@ -7,6 +7,7 @@ import {
   platformStrategiesTable,
   contentStrategiesTable,
   assistantMessagesTable,
+  plannerMessagesTable,
   postsTable,
   ideasTable,
   type ClientProfile,
@@ -16,13 +17,14 @@ import { desc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { Request } from "express";
 import { loadContext, loadHistory, enrichActions } from "./assistant";
+import { enrichPlannerActions } from "./plannerChat";
 import {
   decomposeInstruction,
   type ProposedManagerTask,
 } from "../services/manager";
 import { generateAssistantReply } from "../services/assistant";
+import { generatePlannerReply } from "../services/plannerChat";
 import { generateDossier } from "../services/investigator";
-import { generateContentPlan } from "../services/planner";
 import { draftContent } from "../services/ghostwriter";
 import { isBlueprintComplete } from "../services/platforms";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
@@ -183,6 +185,9 @@ async function executeTask(
       }
 
       case "planner": {
+        // The Manager does NOT touch the calendar itself. It RELAYS the planning
+        // brief to the conversational Planner, which proposes calendar changes
+        // the client confirms in the Planner — mirroring the Strategist hand-off.
         if (!isBlueprintComplete(client)) {
           result.status = "skipped";
           result.resultSummary =
@@ -190,7 +195,7 @@ async function executeTask(
           return result;
         }
         const [contentStrategy] = await db
-          .select()
+          .select({ id: contentStrategiesTable.id })
           .from(contentStrategiesTable)
           .where(eq(contentStrategiesTable.clientId, client.id))
           .orderBy(desc(contentStrategiesTable.id))
@@ -201,31 +206,37 @@ async function executeTask(
             "Skipped: generate a content strategy before planning a calendar.";
           return result;
         }
-        const [narrative] = await db
-          .select()
-          .from(narrativeProfilesTable)
-          .where(eq(narrativeProfilesTable.clientId, client.id))
-          .orderBy(desc(narrativeProfilesTable.id))
-          .limit(1);
-        const [platformStrategy] = await db
-          .select()
-          .from(platformStrategiesTable)
-          .where(eq(platformStrategiesTable.clientId, client.id))
-          .orderBy(desc(platformStrategiesTable.id))
-          .limit(1);
-        const proposal = await generateContentPlan(
-          client,
-          narrative,
-          contentStrategy,
-          platformStrategy,
-          { feedback: task.brief || undefined },
-        );
+        const ctx = await loadContext(client.id, client);
+        const reply = await generatePlannerReply({
+          context: ctx,
+          history: [],
+          userMessage: task.brief,
+        });
+        const actions = enrichPlannerActions(reply.actions, ctx);
+        // Persist as a Planner message (unseen) so the client reviews and
+        // confirms the calendar changes in the Planner, with an unread dot.
+        const [message] = await db
+          .insert(plannerMessagesTable)
+          .values({
+            clientId: client.id,
+            role: "assistant",
+            content: reply.reply,
+            actions,
+            seen: false,
+          })
+          .returning();
         result.output = {
-          planSummary: proposal.summary,
-          slots: proposal.slots,
-          ideas: proposal.ideas,
+          plannerMessageId: message.id,
+          reply: reply.reply,
+          proposals: actions.map((a) => ({
+            title: a.title,
+            rationale: a.rationale,
+          })),
         };
-        result.resultSummary = `Proposed a ${proposal.weeks}-week plan: ${proposal.slots.length} slot${proposal.slots.length === 1 ? "" : "s"} and ${proposal.ideas.length} idea${proposal.ideas.length === 1 ? "" : "s"}. Review and add to your calendar.`;
+        result.resultSummary =
+          actions.length > 0
+            ? `Proposed ${actions.length} calendar change${actions.length === 1 ? "" : "s"}. Review and confirm in the Planner.`
+            : "Reviewed your calendar; no changes proposed.";
         return result;
       }
 

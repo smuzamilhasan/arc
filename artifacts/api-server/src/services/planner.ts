@@ -44,7 +44,7 @@ export type GenerateContentPlanOptions = {
 // The Planner only places slots on platforms the rest of the app understands.
 // Anything else the model returns is collapsed to "other" so it still lands on
 // the calendar rather than being silently dropped.
-function normalizePlatform(value: unknown): Platform {
+export function normalizePlatform(value: unknown): Platform {
   const v = String(value ?? "").trim().toLowerCase();
   if ((PLATFORMS as readonly string[]).includes(v)) return v as Platform;
   if (v === "x" || v.includes("twitter")) return "twitter";
@@ -57,7 +57,7 @@ function normalizePlatform(value: unknown): Platform {
 
 // Default the plan to start on the next Monday so a "weekly" plan lines up with
 // a natural week. Returns a YYYY-MM-DD string in the server's local time.
-function defaultStartDate(): string {
+export function defaultStartDate(): string {
   const now = new Date();
   const day = now.getDay();
   const daysUntilMonday = (8 - day) % 7 || 7;
@@ -72,7 +72,7 @@ function defaultStartDate(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function isValidStartDate(value: string | undefined): value is string {
+export function isValidStartDate(value: string | undefined): value is string {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   try {
     computeScheduledDate(value, 0);

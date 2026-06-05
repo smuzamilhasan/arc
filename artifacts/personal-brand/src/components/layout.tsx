@@ -45,6 +45,8 @@ import {
   getGetDashboardQueryKey,
   useGetAssistantUnread,
   getGetAssistantUnreadQueryKey,
+  useGetPlannerUnread,
+  getGetPlannerUnreadQueryKey,
   useAckFoundationConsolidation,
 } from "@workspace/api-client-react";
 import { useAssistantNotifications } from "@/hooks/use-assistant-notifications";
@@ -278,6 +280,7 @@ const navItems: NavItem[] = [
   { href: "/ideas", icon: Lightbulb, label: "Ideas" },
   { href: "/manager", icon: Network, label: "Manager" },
   { href: "/assistant", icon: MessagesSquare, label: "Strategist" },
+  { href: "/planner", icon: CalendarDays, label: "Planner" },
 ];
 
 type PanelAgentId = "manager" | "investigator" | "strategist" | "planner" | "ghostwriter";
@@ -400,6 +403,14 @@ export function Layout({ children }: LayoutProps) {
     },
   });
   const unreadCount = unread?.count ?? 0;
+  const { data: plannerUnread } = useGetPlannerUnread({
+    query: {
+      queryKey: getGetPlannerUnreadQueryKey(),
+      retry: false,
+      refetchInterval: 60000,
+    },
+  });
+  const plannerUnreadCount = plannerUnread?.count ?? 0;
   const queryClient = useQueryClient();
   const { mutate: ackFoundation } = useAckFoundationConsolidation();
   const [celebrateOpen, setCelebrateOpen] = useState(false);
@@ -547,6 +558,9 @@ export function Layout({ children }: LayoutProps) {
               <item.icon className="w-4 h-4 stroke-[1.5]" />
               {item.label}
               {item.label === "Strategist" && unreadCount > 0 && (
+                <span className="ml-auto h-2 w-2 rounded-full bg-destructive" aria-hidden />
+              )}
+              {item.label === "Planner" && plannerUnreadCount > 0 && (
                 <span className="ml-auto h-2 w-2 rounded-full bg-destructive" aria-hidden />
               )}
             </div>

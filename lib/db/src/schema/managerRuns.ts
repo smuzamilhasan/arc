@@ -21,23 +21,6 @@ export type ManagerProposalRef = {
   rationale: string;
 };
 
-// A planned content slot the Planner proposed. Shape-compatible with the
-// Planner's PlannedSlot and the /planner/apply body, so the web layer can apply
-// a Manager-produced plan through the existing apply hook without conversion.
-export type ManagerPlannedSlot = {
-  platform: string;
-  title: string;
-  format: string;
-  contentType: string;
-  brief: string;
-  targetDate: string;
-};
-
-export type ManagerPlannedIdea = {
-  title: string;
-  notes: string;
-  platform: string | null;
-};
 
 // A Ghostwriter draft proposed by the Manager. Ephemeral — the client saves the
 // ones they want via the normal POST /posts path.
@@ -55,14 +38,11 @@ export type ManagerTaskOutput = {
   // investigator
   footprintSummary?: string;
   competitorCount?: number;
-  // strategist
+  // strategist + planner (both relay to a chat agent that holds confirm-before-apply proposals)
   assistantMessageId?: number;
+  plannerMessageId?: number;
   reply?: string;
   proposals?: ManagerProposalRef[];
-  // planner
-  planSummary?: string;
-  slots?: ManagerPlannedSlot[];
-  ideas?: ManagerPlannedIdea[];
   // ghostwriter
   drafts?: ManagerDraft[];
   platform?: string;

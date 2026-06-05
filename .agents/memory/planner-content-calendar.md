@@ -28,3 +28,23 @@ auth-only (no AI) and 400s on a malformed body.
 Slots come back from the model with an integer `dayOffset`; the server computes the
 concrete `targetDate` via the shared `computeScheduledDate(startDate, offsetDays, time)`
 helper exported from `routes/posts.ts` (numeric Y/M/D parts, no TZ off-by-one).
+
+## Conversational Planner agent owns ALL calendar mutations
+There are now two Planner surfaces: the original one-shot `/planner/generate` +
+`PlannerDialog` (unchanged), AND a conversational Planner agent (its own nav item,
+chat infra mirrored from the Strategist) that owns EVERY calendar/scheduling change
+via confirm-before-apply proposals: generate_calendar, schedule_posts,
+reschedule_posts, delete_posts, shift_posts.
+
+**Why this split of duties:** the Strategist must NOT apply calendar changes and the
+Manager must NOT apply them either — the Manager *relays* any planning brief to the
+Planner (persists an unseen planner_message; surfaces proposals as "Review and confirm
+in the Planner"). Calendar writes happen in exactly one place so human-in-the-loop
+review is never bypassed. If you add a Manager agent that touches scheduling, route it
+through the Planner, never write posts/ideas directly.
+
+**How to apply:** Planner chat mirrors Strategist exactly — to add a new planner action
+kind, wire it in the db PlannerActionKind union, openapi PlannerAction enum, the service
+(validatePayload/buildDiff/prompt), the route `applyAction` switch, and the web
+ACTION_LABELS map. Pure date helpers live in `services/scheduleMath.ts` (rescheduleToDay,
+shiftDateByDays — no db, unit-tested). The unread dot reads `/planner/chat/unread`.

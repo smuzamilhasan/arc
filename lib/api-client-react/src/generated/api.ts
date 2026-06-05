@@ -81,6 +81,10 @@ import type {
   NarrativeGenerateInput,
   NarrativeProfile,
   NarrativeUpdateInput,
+  PlannerActionResult,
+  PlannerBatchResult,
+  PlannerMessage,
+  PlannerReply,
   PlatformStrategy,
   PlatformsGenerateInput,
   PlatformsUpdateInput,
@@ -4733,6 +4737,585 @@ export const useRejectAssistantActions = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRejectAssistantActionsMutationOptions(options));
+    }
+
+export const getGetPlannerMessagesUrl = () => {
+
+
+
+
+  return `/api/planner/chat/messages`
+}
+
+/**
+ * @summary Get the persisted Planner conversation for the client
+ */
+export const getPlannerMessages = async ( options?: RequestInit): Promise<PlannerMessage[]> => {
+
+  return customFetch<PlannerMessage[]>(getGetPlannerMessagesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlannerMessagesQueryKey = () => {
+    return [
+    `/api/planner/chat/messages`
+    ] as const;
+    }
+
+
+export const getGetPlannerMessagesQueryOptions = <TData = Awaited<ReturnType<typeof getPlannerMessages>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlannerMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlannerMessagesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlannerMessages>>> = ({ signal }) => getPlannerMessages({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlannerMessages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlannerMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof getPlannerMessages>>>
+export type GetPlannerMessagesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the persisted Planner conversation for the client
+ */
+
+export function useGetPlannerMessages<TData = Awaited<ReturnType<typeof getPlannerMessages>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlannerMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlannerMessagesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetPlannerUnreadUrl = () => {
+
+
+
+
+  return `/api/planner/chat/unread`
+}
+
+/**
+ * @summary Count unseen Planner messages (Manager hand-offs) for the client
+ */
+export const getPlannerUnread = async ( options?: RequestInit): Promise<AssistantUnread> => {
+
+  return customFetch<AssistantUnread>(getGetPlannerUnreadUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlannerUnreadQueryKey = () => {
+    return [
+    `/api/planner/chat/unread`
+    ] as const;
+    }
+
+
+export const getGetPlannerUnreadQueryOptions = <TData = Awaited<ReturnType<typeof getPlannerUnread>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlannerUnread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlannerUnreadQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlannerUnread>>> = ({ signal }) => getPlannerUnread({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlannerUnread>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlannerUnreadQueryResult = NonNullable<Awaited<ReturnType<typeof getPlannerUnread>>>
+export type GetPlannerUnreadQueryError = ErrorType<void>
+
+
+/**
+ * @summary Count unseen Planner messages (Manager hand-offs) for the client
+ */
+
+export function useGetPlannerUnread<TData = Awaited<ReturnType<typeof getPlannerUnread>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlannerUnread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlannerUnreadQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getMarkPlannerSeenUrl = () => {
+
+
+
+
+  return `/api/planner/chat/seen`
+}
+
+/**
+ * @summary Mark all Planner messages for the client as seen
+ */
+export const markPlannerSeen = async ( options?: RequestInit): Promise<AssistantUnread> => {
+
+  return customFetch<AssistantUnread>(getMarkPlannerSeenUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getMarkPlannerSeenMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markPlannerSeen>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markPlannerSeen>>, TError,void, TContext> => {
+
+const mutationKey = ['markPlannerSeen'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markPlannerSeen>>, void> = () => {
+
+
+          return  markPlannerSeen(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkPlannerSeenMutationResult = NonNullable<Awaited<ReturnType<typeof markPlannerSeen>>>
+
+    export type MarkPlannerSeenMutationError = ErrorType<void>
+
+    /**
+ * @summary Mark all Planner messages for the client as seen
+ */
+export const useMarkPlannerSeen = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markPlannerSeen>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markPlannerSeen>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getMarkPlannerSeenMutationOptions(options));
+    }
+
+export const getSendPlannerMessageUrl = () => {
+
+
+
+
+  return `/api/planner/chat/message`
+}
+
+/**
+ * @summary Send a message and get a Planner reply with proposed calendar actions
+ */
+export const sendPlannerMessage = async (assistantSendInput: AssistantSendInput, options?: RequestInit): Promise<PlannerReply> => {
+
+  return customFetch<PlannerReply>(getSendPlannerMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantSendInput,)
+  }
+);}
+
+
+
+
+export const getSendPlannerMessageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendPlannerMessage>>, TError,{data: BodyType<AssistantSendInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendPlannerMessage>>, TError,{data: BodyType<AssistantSendInput>}, TContext> => {
+
+const mutationKey = ['sendPlannerMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendPlannerMessage>>, {data: BodyType<AssistantSendInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendPlannerMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendPlannerMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendPlannerMessage>>>
+    export type SendPlannerMessageMutationBody = BodyType<AssistantSendInput>
+    export type SendPlannerMessageMutationError = ErrorType<void>
+
+    /**
+ * @summary Send a message and get a Planner reply with proposed calendar actions
+ */
+export const useSendPlannerMessage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendPlannerMessage>>, TError,{data: BodyType<AssistantSendInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendPlannerMessage>>,
+        TError,
+        {data: BodyType<AssistantSendInput>},
+        TContext
+      > => {
+      return useMutation(getSendPlannerMessageMutationOptions(options));
+    }
+
+export const getConfirmPlannerActionUrl = (actionId: string,) => {
+
+
+
+
+  return `/api/planner/chat/actions/${actionId}/confirm`
+}
+
+/**
+ * @summary Apply a proposed calendar action to the underlying system
+ */
+export const confirmPlannerAction = async (actionId: string, options?: RequestInit): Promise<PlannerActionResult> => {
+
+  return customFetch<PlannerActionResult>(getConfirmPlannerActionUrl(actionId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getConfirmPlannerActionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmPlannerAction>>, TError,{actionId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmPlannerAction>>, TError,{actionId: string}, TContext> => {
+
+const mutationKey = ['confirmPlannerAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmPlannerAction>>, {actionId: string}> = (props) => {
+          const {actionId} = props ?? {};
+
+          return  confirmPlannerAction(actionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmPlannerActionMutationResult = NonNullable<Awaited<ReturnType<typeof confirmPlannerAction>>>
+
+    export type ConfirmPlannerActionMutationError = ErrorType<void>
+
+    /**
+ * @summary Apply a proposed calendar action to the underlying system
+ */
+export const useConfirmPlannerAction = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmPlannerAction>>, TError,{actionId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmPlannerAction>>,
+        TError,
+        {actionId: string},
+        TContext
+      > => {
+      return useMutation(getConfirmPlannerActionMutationOptions(options));
+    }
+
+export const getRejectPlannerActionUrl = (actionId: string,) => {
+
+
+
+
+  return `/api/planner/chat/actions/${actionId}/reject`
+}
+
+/**
+ * @summary Reject a proposed calendar action, optionally with a comment for revision
+ */
+export const rejectPlannerAction = async (actionId: string,
+    assistantRejectInput?: AssistantRejectInput, options?: RequestInit): Promise<PlannerActionResult> => {
+
+  return customFetch<PlannerActionResult>(getRejectPlannerActionUrl(actionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantRejectInput,)
+  }
+);}
+
+
+
+
+export const getRejectPlannerActionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectPlannerAction>>, TError,{actionId: string;data?: BodyType<AssistantRejectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectPlannerAction>>, TError,{actionId: string;data?: BodyType<AssistantRejectInput>}, TContext> => {
+
+const mutationKey = ['rejectPlannerAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectPlannerAction>>, {actionId: string;data?: BodyType<AssistantRejectInput>}> = (props) => {
+          const {actionId,data} = props ?? {};
+
+          return  rejectPlannerAction(actionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectPlannerActionMutationResult = NonNullable<Awaited<ReturnType<typeof rejectPlannerAction>>>
+    export type RejectPlannerActionMutationBody = BodyType<AssistantRejectInput> | undefined
+    export type RejectPlannerActionMutationError = ErrorType<void>
+
+    /**
+ * @summary Reject a proposed calendar action, optionally with a comment for revision
+ */
+export const useRejectPlannerAction = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectPlannerAction>>, TError,{actionId: string;data?: BodyType<AssistantRejectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rejectPlannerAction>>,
+        TError,
+        {actionId: string;data?: BodyType<AssistantRejectInput>},
+        TContext
+      > => {
+      return useMutation(getRejectPlannerActionMutationOptions(options));
+    }
+
+export const getConfirmPlannerActionsUrl = () => {
+
+
+
+
+  return `/api/planner/chat/actions/confirm-batch`
+}
+
+/**
+ * @summary Apply several proposed calendar actions at once
+ */
+export const confirmPlannerActions = async (assistantBatchInput: AssistantBatchInput, options?: RequestInit): Promise<PlannerBatchResult> => {
+
+  return customFetch<PlannerBatchResult>(getConfirmPlannerActionsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantBatchInput,)
+  }
+);}
+
+
+
+
+export const getConfirmPlannerActionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmPlannerActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmPlannerActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext> => {
+
+const mutationKey = ['confirmPlannerActions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmPlannerActions>>, {data: BodyType<AssistantBatchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmPlannerActions(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmPlannerActionsMutationResult = NonNullable<Awaited<ReturnType<typeof confirmPlannerActions>>>
+    export type ConfirmPlannerActionsMutationBody = BodyType<AssistantBatchInput>
+    export type ConfirmPlannerActionsMutationError = ErrorType<void>
+
+    /**
+ * @summary Apply several proposed calendar actions at once
+ */
+export const useConfirmPlannerActions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmPlannerActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmPlannerActions>>,
+        TError,
+        {data: BodyType<AssistantBatchInput>},
+        TContext
+      > => {
+      return useMutation(getConfirmPlannerActionsMutationOptions(options));
+    }
+
+export const getRejectPlannerActionsUrl = () => {
+
+
+
+
+  return `/api/planner/chat/actions/reject-batch`
+}
+
+/**
+ * @summary Reject several proposed calendar actions at once
+ */
+export const rejectPlannerActions = async (assistantBatchInput: AssistantBatchInput, options?: RequestInit): Promise<PlannerBatchResult> => {
+
+  return customFetch<PlannerBatchResult>(getRejectPlannerActionsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantBatchInput,)
+  }
+);}
+
+
+
+
+export const getRejectPlannerActionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectPlannerActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectPlannerActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext> => {
+
+const mutationKey = ['rejectPlannerActions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectPlannerActions>>, {data: BodyType<AssistantBatchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rejectPlannerActions(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectPlannerActionsMutationResult = NonNullable<Awaited<ReturnType<typeof rejectPlannerActions>>>
+    export type RejectPlannerActionsMutationBody = BodyType<AssistantBatchInput>
+    export type RejectPlannerActionsMutationError = ErrorType<void>
+
+    /**
+ * @summary Reject several proposed calendar actions at once
+ */
+export const useRejectPlannerActions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectPlannerActions>>, TError,{data: BodyType<AssistantBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rejectPlannerActions>>,
+        TError,
+        {data: BodyType<AssistantBatchInput>},
+        TContext
+      > => {
+      return useMutation(getRejectPlannerActionsMutationOptions(options));
     }
 
 export const getGetAgencyContextUrl = () => {

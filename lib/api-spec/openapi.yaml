@@ -1238,6 +1238,178 @@ paths:
         "404":
           description: No client profile yet
 
+  /planner/chat/messages:
+    get:
+      operationId: getPlannerMessages
+      tags: [planner]
+      summary: Get the persisted Planner conversation for the client
+      responses:
+        "200":
+          description: The Planner conversation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlannerMessage"
+        "404":
+          description: No client profile yet
+
+  /planner/chat/unread:
+    get:
+      operationId: getPlannerUnread
+      tags: [planner]
+      summary: Count unseen Planner messages (Manager hand-offs) for the client
+      responses:
+        "200":
+          description: Unseen Planner message count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantUnread"
+        "404":
+          description: No client profile yet
+
+  /planner/chat/seen:
+    post:
+      operationId: markPlannerSeen
+      tags: [planner]
+      summary: Mark all Planner messages for the client as seen
+      responses:
+        "200":
+          description: Unseen count after marking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantUnread"
+        "404":
+          description: No client profile yet
+
+  /planner/chat/message:
+    post:
+      operationId: sendPlannerMessage
+      tags: [planner]
+      summary: Send a message and get a Planner reply with proposed calendar actions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantSendInput"
+      responses:
+        "200":
+          description: The persisted user message and the Planner reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlannerReply"
+        "400":
+          description: Invalid input
+        "403":
+          description: Planning is locked until the Blueprint and content strategy exist
+        "404":
+          description: No client profile yet
+        "502":
+          description: Planner generation failed
+
+  /planner/chat/actions/{actionId}/confirm:
+    post:
+      operationId: confirmPlannerAction
+      tags: [planner]
+      summary: Apply a proposed calendar action to the underlying system
+      parameters:
+        - name: actionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The applied action and an optional follow-up message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlannerActionResult"
+        "400":
+          description: Action could not be applied
+        "404":
+          description: Action not found
+
+  /planner/chat/actions/{actionId}/reject:
+    post:
+      operationId: rejectPlannerAction
+      tags: [planner]
+      summary: Reject a proposed calendar action, optionally with a comment for revision
+      parameters:
+        - name: actionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantRejectInput"
+      responses:
+        "200":
+          description: The rejected action and the Planner's revised reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlannerActionResult"
+        "404":
+          description: Action not found
+        "502":
+          description: Planner generation failed
+
+  /planner/chat/actions/confirm-batch:
+    post:
+      operationId: confirmPlannerActions
+      tags: [planner]
+      summary: Apply several proposed calendar actions at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantBatchInput"
+      responses:
+        "200":
+          description: The updated actions after applying
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlannerBatchResult"
+        "400":
+          description: Invalid input
+        "404":
+          description: No client profile yet
+
+  /planner/chat/actions/reject-batch:
+    post:
+      operationId: rejectPlannerActions
+      tags: [planner]
+      summary: Reject several proposed calendar actions at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantBatchInput"
+      responses:
+        "200":
+          description: The updated actions after rejecting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlannerBatchResult"
+        "400":
+          description: Invalid input
+        "404":
+          description: No client profile yet
+
   /agency/context:
     get:
       operationId: getAgencyContext
@@ -3112,6 +3284,88 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AssistantAction"
+
+    PlannerAction:
+      type: object
+      required: [id, kind, title, rationale, status, diff]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum:
+            [
+              generate_calendar,
+              schedule_posts,
+              reschedule_posts,
+              delete_posts,
+              shift_posts,
+            ]
+        title:
+          type: string
+        rationale:
+          type: string
+        status:
+          type: string
+          enum: [proposed, applied, rejected]
+        rejectionComment:
+          type: ["string", "null"]
+        diff:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssistantDiffItem"
+        payload:
+          type: ["object", "null"]
+          additionalProperties: true
+
+    PlannerMessage:
+      type: object
+      required: [id, role, content, actions, seen, createdAt]
+      properties:
+        id:
+          type: integer
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlannerAction"
+        seen:
+          type: boolean
+        createdAt:
+          type: string
+
+    PlannerReply:
+      type: object
+      required: [userMessage, assistantMessage]
+      properties:
+        userMessage:
+          $ref: "#/components/schemas/PlannerMessage"
+        assistantMessage:
+          $ref: "#/components/schemas/PlannerMessage"
+
+    PlannerActionResult:
+      type: object
+      required: [action]
+      properties:
+        action:
+          $ref: "#/components/schemas/PlannerAction"
+        assistantMessage:
+          oneOf:
+            - $ref: "#/components/schemas/PlannerMessage"
+            - type: "null"
+
+    PlannerBatchResult:
+      type: object
+      required: [actions]
+      properties:
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlannerAction"
 
     ScheduleBatchInput:
       type: object

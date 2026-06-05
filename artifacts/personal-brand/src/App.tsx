@@ -41,6 +41,7 @@ import Content, { ContentStrategyPage } from "@/pages/content";
 import Ideas from "@/pages/ideas";
 import Manager from "@/pages/manager";
 import Assistant from "@/pages/assistant";
+import Planner from "@/pages/planner";
 import Account from "@/pages/account";
 import Admin from "@/pages/admin";
 import AgencyPage from "@/pages/agency";
@@ -269,6 +270,7 @@ function ClerkProviderWithRoutes() {
                     <Route path="/content" component={Content} />
                     <Route path="/ideas" component={Ideas} />
                     <Route path="/manager" component={Manager} />
+                    <Route path="/planner" component={Planner} />
                     <Route path="/connections">
                       <Redirect to="/account" />
                     </Route>

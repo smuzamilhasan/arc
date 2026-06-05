@@ -20,6 +20,7 @@ const EXAMPLES = [
   "I'm pivoting into AI strategy consulting. Rework my narrative and plan next week's content.",
   "Find out who my main competitors are and how I should stand out from them.",
 ];
+
 export default function Manager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();

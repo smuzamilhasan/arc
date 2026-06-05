@@ -1,9 +1,7 @@
 import { useState } from "react";
 import {
-  useApplyContentPlan,
   useCreatePost,
   getListPostsQueryKey,
-  getListIdeasQueryKey,
   ManagerRun,
   ManagerTask,
   PostInputPlatform,
@@ -31,7 +29,7 @@ export const AGENT_META: Record<
 > = {
   investigator: { label: "Investigator", icon: Telescope, href: "/dossier" },
   strategist: { label: "Strategist", icon: MessagesSquare, href: "/assistant" },
-  planner: { label: "Planner", icon: CalendarDays, href: "/calendar" },
+  planner: { label: "Planner", icon: CalendarDays, href: "/planner" },
   ghostwriter: { label: "Ghostwriter", icon: PenLine, href: "/content" },
 };
 
@@ -53,57 +51,6 @@ function StatusBadge({ status }: { status: ManagerTask["status"] }) {
       <Icon className={`h-3.5 w-3.5 ${status === "running" ? "animate-spin" : ""}`} />
       {label}
     </span>
-  );
-}
-
-function PlannerOutput({ task }: { task: ManagerTask }) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const applyPlan = useApplyContentPlan();
-  const [applied, setApplied] = useState(false);
-
-  const slots = task.output?.slots ?? [];
-  const ideas = task.output?.ideas ?? [];
-  if (slots.length === 0 && ideas.length === 0) return null;
-
-  const handleApply = () => {
-    applyPlan.mutate(
-      { data: { slots, ideas } },
-      {
-        onSuccess: (result) => {
-          setApplied(true);
-          queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getListIdeasQueryKey() });
-          toast({
-            title: "Calendar updated",
-            description: `${result.posts.length} ${result.posts.length === 1 ? "slot" : "slots"} scheduled${result.ideas.length > 0 ? ` and ${result.ideas.length} ${result.ideas.length === 1 ? "idea" : "ideas"} added` : ""}.`,
-          });
-        },
-        onError: () => toast({ title: "Could not add the plan", variant: "destructive" }),
-      },
-    );
-  };
-
-  return (
-    <div className="mt-3 space-y-3">
-      <ul className="space-y-1.5">
-        {slots.slice(0, 6).map((slot, i) => (
-          <li key={i} className="flex items-baseline gap-2 text-sm">
-            <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground">
-              {slot.platform}
-            </span>
-            <span className="text-foreground">{slot.title}</span>
-          </li>
-        ))}
-        {slots.length > 6 && (
-          <li className="text-xs text-muted-foreground">+ {slots.length - 6} more slots</li>
-        )}
-      </ul>
-      <Button size="sm" onClick={handleApply} disabled={applied || applyPlan.isPending}>
-        {applyPlan.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-        {applied ? "Added to calendar" : "Add to calendar"}
-      </Button>
-    </div>
   );
 }
 
@@ -205,7 +152,7 @@ function TaskCard({ task }: { task: ManagerTask }) {
           </Link>
         )}
 
-        {task.agent === "strategist" && proposals.length > 0 && (
+        {(task.agent === "strategist" || task.agent === "planner") && proposals.length > 0 && (
           <div className="mt-3 space-y-2">
             <ul className="space-y-1.5">
               {proposals.map((p, i) => (
@@ -217,13 +164,12 @@ function TaskCard({ task }: { task: ManagerTask }) {
             </ul>
             <Link href={meta.href}>
               <span className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                Review and confirm in the Strategist <ArrowRight className="h-3.5 w-3.5" />
+                Review and confirm in the {meta.label} <ArrowRight className="h-3.5 w-3.5" />
               </span>
             </Link>
           </div>
         )}
 
-        {task.agent === "planner" && task.status === "completed" && <PlannerOutput task={task} />}
         {task.agent === "ghostwriter" && task.status === "completed" && (
           <GhostwriterOutput task={task} />
         )}

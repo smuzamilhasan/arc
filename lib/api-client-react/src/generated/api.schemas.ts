@@ -1049,6 +1049,75 @@ export interface AssistantBatchResult {
   actions: AssistantAction[];
 }
 
+export type PlannerActionKind = typeof PlannerActionKind[keyof typeof PlannerActionKind];
+
+
+export const PlannerActionKind = {
+  generate_calendar: 'generate_calendar',
+  schedule_posts: 'schedule_posts',
+  reschedule_posts: 'reschedule_posts',
+  delete_posts: 'delete_posts',
+  shift_posts: 'shift_posts',
+} as const;
+
+export type PlannerActionStatus = typeof PlannerActionStatus[keyof typeof PlannerActionStatus];
+
+
+export const PlannerActionStatus = {
+  proposed: 'proposed',
+  applied: 'applied',
+  rejected: 'rejected',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PlannerActionPayload = { [key: string]: unknown } | null;
+
+export interface PlannerAction {
+  id: string;
+  kind: PlannerActionKind;
+  title: string;
+  rationale: string;
+  status: PlannerActionStatus;
+  /** @nullable */
+  rejectionComment?: string | null;
+  diff: AssistantDiffItem[];
+  /** @nullable */
+  payload?: PlannerActionPayload;
+}
+
+export type PlannerMessageRole = typeof PlannerMessageRole[keyof typeof PlannerMessageRole];
+
+
+export const PlannerMessageRole = {
+  user: 'user',
+  assistant: 'assistant',
+} as const;
+
+export interface PlannerMessage {
+  id: number;
+  role: PlannerMessageRole;
+  content: string;
+  actions: PlannerAction[];
+  seen: boolean;
+  createdAt: string;
+}
+
+export interface PlannerReply {
+  userMessage: PlannerMessage;
+  assistantMessage: PlannerMessage;
+}
+
+export interface PlannerActionResult {
+  action: PlannerAction;
+  assistantMessage?: PlannerMessage | null;
+}
+
+export interface PlannerBatchResult {
+  actions: PlannerAction[];
+}
+
 export interface ScheduleBatchInput {
   /** Post IDs to schedule, in the order they should be laid out. */
   postIds: number[];

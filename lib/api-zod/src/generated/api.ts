@@ -1858,6 +1858,248 @@ export const RejectAssistantActionsResponse = zod.object({
 
 
 /**
+ * @summary Get the persisted Planner conversation for the client
+ */
+export const GetPlannerMessagesResponseItem = zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string(),
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['generate_calendar', 'schedule_posts', 'reschedule_posts', 'delete_posts', 'shift_posts']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "seen": zod.boolean(),
+  "createdAt": zod.string()
+})
+export const GetPlannerMessagesResponse = zod.array(GetPlannerMessagesResponseItem)
+
+
+/**
+ * @summary Count unseen Planner messages (Manager hand-offs) for the client
+ */
+export const GetPlannerUnreadResponse = zod.object({
+  "count": zod.number()
+})
+
+
+/**
+ * @summary Mark all Planner messages for the client as seen
+ */
+export const MarkPlannerSeenResponse = zod.object({
+  "count": zod.number()
+})
+
+
+/**
+ * @summary Send a message and get a Planner reply with proposed calendar actions
+ */
+export const SendPlannerMessageBody = zod.object({
+  "content": zod.string()
+})
+
+export const SendPlannerMessageResponse = zod.object({
+  "userMessage": zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string(),
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['generate_calendar', 'schedule_posts', 'reschedule_posts', 'delete_posts', 'shift_posts']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "seen": zod.boolean(),
+  "createdAt": zod.string()
+}),
+  "assistantMessage": zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string(),
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['generate_calendar', 'schedule_posts', 'reschedule_posts', 'delete_posts', 'shift_posts']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "seen": zod.boolean(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary Apply a proposed calendar action to the underlying system
+ */
+export const ConfirmPlannerActionParams = zod.object({
+  "actionId": zod.coerce.string()
+})
+
+export const ConfirmPlannerActionResponse = zod.object({
+  "action": zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['generate_calendar', 'schedule_posts', 'reschedule_posts', 'delete_posts', 'shift_posts']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+}),
+  "assistantMessage": zod.union([zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string(),
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['generate_calendar', 'schedule_posts', 'reschedule_posts', 'delete_posts', 'shift_posts']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "seen": zod.boolean(),
+  "createdAt": zod.string()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Reject a proposed calendar action, optionally with a comment for revision
+ */
+export const RejectPlannerActionParams = zod.object({
+  "actionId": zod.coerce.string()
+})
+
+export const RejectPlannerActionBody = zod.object({
+  "comment": zod.string().optional()
+})
+
+export const RejectPlannerActionResponse = zod.object({
+  "action": zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['generate_calendar', 'schedule_posts', 'reschedule_posts', 'delete_posts', 'shift_posts']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+}),
+  "assistantMessage": zod.union([zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string(),
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['generate_calendar', 'schedule_posts', 'reschedule_posts', 'delete_posts', 'shift_posts']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "seen": zod.boolean(),
+  "createdAt": zod.string()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Apply several proposed calendar actions at once
+ */
+export const ConfirmPlannerActionsBody = zod.object({
+  "actionIds": zod.array(zod.string())
+})
+
+export const ConfirmPlannerActionsResponse = zod.object({
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['generate_calendar', 'schedule_posts', 'reschedule_posts', 'delete_posts', 'shift_posts']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+}))
+})
+
+
+/**
+ * @summary Reject several proposed calendar actions at once
+ */
+export const RejectPlannerActionsBody = zod.object({
+  "actionIds": zod.array(zod.string())
+})
+
+export const RejectPlannerActionsResponse = zod.object({
+  "actions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['generate_calendar', 'schedule_posts', 'reschedule_posts', 'delete_posts', 'shift_posts']),
+  "title": zod.string(),
+  "rationale": zod.string(),
+  "status": zod.enum(['proposed', 'applied', 'rejected']),
+  "rejectionComment": zod.string().nullish(),
+  "diff": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+})),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish()
+}))
+})
+
+
+/**
  * @summary Get the caller's agency memberships and accessible clients
  */
 export const GetAgencyContextResponse = zod.object({

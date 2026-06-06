@@ -12,7 +12,7 @@
 - [Clerk principal resolution](clerk-principal-resolution.md) — derive the auth user id from `getAuth(req).userId` only, never `sessionClaims.userId`, or per-user scoping can run as the wrong user.
 - [api-server testing setup](api-server-testing.md) — vitest tests mock `@clerk/express` (userId via `x-test-user-id` header); AI client modules throw at import unless `AI_INTEGRATIONS_*` env vars are set (placeholders in test/setup.ts).
 - [e2e testing an authed page](e2e-authed-page-testing.md) — runTest a Clerk-gated page: sign in, read `window.Clerk.user.id`, seed client_profile+deps via [DB], then exercise UI (deterministic, no AI).
-- [Feature-gate server enforcement](feature-gate-server-enforcement.md) — a UI lock on a gated panel must be mirrored by a server-side 403 on its generate/write route, or it's bypassable.
+- [Feature-gate server enforcement](feature-gate-server-enforcement.md) — a UI lock must be mirrored by a server-side 403 AND every client launch surface (button + deep-link + expand handler), not just the page wrapper.
 - [client_profile 500 = dev DB drift](db-drift-500.md) — a 500 on /api/client select means a missing column; run `pnpm --filter @workspace/db run push`, don't blame app code.
 - [Assistant batch confirm/reject](assistant-batch-actions.md) — bulk "Confirm all" must use the batch endpoints, not parallel single-action calls, or same-row JSON actions lost-update.
 - [Batch post scheduling dates](batch-schedule-dates.md) — spread scheduledAt from y/m/d parts, not new Date("YYYY-MM-DD"), to avoid a TZ off-by-one day.

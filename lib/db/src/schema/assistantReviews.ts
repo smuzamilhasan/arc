@@ -14,6 +14,10 @@ export const assistantReviewsTable = pgTable("assistant_reviews", {
   // brand state meaningfully changes.
   lastInsightsAt: timestamp("last_insights_at"),
   lastInsightsStateHash: text("last_insights_state_hash").notNull().default(""),
+  // When the strategist last posted its once-a-day, fully tailored guidance
+  // message into the chat. Gated separately from the (slower) educational
+  // insights above and only runs once the full foundation is complete.
+  lastDailyInsightAt: timestamp("last_daily_insight_at"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

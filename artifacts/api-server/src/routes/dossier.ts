@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, briefingDossiersTable, industryOverviewTable } from "@workspace/db";
 import { GenerateDossierBody } from "@workspace/api-zod";
+import { agentsGateError } from "../services/foundation";
 import { desc, eq } from "drizzle-orm";
 import { generateDossier } from "../services/investigator";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
@@ -38,6 +39,12 @@ router.post("/dossier/generate", aiGenerationRateLimit, async (req, res) => {
   const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+
+  const gateError = await agentsGateError(client);
+  if (gateError) {
+    res.status(403).json({ error: gateError });
     return;
   }
 

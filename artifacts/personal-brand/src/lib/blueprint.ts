@@ -617,14 +617,18 @@ export function pillarUnlockPrerequisites(
 // its locked state and how to compute the prerequisites that unlock it. New
 // gated panels register here and automatically get the same explanatory locked
 // UX (the shared LockedPanel component) and a clickable, explained sidebar item.
-export type PanelGateId = "platforms" | "content" | "industry";
+export type PanelGateId = "platforms" | "content" | "industry" | "agents";
 
 export type PanelGateContext = {
   client: ClientProfile | undefined;
   hasPlatformStrategy: boolean;
-  // Only the capstone "industry" gate reads these; other gates leave them unset.
+  // The capstone "industry" and "agents" gates read these; other gates leave
+  // them unset.
   hasAudit?: boolean;
   hasNarrative?: boolean;
+  // Only the "agents" gate reads this — every agent is locked until the entire
+  // foundation, including the Industry Overview capstone, is in place.
+  hasIndustryOverview?: boolean;
 };
 
 type PanelGateConfig = {
@@ -681,6 +685,42 @@ export const PANEL_GATES: Record<PanelGateId, PanelGateConfig> = {
         href: "/platforms",
         complete: ctx.hasPlatformStrategy,
         detail: ctx.hasPlatformStrategy ? undefined : "Generate your platform strategy",
+      },
+    ],
+  },
+  agents: {
+    title: "Your agents",
+    description:
+      "arc's agents reason from your finished foundation. Complete every section below — including the Industry Overview capstone — and your agents open on their own.",
+    prerequisites: (ctx) => [
+      ...blueprintPrerequisites(ctx.client),
+      {
+        id: "audit",
+        label: "Digital presence audit",
+        href: "/audit",
+        complete: Boolean(ctx.hasAudit),
+        detail: ctx.hasAudit ? undefined : "Run your first audit",
+      },
+      {
+        id: "narrative",
+        label: "Narrative",
+        href: "/narrative",
+        complete: Boolean(ctx.hasNarrative),
+        detail: ctx.hasNarrative ? undefined : "Synthesize your narrative",
+      },
+      {
+        id: "platforms",
+        label: "Platforms & Presence strategy",
+        href: "/platforms",
+        complete: ctx.hasPlatformStrategy,
+        detail: ctx.hasPlatformStrategy ? undefined : "Generate your platform strategy",
+      },
+      {
+        id: "industry",
+        label: "Industry Overview",
+        href: "/industry-overview",
+        complete: Boolean(ctx.hasIndustryOverview),
+        detail: ctx.hasIndustryOverview ? undefined : "Generate your Industry Overview",
       },
     ],
   },

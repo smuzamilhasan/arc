@@ -28,6 +28,7 @@ import {
 } from "../services/assistant";
 import { generateNarrative } from "../services/narrative";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
+import { agentsGateError } from "../services/foundation";
 import { subscribe, unsubscribe } from "../services/assistantNotifier";
 
 const ASSISTANT_MESSAGE_MAX_LENGTH = 4000;
@@ -277,6 +278,11 @@ router.post("/assistant/message", aiGenerationRateLimit, async (req, res) => {
   const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const gateError = await agentsGateError(client);
+  if (gateError) {
+    res.status(403).json({ error: gateError });
     return;
   }
   const content = typeof req.body?.content === "string" ? req.body.content.trim() : "";

@@ -1,15 +1,9 @@
 import { Router } from "express";
-import {
-  db,
-  industryOverviewTable,
-  auditResultsTable,
-  narrativeProfilesTable,
-  platformStrategiesTable,
-} from "@workspace/db";
+import { db, industryOverviewTable } from "@workspace/db";
 import { GenerateIndustryOverviewBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
 import { generateIndustryOverview } from "../services/industryOverview";
-import { isBlueprintComplete } from "../services/platforms";
+import { isFoundationComplete } from "../services/foundation";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
 
 const router = Router();
@@ -20,38 +14,6 @@ function serializeIndustryOverview(o: typeof industryOverviewTable.$inferSelect)
     generatedAt: o.generatedAt.toISOString(),
     createdAt: o.createdAt.toISOString(),
   };
-}
-
-// True only once the entire foundation is in place: a complete Blueprint plus an
-// audit, a narrative, and a platform strategy. Mirrors isFoundationComplete in
-// the web app's src/lib/blueprint.ts so the capstone lock is enforced
-// server-side too — the panel cannot be generated until everything before it is.
-async function isFoundationComplete(
-  client: Parameters<typeof isBlueprintComplete>[0] & { id: number },
-): Promise<boolean> {
-  if (!isBlueprintComplete(client)) return false;
-  const [audit] = await db
-    .select({ id: auditResultsTable.id })
-    .from(auditResultsTable)
-    .where(eq(auditResultsTable.clientId, client.id))
-    .orderBy(desc(auditResultsTable.id))
-    .limit(1);
-  if (!audit) return false;
-  const [narrative] = await db
-    .select({ coreNarrative: narrativeProfilesTable.coreNarrative })
-    .from(narrativeProfilesTable)
-    .where(eq(narrativeProfilesTable.clientId, client.id))
-    .orderBy(desc(narrativeProfilesTable.id))
-    .limit(1);
-  if (!narrative || !narrative.coreNarrative) return false;
-  const [platforms] = await db
-    .select({ id: platformStrategiesTable.id })
-    .from(platformStrategiesTable)
-    .where(eq(platformStrategiesTable.clientId, client.id))
-    .orderBy(desc(platformStrategiesTable.id))
-    .limit(1);
-  if (!platforms) return false;
-  return true;
 }
 
 router.get("/industry-overview", async (req, res) => {

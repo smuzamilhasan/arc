@@ -10,6 +10,7 @@ import {
 import { GenerateContentPlanBody, ApplyContentPlanBody } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
 import { isBlueprintComplete } from "../services/platforms";
+import { agentsGateError } from "../services/foundation";
 import { generateContentPlan } from "../services/planner";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
 
@@ -37,6 +38,11 @@ router.post("/planner/generate", aiGenerationRateLimit, async (req, res) => {
   const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const gateError = await agentsGateError(client);
+  if (gateError) {
+    res.status(403).json({ error: gateError });
     return;
   }
   if (!isBlueprintComplete(client)) {
@@ -97,6 +103,11 @@ router.post("/planner/apply", async (req, res) => {
   const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const gateError = await agentsGateError(client);
+  if (gateError) {
+    res.status(403).json({ error: gateError });
     return;
   }
 

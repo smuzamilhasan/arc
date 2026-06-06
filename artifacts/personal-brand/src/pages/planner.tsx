@@ -15,6 +15,7 @@ import {
 import type { PlannerActionKind } from "@workspace/api-client-react";
 import { CalendarDays } from "lucide-react";
 import { AgentChat, type AgentChatConfig } from "@/components/agent-chat";
+import { AgentGate } from "@/components/agent-gate";
 
 const ACTION_LABELS: Record<PlannerActionKind, string> = {
   generate_calendar: "Generate calendar",
@@ -73,18 +74,20 @@ const plannerConfig: AgentChatConfig = {
 
 export default function Planner() {
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col md:h-[calc(100vh-12rem)]">
-      <div className="mb-6">
-        <h1 className="font-serif text-3xl tracking-tight text-foreground">Planner</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Plan and adjust your content calendar in conversation. The Planner can build a weekly
-          schedule, slot in drafts, reschedule, shift, or clear posts, and proposes every change
-          for you to confirm before it is saved.
-        </p>
+    <AgentGate>
+      <div className="flex h-[calc(100vh-8rem)] flex-col md:h-[calc(100vh-12rem)]">
+        <div className="mb-6">
+          <h1 className="font-serif text-3xl tracking-tight text-foreground">Planner</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Plan and adjust your content calendar in conversation. The Planner can build a weekly
+            schedule, slot in drafts, reschedule, shift, or clear posts, and proposes every change
+            for you to confirm before it is saved.
+          </p>
+        </div>
+        <div className="flex-1 overflow-hidden rounded-xl border border-border/60 bg-background">
+          <AgentChat config={plannerConfig} />
+        </div>
       </div>
-      <div className="flex-1 overflow-hidden rounded-xl border border-border/60 bg-background">
-        <AgentChat config={plannerConfig} />
-      </div>
-    </div>
+    </AgentGate>
   );
 }

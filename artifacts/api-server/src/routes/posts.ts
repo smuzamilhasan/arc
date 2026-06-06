@@ -4,6 +4,7 @@ import { CreatePostBody, UpdatePostBody, ListPostsQueryParams, GetPostParams, Up
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { aiGenerationRateLimit, externalApiRateLimit } from "../middlewares/aiRateLimit";
 import { draftContent } from "../services/ghostwriter";
+import { agentsGateError } from "../services/foundation";
 import { getProvider } from "../services/schedulers";
 import { decryptSecret } from "../lib/crypto";
 
@@ -175,6 +176,11 @@ router.post("/posts/draft", aiGenerationRateLimit, async (req, res) => {
   const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+  const gateError = await agentsGateError(client);
+  if (gateError) {
+    res.status(403).json({ error: gateError });
     return;
   }
   const parsed = DraftPostsBody.safeParse(req.body);

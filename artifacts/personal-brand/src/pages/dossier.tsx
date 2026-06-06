@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useRegenerateFeedback } from "@/components/regenerate-feedback";
+import { AgentGate } from "@/components/agent-gate";
 
 function BetaNotice() {
   const upcoming = [
@@ -295,6 +296,14 @@ function EmptyState({
 }
 
 export default function Dossier() {
+  return (
+    <AgentGate>
+      <DossierContent />
+    </AgentGate>
+  );
+}
+
+function DossierContent() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [generateFailed, setGenerateFailed] = useState(false);

@@ -18,6 +18,7 @@ import {
 } from "../services/plannerChat";
 import { loadContext, loadHistory } from "./assistant";
 import { isBlueprintComplete } from "../services/platforms";
+import { agentsGateError } from "../services/foundation";
 import { scheduleClientPosts } from "./posts";
 import { rescheduleToDay, shiftDateByDays } from "../services/scheduleMath";
 import { aiGenerationRateLimit } from "../middlewares/aiRateLimit";
@@ -61,6 +62,8 @@ export function enrichPlannerActions(
 // strategy exists — the same gate the existing /planner/generate route uses.
 // Mirrors the server-side enforcement of the UI lock.
 async function plannerGate(client: ClientProfile): Promise<string | null> {
+  const agentsError = await agentsGateError(client);
+  if (agentsError) return agentsError;
   if (!isBlueprintComplete(client)) {
     return "Complete your Blueprint to unlock planning.";
   }

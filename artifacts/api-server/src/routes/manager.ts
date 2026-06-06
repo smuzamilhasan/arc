@@ -18,6 +18,7 @@ import { randomUUID } from "node:crypto";
 import type { Request } from "express";
 import { loadContext, loadHistory, enrichActions } from "./assistant";
 import { enrichPlannerActions } from "./plannerChat";
+import { agentsGateError } from "../services/foundation";
 import {
   decomposeInstruction,
   type ProposedManagerTask,
@@ -312,6 +313,12 @@ router.post("/manager/run", aiGenerationRateLimit, async (req, res) => {
   const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
+
+  const gateError = await agentsGateError(client);
+  if (gateError) {
+    res.status(403).json({ error: gateError });
     return;
   }
 

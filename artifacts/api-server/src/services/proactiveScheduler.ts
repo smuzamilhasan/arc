@@ -15,7 +15,12 @@ import {
   loadHistory,
   enrichActions,
 } from "../routes/assistant";
-import { generateProactiveSuggestion, generateEducationalInsights } from "./assistant";
+import {
+  generateProactiveSuggestion,
+  generateEducationalInsights,
+  generateDailyGuidance,
+} from "./assistant";
+import { areAgentsUnlocked } from "./foundation";
 import { notify } from "./assistantNotifier";
 
 // How often the scheduler wakes up to look for clients to review.
@@ -31,6 +36,10 @@ const MAX_PER_TICK = 3;
 const INSIGHTS_REFRESH_MS = 7 * 24 * 60 * 60 * 1000;
 // Max clients whose insights are (re)generated per tick, bounding model cost.
 const INSIGHTS_MAX_PER_TICK = 3;
+// The strategist's daily guidance check-in: at most one per client per ~24h.
+const DAILY_INSIGHT_INTERVAL_MS = 24 * 60 * 60 * 1000;
+// Max daily-guidance messages posted per tick, bounding model cost.
+const DAILY_INSIGHT_MAX_PER_TICK = 3;
 
 // Hash the macro brand foundation the strategist actually reasons about, so we
 // can skip a review when nothing meaningful changed since last time.
@@ -129,6 +138,23 @@ async function recordInsightsRun(clientId: number, stateHash: string): Promise<v
   }
 }
 
+async function recordDailyInsightRun(clientId: number): Promise<void> {
+  const existing = await getReview(clientId);
+  const now = new Date();
+  if (existing) {
+    await db
+      .update(assistantReviewsTable)
+      .set({ lastDailyInsightAt: now, updatedAt: now })
+      .where(eq(assistantReviewsTable.id, existing.id));
+  } else {
+    await db.insert(assistantReviewsTable).values({
+      clientId,
+      lastDailyInsightAt: now,
+      updatedAt: now,
+    });
+  }
+}
+
 async function countActiveInsights(clientId: number): Promise<number> {
   const rows = await db
     .select({ id: assistantInsightsTable.id })
@@ -192,6 +218,44 @@ async function maybeRefreshInsights(client: ClientProfile): Promise<boolean> {
 
   await recordInsightsRun(client.id, stateHash);
   notify(client.id, "insights");
+  return true;
+}
+
+// Post the strategist's once-a-day, fully tailored guidance message into the
+// chat. Only runs once the FULL foundation is complete (the same bar that
+// unlocks the agents) and at most once per ~24h. Returns true if a message was
+// posted so the tick can respect its per-tick budget.
+async function maybeDailyInsight(client: ClientProfile): Promise<boolean> {
+  // The daily guidance only exists once the client has a complete foundation —
+  // before that the strategist is locked.
+  if (!(await areAgentsUnlocked(client))) return false;
+
+  const review = await getReview(client.id);
+  if (review?.lastDailyInsightAt) {
+    const elapsed = Date.now() - review.lastDailyInsightAt.getTime();
+    if (elapsed < DAILY_INSIGHT_INTERVAL_MS) return false;
+  }
+
+  // Don't stack a daily note on top of something the client hasn't seen yet.
+  if (await hasPendingUnseen(client.id)) return false;
+
+  const ctx = await loadContext(client.id, client);
+  const history = await loadHistory(client.id);
+  const message = await generateDailyGuidance({ context: ctx, history });
+
+  // Record the run regardless so a dud response doesn't retry every tick.
+  await recordDailyInsightRun(client.id);
+
+  if (!message) return false;
+
+  await db.insert(assistantMessagesTable).values({
+    clientId: client.id,
+    role: "assistant",
+    content: message,
+    actions: [],
+    seen: false,
+  });
+  notify(client.id);
   return true;
 }
 
@@ -279,6 +343,19 @@ async function runTick(): Promise<void> {
       if (didRefresh) refreshed++;
     } catch (err) {
       logger.error({ err, clientId: client.id }, "Insight refresh failed");
+    }
+  }
+
+  // The strategist's once-a-day guidance check-in, for clients whose full
+  // foundation is complete (maybeDailyInsight enforces that bar itself).
+  let dailyPosted = 0;
+  for (const client of allClients) {
+    if (dailyPosted >= DAILY_INSIGHT_MAX_PER_TICK) break;
+    try {
+      const didPost = await maybeDailyInsight(client);
+      if (didPost) dailyPosted++;
+    } catch (err) {
+      logger.error({ err, clientId: client.id }, "Daily insight failed");
     }
   }
 }

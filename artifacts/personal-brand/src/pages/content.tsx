@@ -70,6 +70,7 @@ import { rescheduleToDay, shiftByDays } from "@/lib/schedule";
 import { GenerateGate } from "@/components/locked-panel";
 import { PostEditorDialog } from "@/components/post-editor";
 import { GhostwriterDialog, type GhostwriterPrefill } from "@/components/ghostwriter-dialog";
+import { useAgentsGate } from "@/components/agent-gate";
 import { ShareMenu } from "@/components/share-menu";
 import { ContentModeToggle, type ContentMode } from "@/components/content-mode-toggle";
 import { BatchScheduleDialog } from "@/components/scheduling-dialogs";
@@ -334,6 +335,12 @@ function ContentLibrary() {
     const params = new URLSearchParams(search);
     const draftIdea = params.get("draftIdea");
     if (!draftIdea) return;
+    // Ghostwriter is locked until the full foundation is complete; strip the
+    // params without opening it so a deep link can't bypass the lock.
+    if (!agentsUnlocked) {
+      navigate("/content", { replace: true });
+      return;
+    }
     const id = Number(draftIdea);
     if (!Number.isFinite(id)) return;
     const title = params.get("draftTitle") ?? undefined;
@@ -348,7 +355,13 @@ function ContentLibrary() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
+  // The Ghostwriter is an agent, so it is locked behind the full foundation just
+  // like the Strategist, Manager, Planner, and Investigator. The server also
+  // 403s POST /posts/draft; this keeps the UI consistent with that lock.
+  const { unlocked: agentsUnlocked } = useAgentsGate();
+
   const openGhostwriter = () => {
+    if (!agentsUnlocked) return;
     setGhostwriterPrefill(undefined);
     setIsGhostwriterOpen(true);
   };
@@ -553,13 +566,15 @@ function ContentLibrary() {
               <Send className="w-4 h-4" /> Send to scheduler
             </Button>
           )}
-          <Button
-            variant="outline"
-            onClick={openGhostwriter}
-            className="rounded-full gap-2 h-11 px-5 border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
-          >
-            <Sparkles className="w-4 h-4" /> Ghostwriter
-          </Button>
+          {agentsUnlocked && (
+            <Button
+              variant="outline"
+              onClick={openGhostwriter}
+              className="rounded-full gap-2 h-11 px-5 border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
+            >
+              <Sparkles className="w-4 h-4" /> Ghostwriter
+            </Button>
+          )}
           <Button onClick={() => handleOpenEditor()} className="rounded-full bg-primary hover:bg-primary/90 gap-2 h-11 px-6 shadow-sm">
             <Plus className="w-4 h-4" /> New Post
           </Button>
@@ -729,7 +744,7 @@ function ContentLibrary() {
         open={isEditorOpen}
         onOpenChange={setIsEditorOpen}
         post={editingPost}
-        onExpandWithGhostwriter={(source) => {
+        onExpandWithGhostwriter={agentsUnlocked ? (source) => {
           // Close the editor and launch the Ghostwriter grounded in this post so
           // an expanded draft can be applied back onto it in place.
           setIsEditorOpen(false);
@@ -739,7 +754,7 @@ function ContentLibrary() {
             platform: source.platform,
           });
           setIsGhostwriterOpen(true);
-        }}
+        } : undefined}
       />
 
       {/* Ghostwriter Dialog */}

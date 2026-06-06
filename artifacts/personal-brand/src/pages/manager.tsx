@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { RunCard } from "@/components/manager-run";
+import { AgentGate } from "@/components/agent-gate";
 
 const EXAMPLES = [
   "Research my space, sharpen my positioning, and draft a few posts I can publish this week.",
@@ -70,6 +71,7 @@ export default function Manager() {
   const running = runManager.isPending;
 
   return (
+    <AgentGate>
     <div className="flex flex-col">
       <div className="mb-6">
         <h1 className="font-serif text-3xl tracking-tight text-foreground">Manager</h1>
@@ -150,5 +152,6 @@ export default function Manager() {
         )}
       </div>
     </div>
+    </AgentGate>
   );
 }

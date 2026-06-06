@@ -44,6 +44,8 @@ import {
   getGetPlatformsQueryKey,
   useGetDashboard,
   getGetDashboardQueryKey,
+  useGetIndustryOverview,
+  getGetIndustryOverviewQueryKey,
   useGetAssistantUnread,
   getGetAssistantUnreadQueryKey,
   useGetPlannerUnread,
@@ -272,16 +274,16 @@ const navItems: NavItem[] = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
   { href: "/blueprint", icon: Compass, label: "Blueprint" },
   { href: "/audit", icon: Search, label: "Audit" },
-  { href: "/dossier", icon: Telescope, label: "Investigator" },
+  { href: "/dossier", icon: Telescope, label: "Investigator", gate: "agents" },
   { href: "/narrative", icon: BookOpen, label: "Narrative" },
   { href: "/platforms", icon: Radio, label: "Platforms", gate: "platforms" },
   { href: "/industry-overview", icon: Building2, label: "Industry Overview", gate: "industry" },
   { href: "/calendar", icon: CalendarDays, label: "Content Calendar", gate: "content" },
   { href: "/content", icon: FileText, label: "Content", gate: "content" },
   { href: "/ideas", icon: Lightbulb, label: "Ideas" },
-  { href: "/manager", icon: Network, label: "Manager" },
-  { href: "/assistant", icon: MessagesSquare, label: "Strategist" },
-  { href: "/planner", icon: CalendarDays, label: "Planner" },
+  { href: "/manager", icon: Network, label: "Manager", gate: "agents" },
+  { href: "/assistant", icon: MessagesSquare, label: "Strategist", gate: "agents" },
+  { href: "/planner", icon: CalendarDays, label: "Planner", gate: "agents" },
   { href: "/learn", icon: GraduationCap, label: "Learn" },
 ];
 
@@ -397,6 +399,9 @@ export function Layout({ children }: LayoutProps) {
   const { data: dashboard } = useGetDashboard({
     query: { queryKey: getGetDashboardQueryKey(), retry: false },
   });
+  const { data: industryOverview } = useGetIndustryOverview({
+    query: { queryKey: getGetIndustryOverviewQueryKey(), retry: false },
+  });
   const { data: unread } = useGetAssistantUnread({
     query: {
       queryKey: getGetAssistantUnreadQueryKey(),
@@ -424,6 +429,7 @@ export function Layout({ children }: LayoutProps) {
     hasAudit: Boolean(dashboard?.auditComplete),
     hasNarrative: Boolean(dashboard?.narrativeComplete),
     hasPlatformStrategy: Boolean(platformStrategy),
+    hasIndustryOverview: Boolean(industryOverview),
   };
 
   // Once the Blueprint is fully complete, default the nav to the read-only
@@ -631,7 +637,9 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </main>
 
-      {location !== "/assistant" && <AssistantPanel unreadCount={unreadCount} />}
+      {location !== "/assistant" && isPanelUnlocked("agents", gateCtx) && (
+        <AssistantPanel unreadCount={unreadCount} />
+      )}
 
       <Dialog
         open={celebrateOpen}

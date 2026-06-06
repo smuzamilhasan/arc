@@ -51,3 +51,4 @@ channel = "stable-25_05"
 
 [userenv.shared]
 ADMIN_EMAILS = "smuzamilhasan@gmail.com"
+RESEND_FROM = "arc <hello@muzamilhasan.com>"

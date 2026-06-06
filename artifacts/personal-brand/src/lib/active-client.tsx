@@ -64,6 +64,18 @@ export function consumeSignupIntent(): "individual" | "agency" | null {
   }
 }
 
+// Read the pending sign-up intent without clearing it. Used by the sign-up page
+// to show agency-specific copy while the intent is still needed by Entry after
+// authentication completes.
+export function peekSignupIntent(): "individual" | "agency" | null {
+  try {
+    const v = localStorage.getItem(INTENT_KEY);
+    return v === "agency" || v === "individual" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 function persist(id: number | null): void {
   try {
     if (id == null) localStorage.removeItem(STORAGE_KEY);

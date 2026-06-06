@@ -23,4 +23,5 @@
 - [Active-client scoping](active-client-scoping.md) — agency multi-tenant via x-arc-client-id header; raw fetch (audit/assistant SSE) must stamp it manually; invite accept is email-bound; team mgmt owner-only.
 - [Scheduler hand-off](scheduler-handoff.md) — clients connect their OWN scheduler (BYO API key, encrypted at rest); arc pushes posts but NEVER publishes. Per-post handoff state + CSV/ICS export fallback.
 - [Resend transactional email](resend-email-sending.md) — send via connector proxy POST /emails; key is send-only so GET /domains 401 is expected; default onboarding domain only delivers to the account owner.
+- [Signup intent routing](signup-intent-routing.md) — "For agencies" only sets a localStorage intent then hits the same /sign-up; Entry must gate agency-create routing on !hasAgency, not personalClientId==null.
 - [Educational insights](educational-insights.md) — strategist's encouragement/teaching output is a SEPARATE class from AssistantAction proposals; never an action kind; 5 pillars; own table/scheduler/SSE type, surfaces in Learn hub + contextual cards + chat.

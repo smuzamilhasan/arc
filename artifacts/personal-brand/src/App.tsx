@@ -19,7 +19,8 @@ import {
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
-import { ActiveClientProvider } from "@/lib/active-client";
+import { ActiveClientProvider, peekSignupIntent } from "@/lib/active-client";
+import { Building2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
@@ -130,8 +131,20 @@ function SignInPage() {
 }
 
 function SignUpPage() {
+  const isAgency = peekSignupIntent() === "agency";
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-background px-4 py-12">
+      {isAgency ? (
+        <div className="flex max-w-md flex-col items-center gap-2 text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium uppercase tracking-widest text-primary">
+            <Building2 className="h-3.5 w-3.5" /> Agency account
+          </span>
+          <p className="text-sm text-muted-foreground">
+            Create your account first. Right after, you will name your agency and
+            start inviting clients and teammates.
+          </p>
+        </div>
+      ) : null}
       <SignUp
         routing="path"
         path={`${basePath}/sign-up`}

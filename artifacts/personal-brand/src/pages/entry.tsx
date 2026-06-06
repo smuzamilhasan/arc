@@ -38,36 +38,28 @@ export default function Entry() {
   useEffect(() => {
     if (isLoading || ctxLoading) return;
     if (routedRef.current) return;
+    routedRef.current = true;
+
+    // Consume the pending sign-up intent exactly once.
+    const intent = consumeSignupIntent();
+    const hasAgency = Boolean(context && context.agencies.length > 0);
 
     // Agency operators (existing members/owners) without a personal brand land
     // on the agency hub.
-    if (
-      context &&
-      context.personalClientId == null &&
-      context.agencies.length > 0
-    ) {
-      routedRef.current = true;
+    if (context && context.personalClientId == null && hasAgency) {
       setLocation("/agency");
       return;
     }
 
-    // A fresh sign-up that came through the "For agencies" path, with no profile
-    // or agency yet, goes to the agency hub to create one. The explicit
-    // ?create=1 marks this as a deliberate create flow so the hub shows the
-    // create-agency surface instead of bouncing back to the dashboard.
-    if (
-      context &&
-      context.personalClientId == null &&
-      context.agencies.length === 0 &&
-      (isError || !client) &&
-      consumeSignupIntent() === "agency"
-    ) {
-      routedRef.current = true;
+    // Anyone who came through the "For agencies" path and is not already in an
+    // agency is sent straight to the create-agency surface — even if they
+    // already have a personal profile. The explicit ?create=1 tells the hub to
+    // show the create form instead of bouncing back to the dashboard.
+    if (intent === "agency" && !hasAgency) {
       setLocation("/agency?create=1");
       return;
     }
 
-    routedRef.current = true;
     if (isError || !client) {
       setLocation("/onboard");
     } else if (!client.onboardingComplete) {

@@ -76,6 +76,32 @@ export function peekSignupIntent(): "individual" | "agency" | null {
   }
 }
 
+// A signed-out visitor opening an invite deep-link is bounced to sign-in/up.
+// Stash the invite token so Entry can resume the accept flow once auth
+// completes, instead of dropping the deep-link and stranding the invitee.
+const INVITE_KEY = "arc.pendingInvite";
+
+export function setPendingInvite(token: string): void {
+  try {
+    localStorage.setItem(INVITE_KEY, token);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+export function consumePendingInvite(): string | null {
+  try {
+    const v = localStorage.getItem(INVITE_KEY);
+    if (v) {
+      localStorage.removeItem(INVITE_KEY);
+      return v;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function persist(id: number | null): void {
   try {
     if (id == null) localStorage.removeItem(STORAGE_KEY);

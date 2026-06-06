@@ -5986,6 +5986,78 @@ export const useRevokeInvitation = <TError = ErrorType<void>,
       return useMutation(getRevokeInvitationMutationOptions(options));
     }
 
+export const getRemoveAgencyClientUrl = (agencyId: number,
+    clientId: number,) => {
+
+
+
+
+  return `/api/agency/${agencyId}/clients/${clientId}`
+}
+
+/**
+ * @summary Remove a client from the agency. Unclaimed prebuilt profiles are deleted outright; claimed clients are only detached from the agency roster.
+ */
+export const removeAgencyClient = async (agencyId: number,
+    clientId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRemoveAgencyClientUrl(agencyId,clientId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRemoveAgencyClientMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeAgencyClient>>, TError,{agencyId: number;clientId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeAgencyClient>>, TError,{agencyId: number;clientId: number}, TContext> => {
+
+const mutationKey = ['removeAgencyClient'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeAgencyClient>>, {agencyId: number;clientId: number}> = (props) => {
+          const {agencyId,clientId} = props ?? {};
+
+          return  removeAgencyClient(agencyId,clientId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveAgencyClientMutationResult = NonNullable<Awaited<ReturnType<typeof removeAgencyClient>>>
+
+    export type RemoveAgencyClientMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove a client from the agency. Unclaimed prebuilt profiles are deleted outright; claimed clients are only detached from the agency roster.
+ */
+export const useRemoveAgencyClient = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeAgencyClient>>, TError,{agencyId: number;clientId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeAgencyClient>>,
+        TError,
+        {agencyId: number;clientId: number},
+        TContext
+      > => {
+      return useMutation(getRemoveAgencyClientMutationOptions(options));
+    }
+
 export const getGetInvitationPreviewUrl = (token: string,) => {
 
 

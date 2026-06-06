@@ -1600,6 +1600,30 @@ paths:
         "403":
           description: Forbidden
 
+  /agency/{agencyId}/clients/{clientId}:
+    delete:
+      operationId: removeAgencyClient
+      tags: [agency]
+      summary: Remove a client from the agency. Unclaimed prebuilt profiles are deleted outright; claimed clients are only detached from the agency roster.
+      parameters:
+        - name: agencyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
   /invitations/{token}:
     get:
       operationId: getInvitationPreview

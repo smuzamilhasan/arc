@@ -2280,6 +2280,15 @@ export const RevokeInvitationParams = zod.object({
 
 
 /**
+ * @summary Remove a client from the agency. Unclaimed prebuilt profiles are deleted outright; claimed clients are only detached from the agency roster.
+ */
+export const RemoveAgencyClientParams = zod.object({
+  "agencyId": zod.coerce.number(),
+  "clientId": zod.coerce.number()
+})
+
+
+/**
  * @summary Preview an invitation by token
  */
 export const GetInvitationPreviewParams = zod.object({

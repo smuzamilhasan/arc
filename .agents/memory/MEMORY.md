@@ -21,6 +21,8 @@
 - [Planner content calendar](planner-content-calendar.md) — Planner proposal is ephemeral (no new table); /generate returns it, /apply writes slots->posts + ideas->ideas scoped to client.
 - [Manager orchestration](manager-orchestration.md) — one instruction decomposed (the only AI call) then existing agents run sequentially; outputs are confirm/reject proposals; bounded to 1 decompose + <=4 agent calls.
 - [Active-client scoping](active-client-scoping.md) — agency multi-tenant via x-arc-client-id header; raw fetch (audit/assistant SSE) must stamp it manually; invite accept is email-bound; team mgmt owner-only.
+- [Post-auth resume](post-auth-resume.md) — auth pages forceRedirect to `/`; Entry is the single post-auth router; stash any "after sign-in" intent (invite token, signup intent) in localStorage + consume in Entry.
+- [Agency client lifecycle](agency-client-lifecycle.md) — inviting a client prebuilds an unclaimed profile+grant immediately; removal must delete-if-unclaimed vs detach-if-claimed; revoke alone leaves a phantom.
 - [Scheduler hand-off](scheduler-handoff.md) — clients connect their OWN scheduler (BYO API key, encrypted at rest); arc pushes posts but NEVER publishes. Per-post handoff state + CSV/ICS export fallback.
 - [Resend transactional email](resend-email-sending.md) — send via connector proxy POST /emails; key is send-only so GET /domains 401 is expected; default onboarding domain only delivers to the account owner.
 - [Signup intent routing](signup-intent-routing.md) — "For agencies" only sets a localStorage intent then hits the same /sign-up; Entry must gate agency-create routing on !hasAgency, not personalClientId==null.

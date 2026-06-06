@@ -11,6 +11,7 @@ import {
   useCreateInvitation,
   useRevokeInvitation,
   useRemoveAgencyMember,
+  useRemoveAgencyClient,
 } from "@workspace/api-client-react";
 import { useActiveClient } from "@/lib/active-client";
 import { Button } from "@/components/ui/button";
@@ -352,6 +353,10 @@ export default function Agency() {
   const { context, isLoading, setActiveClient } = useActiveClient();
   const [, setLocation] = useLocation();
   const search = useSearch();
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { mutate: removeClient, isPending: removingClient } =
+    useRemoveAgencyClient();
 
   const agencies = context?.agencies ?? [];
   // The create-agency surface is only reached deliberately: a fresh "For
@@ -447,16 +452,63 @@ export default function Agency() {
                     ) : null}
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setActiveClient(c.id);
-                    setLocation("/dashboard");
-                  }}
-                >
-                  Open <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                </Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setActiveClient(c.id);
+                      setLocation("/dashboard");
+                    }}
+                  >
+                    Open <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    disabled={removingClient}
+                    title={
+                      c.claimed
+                        ? "Remove client from this agency"
+                        : "Delete client"
+                    }
+                    onClick={() => {
+                      const ok = window.confirm(
+                        c.claimed
+                          ? `Remove ${c.fullName} from this agency? Their account stays, but the agency loses access.`
+                          : `Permanently delete ${c.fullName} and all of their data? This cannot be undone.`,
+                      );
+                      if (!ok) return;
+                      removeClient(
+                        { agencyId: agency.id, clientId: c.id },
+                        {
+                          onSuccess: () => {
+                            qc.invalidateQueries({
+                              queryKey: getGetAgencyContextQueryKey(),
+                            });
+                            qc.invalidateQueries({
+                              queryKey: getGetAgencyInvitationsQueryKey(
+                                agency.id,
+                              ),
+                            });
+                            toast({
+                              title: c.claimed
+                                ? "Client removed from agency"
+                                : "Client deleted",
+                            });
+                          },
+                          onError: () =>
+                            toast({
+                              title: "Could not remove client",
+                              variant: "destructive",
+                            }),
+                        },
+                      );
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>

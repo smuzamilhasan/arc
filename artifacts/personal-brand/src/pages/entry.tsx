@@ -2,7 +2,11 @@ import { useLocation } from "wouter";
 import { useEffect, useRef } from "react";
 import { useGetClient, useAutoRefreshAudit } from "@workspace/api-client-react";
 import { getGetClientQueryKey } from "@workspace/api-client-react";
-import { useActiveClient, consumeSignupIntent } from "@/lib/active-client";
+import {
+  useActiveClient,
+  consumeSignupIntent,
+  consumePendingInvite,
+} from "@/lib/active-client";
 import { Loader2 } from "lucide-react";
 
 export default function Entry() {
@@ -39,6 +43,14 @@ export default function Entry() {
     if (isLoading || ctxLoading) return;
     if (routedRef.current) return;
     routedRef.current = true;
+
+    // An invite deep-link that survived sign-in/up takes top priority: resume
+    // the accept flow before any default routing.
+    const pendingInvite = consumePendingInvite();
+    if (pendingInvite) {
+      setLocation(`/invite/${pendingInvite}`);
+      return;
+    }
 
     // Consume the pending sign-up intent exactly once.
     const intent = consumeSignupIntent();

@@ -19,7 +19,11 @@ import {
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
-import { ActiveClientProvider, peekSignupIntent } from "@/lib/active-client";
+import {
+  ActiveClientProvider,
+  peekSignupIntent,
+  setPendingInvite,
+} from "@/lib/active-client";
 import { Building2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -125,6 +129,7 @@ function SignInPage() {
         routing="path"
         path={`${basePath}/sign-in`}
         signUpUrl={`${basePath}/sign-up`}
+        forceRedirectUrl={`${basePath}/`}
       />
     </div>
   );
@@ -149,6 +154,7 @@ function SignUpPage() {
         routing="path"
         path={`${basePath}/sign-up`}
         signInUrl={`${basePath}/sign-in`}
+        forceRedirectUrl={`${basePath}/`}
       />
     </div>
   );
@@ -176,6 +182,27 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
       </Show>
     </>
   );
+}
+
+// Invitees are almost always signed-out new users. A bare RequireAuth would
+// bounce them to sign-in and drop the token, so persist the invite first and
+// resume it in Entry after auth. New invitees default to sign-up.
+function InviteGate({ token }: { token: string }) {
+  return (
+    <>
+      <Show when="signed-in">
+        <Invite />
+      </Show>
+      <Show when="signed-out">
+        <StashInviteAndRedirect token={token} />
+      </Show>
+    </>
+  );
+}
+
+function StashInviteAndRedirect({ token }: { token: string }) {
+  setPendingInvite(token);
+  return <Redirect to="/sign-up" />;
 }
 
 // Attach the Clerk session token as a Bearer header on every API request.
@@ -255,9 +282,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
             <Route path="/invite/:token">
-              <RequireAuth>
-                <Invite />
-              </RequireAuth>
+              {(params) => <InviteGate token={params.token} />}
             </Route>
             <Route path="/onboard">
               <RequireAuth>

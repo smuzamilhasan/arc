@@ -18,6 +18,7 @@ import { z } from "zod/v4";
 import { primaryEmail, clerkUserName } from "../middlewares/requireAdmin";
 import { sendEmail } from "../services/email";
 import { buildInviteEmail } from "../services/inviteEmail";
+import { deleteClientData } from "../services/clientData";
 import type { Request } from "express";
 
 const router = Router();
@@ -423,6 +424,73 @@ router.delete("/agency/:agencyId/members/:memberUserId", async (req, res) => {
       and(
         eq(agencyMembersTable.agencyId, agencyId),
         eq(agencyMembersTable.userId, memberUserId),
+      ),
+    );
+  res.status(204).end();
+});
+
+// Remove a client from the agency. Any member can manage clients. An unclaimed
+// prebuilt profile (userId null) is deleted outright along with all its data;
+// a profile already claimed by a real user is only detached from the agency
+// roster (its access grant + pending invites are removed) so we never destroy
+// a real user's account.
+router.delete("/agency/:agencyId/clients/:clientId", async (req, res) => {
+  const agencyId = Number(req.params.agencyId);
+  const clientId = Number(req.params.clientId);
+  if (!Number.isInteger(agencyId) || !Number.isInteger(clientId)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const membership = await getMembership(agencyId, req.userId!);
+  if (!membership) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  // The client must actually belong to this agency's roster.
+  const [grant] = await db
+    .select()
+    .from(agencyClientAccessTable)
+    .where(
+      and(
+        eq(agencyClientAccessTable.agencyId, agencyId),
+        eq(agencyClientAccessTable.clientId, clientId),
+      ),
+    )
+    .limit(1);
+  if (!grant) {
+    res.status(404).json({ error: "Client not found in this agency" });
+    return;
+  }
+  const [profile] = await db
+    .select()
+    .from(clientProfileTable)
+    .where(eq(clientProfileTable.id, clientId))
+    .limit(1);
+
+  if (!profile || profile.userId === null) {
+    // Unclaimed prebuilt profile: nothing real depends on it, delete fully.
+    await deleteClientData(clientId);
+    res.status(204).end();
+    return;
+  }
+
+  // Claimed by a real user: only detach from this agency.
+  await db
+    .delete(agencyClientAccessTable)
+    .where(
+      and(
+        eq(agencyClientAccessTable.agencyId, agencyId),
+        eq(agencyClientAccessTable.clientId, clientId),
+      ),
+    );
+  await db
+    .update(invitationsTable)
+    .set({ status: "revoked" })
+    .where(
+      and(
+        eq(invitationsTable.agencyId, agencyId),
+        eq(invitationsTable.clientId, clientId),
+        eq(invitationsTable.status, "pending"),
       ),
     );
   res.status(204).end();

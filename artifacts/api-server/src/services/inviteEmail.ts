@@ -36,6 +36,7 @@ export interface BuiltEmail {
 export function buildInviteEmail(params: InviteEmailParams): BuiltEmail {
   const { token, kind, inviterName, agencyName } = params;
   const url = inviteUrl(token);
+  const logoUrl = `${appOrigin()}/email-logo.png`;
   const roleLine =
     kind === "member"
       ? `${inviterName} has invited you to join ${agencyName} as a team member on arc.`
@@ -64,7 +65,7 @@ export function buildInviteEmail(params: InviteEmailParams): BuiltEmail {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;border:1px solid #e4e4e7;overflow:hidden;">
             <tr>
               <td style="padding:32px 32px 8px;">
-                <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#18181b;">arc</div>
+                <img src="${logoUrl}" alt="arc" width="120" height="47" style="display:block;border:0;outline:none;text-decoration:none;height:47px;width:120px;" />
               </td>
             </tr>
             <tr>

@@ -20,3 +20,12 @@ recipients, set `RESEND_FROM` to an address on a verified custom domain.
 
 **App origin for links** is derived from `REPLIT_DOMAINS` (first entry) → `REPLIT_DEV_DOMAIN`,
 overridable via `APP_ORIGIN`. The web app is served at `/`, so invite links are `${origin}/invite/<token>`.
+To make production invite emails use a custom domain (not the Replit domain), set `APP_ORIGIN`
+in the **production** environment; leave it unset in dev so dev keeps the Replit fallback.
+**Why:** invites are sent from the deployed app, and `REPLIT_DOMAINS[0]` there is the replit.app host,
+so links leak that host unless `APP_ORIGIN` pins the custom domain. A production env change needs a redeploy.
+
+**Email logo** is a hosted PNG (email clients strip inline SVG): `email-logo.png` in the web app's
+`public/` (served at origin root), referenced as `${appOrigin()}/email-logo.png` so it loads from the
+same custom domain as the links. Brand SVGs can be rasterized with ImageMagick (`magick`); no
+rsvg/inkscape and no Instrument Serif font installed, so text falls back to a generic serif.

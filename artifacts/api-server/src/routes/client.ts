@@ -4,6 +4,8 @@ import { UpsertClientBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { deleteClientData } from "../services/clientData";
+import { reconcileUserInvites } from "../services/inviteBinding";
+import { ACTIVE_CLIENT_HEADER } from "../middlewares/activeClient";
 
 const router = Router();
 
@@ -26,6 +28,20 @@ async function getClientForUser(userId: string) {
 }
 
 router.get("/client", async (req, res) => {
+  // On the user's own profile path (no active-client header), bind any pending
+  // agency invitation addressed to their verified email before resolving. This
+  // claims/merges the invited profile so an invitee always lands on the same
+  // record regardless of how they signed up, and self-heals past duplicates.
+  if (req.userId && !req.header(ACTIVE_CLIENT_HEADER)) {
+    await reconcileUserInvites(req.userId);
+    const fresh = await getClientForUser(req.userId);
+    if (fresh) {
+      res.json(serializeClient(fresh));
+      return;
+    }
+    res.status(404).json({ error: "No client profile yet" });
+    return;
+  }
   const client = req.activeClient;
   if (!client) {
     res.status(404).json({ error: "No client profile yet" });
@@ -90,7 +106,14 @@ router.put("/client", async (req, res) => {
     updatedAt: new Date(),
   };
 
-  const existing = req.activeClient;
+  let existing = req.activeClient;
+  // Before creating a brand-new personal profile, bind any pending agency invite
+  // for this user's verified email so onboarding writes into the invited profile
+  // instead of spawning a duplicate.
+  if (!existing && req.userId && !req.header(ACTIVE_CLIENT_HEADER)) {
+    await reconcileUserInvites(req.userId);
+    existing = await getClientForUser(req.userId);
+  }
   let client: typeof clientProfileTable.$inferSelect;
   if (existing) {
     [client] = await db

@@ -19,6 +19,7 @@ import { primaryEmail, clerkUserName } from "../middlewares/requireAdmin";
 import { sendEmail } from "../services/email";
 import { buildInviteEmail } from "../services/inviteEmail";
 import { deleteClientData } from "../services/clientData";
+import { bindInviteForUser } from "../services/inviteBinding";
 import type { Request } from "express";
 
 const router = Router();
@@ -576,42 +577,17 @@ router.post("/invitations/:token/accept", async (req, res) => {
     res.status(400).json({ error: "Invitation has no client profile" });
     return;
   }
-  const [profile] = await db
-    .select()
-    .from(clientProfileTable)
-    .where(eq(clientProfileTable.id, inv.clientId))
-    .limit(1);
-  if (!profile) {
-    res.status(404).json({ error: "Client profile not found" });
-    return;
-  }
-  if (profile.userId && profile.userId !== userId) {
+  // Claim or merge: bindInviteForUser claims the prebuilt profile, or, if the
+  // user already created a duplicate (e.g. they signed up directly instead of
+  // through this link), merges the two keeping whichever has data. It also
+  // marks the invitation accepted. Returns null only if the prebuilt profile is
+  // already owned by a different account.
+  const boundClientId = await bindInviteForUser(userId, inv);
+  if (boundClientId == null) {
     res.status(409).json({ error: "This profile was already claimed" });
     return;
   }
-  if (!profile.userId) {
-    // Block if the user already owns a different profile (userId is unique).
-    const [ownExisting] = await db
-      .select({ id: clientProfileTable.id })
-      .from(clientProfileTable)
-      .where(eq(clientProfileTable.userId, userId))
-      .limit(1);
-    if (ownExisting) {
-      res
-        .status(409)
-        .json({ error: "Your account already has a profile" });
-      return;
-    }
-    await db
-      .update(clientProfileTable)
-      .set({ userId, updatedAt: new Date() })
-      .where(eq(clientProfileTable.id, profile.id));
-  }
-  await db
-    .update(invitationsTable)
-    .set({ status: "accepted", acceptedByUserId: userId, acceptedAt: new Date() })
-    .where(eq(invitationsTable.id, inv.id));
-  res.json({ kind: "client", agencyId: inv.agencyId, clientId: profile.id });
+  res.json({ kind: "client", agencyId: inv.agencyId, clientId: boundClientId });
 });
 
 export default router;

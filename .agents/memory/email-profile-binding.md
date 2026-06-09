@@ -44,3 +44,29 @@ idempotent re-claim.
 produces TWO separate Clerk userIds (account-linking disabled), the app cannot put two
 userIds on one profile — the definitive fix is Clerk verified-email account linking in
 the Auth pane. App-layer binding covers same-account + first-touch + self-heal only.
+
+**Two-Clerk-identity case (personal profiles):** `reconcilePersonalProfileByEmail(userId)`
+in the same file makes the VERIFIED email the source of truth for PERSONAL (non-agency)
+profiles too. `client_profile.verifiedEmail` stores the owner's canonical lowercased
+verified email (stamped on create, lazily backfilled when an owner loads their profile).
+When the SAME person signs in under a SECOND Clerk userId sharing that verified email
+(e.g. Google sign-up + later email/password, account-linking off), the lookup by userId
+misses, so this re-points the profile's `userId` to the current account instead of 404 ->
+onboarding -> duplicate. Wired into `GET /client` + `PUT /client` via `resolvePersonalClient`.
+
+**Safety:** matches ONLY on the caller's own Clerk-verified emails (same person controls
+the mailbox), only re-points purely personal profiles (`created_by_agency_id IS NULL`, so
+agency invite-binding semantics are untouched), and changes ownership only — never
+overwrites content or replaces a filled profile with an empty one.
+
+**Why re-point instead of merge:** unlike the agency path there's no prebuilt duplicate to
+merge; the second identity simply owns nothing, so transferring ownership is safe and
+idempotent (ping-pongs harmlessly if they alternate identities). Clerk verified-email
+account linking (Auth pane) is the source-level complement but isn't togglable via the
+Replit-managed tenant's documented surface, so this app-layer self-heal is the real fix.
+
+**Redirect hardening (`pages/entry.tsx`):** `GET /client` retry treats a 404 as "no
+profile -> onboarding" (no retry) but RETRIES any other error (network/401-not-ready/5xx),
+and only routes to onboarding on a confirmed 404. A persistent non-404 error shows a
+"Try again" state instead of bouncing the user into onboarding. Use `ApiError.status`
+(exported from `@workspace/api-client-react`) to distinguish.

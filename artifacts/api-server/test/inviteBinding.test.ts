@@ -30,7 +30,11 @@ import {
   invitationsTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { bindInviteForUser, reconcileUserInvites } from "../src/services/inviteBinding";
+import {
+  bindInviteForUser,
+  reconcileUserInvites,
+  reconcilePersonalProfileByEmail,
+} from "../src/services/inviteBinding";
 
 const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let agencyId = 0;
@@ -51,6 +55,7 @@ async function makeProfile(opts: {
   createdByAgencyId: number | null;
   rich: boolean;
   complete: boolean;
+  verifiedEmail?: string | null;
 }) {
   const [p] = await db
     .insert(clientProfileTable)
@@ -58,6 +63,7 @@ async function makeProfile(opts: {
       userId: opts.userId,
       fullName: opts.fullName,
       createdByAgencyId: opts.createdByAgencyId,
+      verifiedEmail: opts.verifiedEmail ?? null,
       bio: opts.rich ? "x".repeat(500) : "",
       professionalJourney: opts.rich ? "y".repeat(400) : "",
       onboardingComplete: opts.complete,
@@ -317,5 +323,88 @@ describe("invite binding", () => {
     expect(bound).toBe(prebuilt.id);
     const after = await getProfile(prebuilt.id);
     expect(after.userId).toBe(user);
+  });
+});
+
+describe("personal profile self-heal by verified email", () => {
+  it("re-points a personal profile to a second identity sharing its verified email", async () => {
+    const original = `u-orig-${suffix}`;
+    const second = `u-second-${suffix}`;
+    const shared = `shared-${suffix}@example.com`;
+    userEmails[second] = [shared];
+    const profile = await makeProfile({
+      userId: original,
+      fullName: "Returning User",
+      createdByAgencyId: null,
+      rich: true,
+      complete: true,
+      verifiedEmail: shared,
+    });
+
+    const resolved = await reconcilePersonalProfileByEmail(second);
+    expect(resolved?.id).toBe(profile.id);
+    const after = await getProfile(profile.id);
+    expect(after.userId).toBe(second);
+    // Content is untouched — only ownership changed.
+    expect(after.fullName).toBe("Returning User");
+    expect(after.onboardingComplete).toBe(true);
+  });
+
+  it("backfills the canonical verified email for an owned profile missing it", async () => {
+    const user = `u-backfill-${suffix}`;
+    const email = `backfill-${suffix}@example.com`;
+    userEmails[user] = [email];
+    const profile = await makeProfile({
+      userId: user,
+      fullName: "Owner Missing Email",
+      createdByAgencyId: null,
+      rich: true,
+      complete: true,
+      verifiedEmail: null,
+    });
+
+    const resolved = await reconcilePersonalProfileByEmail(user);
+    expect(resolved?.id).toBe(profile.id);
+    const after = await getProfile(profile.id);
+    expect(after.verifiedEmail).toBe(email);
+  });
+
+  it("never matches a profile whose email the caller has not verified", async () => {
+    const owner = `u-isolated-owner-${suffix}`;
+    const stranger = `u-stranger-${suffix}`;
+    userEmails[stranger] = [`stranger-${suffix}@example.com`];
+    const profile = await makeProfile({
+      userId: owner,
+      fullName: "Someone Else",
+      createdByAgencyId: null,
+      rich: true,
+      complete: true,
+      verifiedEmail: `private-${suffix}@example.com`,
+    });
+
+    const resolved = await reconcilePersonalProfileByEmail(stranger);
+    expect(resolved).toBeUndefined();
+    const after = await getProfile(profile.id);
+    expect(after.userId).toBe(owner);
+  });
+
+  it("does not re-point an agency-managed profile via email match", async () => {
+    const owner = `u-agency-owner-${suffix}`;
+    const other = `u-agency-other-${suffix}`;
+    const shared = `agencyshared-${suffix}@example.com`;
+    userEmails[other] = [shared];
+    const profile = await makeProfile({
+      userId: owner,
+      fullName: "Agency Managed",
+      createdByAgencyId: agencyId,
+      rich: true,
+      complete: true,
+      verifiedEmail: shared,
+    });
+
+    const resolved = await reconcilePersonalProfileByEmail(other);
+    expect(resolved).toBeUndefined();
+    const after = await getProfile(profile.id);
+    expect(after.userId).toBe(owner);
   });
 });

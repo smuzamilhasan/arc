@@ -7,6 +7,12 @@ export const clientProfileTable = pgTable("client_profile", {
   // Nullable: an agency can prebuild a profile that has no owner yet. When the
   // invited client signs up they "claim" it and userId is set to their Clerk id.
   userId: text("user_id").unique(),
+  // Canonical, lowercased Clerk-verified email of the profile owner. Source of
+  // truth for matching a personal profile back to its owner even when the same
+  // person signs in under a different Clerk identity sharing the same verified
+  // email (e.g. Google vs email/password). Nullable for unclaimed/agency-prebuilt
+  // profiles and backfilled for legacy rows.
+  verifiedEmail: text("verified_email"),
   // The agency that created this profile (if any). Access is granted via the
   // agency_client_access table; this just records origin.
   createdByAgencyId: integer("created_by_agency_id"),

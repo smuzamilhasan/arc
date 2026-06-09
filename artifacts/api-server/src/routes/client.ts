@@ -4,7 +4,11 @@ import { UpsertClientBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { deleteClientData } from "../services/clientData";
-import { reconcileUserInvites } from "../services/inviteBinding";
+import {
+  reconcileUserInvites,
+  reconcilePersonalProfileByEmail,
+  getCanonicalVerifiedEmail,
+} from "../services/inviteBinding";
 import { ACTIVE_CLIENT_HEADER } from "../middlewares/activeClient";
 
 const router = Router();
@@ -27,14 +31,23 @@ async function getClientForUser(userId: string) {
   return client;
 }
 
+// Resolve the caller's own personal profile, self-healing along the way:
+// 1) bind any pending agency invitation addressed to a verified email, then
+// 2) re-point an existing personal profile that shares one of the caller's
+//    verified emails (handles a second Clerk identity for the same person) and
+//    backfill its canonical email. Returns the resolved profile or undefined.
+async function resolvePersonalClient(userId: string) {
+  await reconcileUserInvites(userId);
+  return reconcilePersonalProfileByEmail(userId);
+}
+
 router.get("/client", async (req, res) => {
   // On the user's own profile path (no active-client header), bind any pending
   // agency invitation addressed to their verified email before resolving. This
   // claims/merges the invited profile so an invitee always lands on the same
   // record regardless of how they signed up, and self-heals past duplicates.
   if (req.userId && !req.header(ACTIVE_CLIENT_HEADER)) {
-    await reconcileUserInvites(req.userId);
-    const fresh = await getClientForUser(req.userId);
+    const fresh = await resolvePersonalClient(req.userId);
     if (fresh) {
       res.json(serializeClient(fresh));
       return;
@@ -107,12 +120,12 @@ router.put("/client", async (req, res) => {
   };
 
   let existing = req.activeClient;
-  // Before creating a brand-new personal profile, bind any pending agency invite
-  // for this user's verified email so onboarding writes into the invited profile
-  // instead of spawning a duplicate.
+  // Before creating a brand-new personal profile, self-heal: bind any pending
+  // agency invite for this user's verified email and re-point an existing
+  // personal profile that shares one of their verified emails. This ensures
+  // onboarding writes into the existing profile instead of spawning a duplicate.
   if (!existing && req.userId && !req.header(ACTIVE_CLIENT_HEADER)) {
-    await reconcileUserInvites(req.userId);
-    existing = await getClientForUser(req.userId);
+    existing = await resolvePersonalClient(req.userId);
   }
   let client: typeof clientProfileTable.$inferSelect;
   if (existing) {
@@ -122,9 +135,12 @@ router.put("/client", async (req, res) => {
       .where(eq(clientProfileTable.id, existing.id))
       .returning();
   } else {
+    // Stamp the owner's canonical verified email so this profile can later be
+    // re-matched to the same person signing in under a different Clerk identity.
+    const verifiedEmail = await getCanonicalVerifiedEmail(req.userId!);
     [client] = await db
       .insert(clientProfileTable)
-      .values({ ...values, userId: req.userId! })
+      .values({ ...values, userId: req.userId!, verifiedEmail })
       .returning();
   }
   res.json(serializeClient(client));

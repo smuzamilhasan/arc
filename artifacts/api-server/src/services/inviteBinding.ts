@@ -22,7 +22,7 @@ import {
   type ClientProfile,
   type Invitation,
 } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { logger } from "../lib/logger";
 import { deleteClientData } from "./clientData";
@@ -87,6 +87,43 @@ async function getOwnedProfile(userId: string): Promise<ClientProfile | undefine
     .where(eq(clientProfileTable.userId, userId))
     .limit(1);
   return own;
+}
+
+// All of the caller's VERIFIED Clerk emails, trimmed + lowercased. Best-effort:
+// returns [] if Clerk lookup fails.
+export async function getVerifiedEmails(userId: string): Promise<string[]> {
+  try {
+    const user = await clerkClient.users.getUser(userId);
+    return user.emailAddresses
+      .filter((e) => e.verification?.status === "verified")
+      .map((e) => e.emailAddress.trim().toLowerCase());
+  } catch (err) {
+    logger.error({ err, userId }, "getVerifiedEmails: clerk lookup failed");
+    return [];
+  }
+}
+
+// The caller's canonical verified email (primary if verified, else the first
+// verified one), trimmed + lowercased. Used to stamp a profile's owner email.
+export async function getCanonicalVerifiedEmail(
+  userId: string,
+): Promise<string | null> {
+  try {
+    const user = await clerkClient.users.getUser(userId);
+    const verified = user.emailAddresses.filter(
+      (e) => e.verification?.status === "verified",
+    );
+    if (verified.length === 0) return null;
+    const primary =
+      verified.find((e) => e.id === user.primaryEmailAddressId) ?? verified[0];
+    return primary.emailAddress.trim().toLowerCase();
+  } catch (err) {
+    logger.error(
+      { err, userId },
+      "getCanonicalVerifiedEmail: clerk lookup failed",
+    );
+    return null;
+  }
 }
 
 // The transaction executor drizzle hands to a `db.transaction` callback.
@@ -237,16 +274,7 @@ export async function bindInviteForUser(
 export async function reconcileUserInvites(
   userId: string,
 ): Promise<number | null> {
-  let emails: string[];
-  try {
-    const user = await clerkClient.users.getUser(userId);
-    emails = user.emailAddresses
-      .filter((e) => e.verification?.status === "verified")
-      .map((e) => e.emailAddress.trim().toLowerCase());
-  } catch (err) {
-    logger.error({ err, userId }, "reconcileUserInvites: clerk lookup failed");
-    return null;
-  }
+  const emails = await getVerifiedEmails(userId);
   if (emails.length === 0) return null;
 
   const pending = await db
@@ -278,4 +306,91 @@ export async function reconcileUserInvites(
     }
   }
   return null;
+}
+
+// Email-as-source-of-truth self-heal for PERSONAL (non-agency) profiles.
+//
+// Resolves the caller's own profile. If they already own one, lazily backfills
+// its canonical verified email and returns it. If they own none, it looks for
+// an existing personal profile whose canonical verified email is one of the
+// CALLER'S OWN verified emails and re-points its ownership to the current
+// account. This covers the case where the same person ends up with two Clerk
+// identities sharing one verified email (e.g. a Google sign-up and a later
+// email/password account): without it, the second identity is treated as a
+// brand-new user and bounced into onboarding, and a duplicate/empty profile is
+// created.
+//
+// Safety guarantees:
+// - Only matches profiles whose verified_email is one the CALLER has verified,
+//   so it can never bind a profile belonging to a different person.
+// - Only re-points purely personal profiles (created_by_agency_id IS NULL);
+//   agency-managed profiles stay owned by the existing invite-binding path.
+// - Only changes ownership; never overwrites profile content and never replaces
+//   a filled profile with an empty one.
+// Best-effort: never throws (Clerk/db errors are logged and undefined returned).
+export async function reconcilePersonalProfileByEmail(
+  userId: string,
+): Promise<ClientProfile | undefined> {
+  try {
+    // Already owns a profile: backfill its canonical email if missing, return it.
+    const owned = await getOwnedProfile(userId);
+    if (owned) {
+      if (!owned.verifiedEmail) {
+        const email = await getCanonicalVerifiedEmail(userId);
+        if (email) {
+          const [updated] = await db
+            .update(clientProfileTable)
+            .set({ verifiedEmail: email, updatedAt: new Date() })
+            .where(eq(clientProfileTable.id, owned.id))
+            .returning();
+          return updated ?? owned;
+        }
+      }
+      return owned;
+    }
+
+    const emails = await getVerifiedEmails(userId);
+    if (emails.length === 0) return undefined;
+
+    // Find personal profiles whose canonical email is one of the caller's
+    // verified emails. Exclude agency-managed profiles.
+    const candidates = await db
+      .select()
+      .from(clientProfileTable)
+      .where(
+        and(
+          inArray(clientProfileTable.verifiedEmail, emails),
+          isNull(clientProfileTable.createdByAgencyId),
+        ),
+      );
+    if (candidates.length === 0) return undefined;
+
+    // Prefer the most-filled profile if duplicates exist.
+    candidates.sort((a, b) => profileFillScore(b) - profileFillScore(a));
+    const match = candidates[0];
+
+    // Already owned by the caller (shouldn't happen since owned was undefined),
+    // nothing to do.
+    if (match.userId === userId) return match;
+
+    // Re-point ownership to the current account. Same person (shares a verified
+    // email), so this is safe. The caller owns no profile, so the unique userId
+    // update cannot collide.
+    logger.info(
+      { userId, clientId: match.id, previousOwner: match.userId },
+      "personal profile self-heal: re-pointing profile to current account by verified email",
+    );
+    const [updated] = await db
+      .update(clientProfileTable)
+      .set({ userId, updatedAt: new Date() })
+      .where(eq(clientProfileTable.id, match.id))
+      .returning();
+    return updated ?? match;
+  } catch (err) {
+    logger.error(
+      { err, userId },
+      "reconcilePersonalProfileByEmail: self-heal failed",
+    );
+    return undefined;
+  }
 }

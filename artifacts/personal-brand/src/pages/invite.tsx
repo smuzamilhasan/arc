@@ -110,6 +110,8 @@ export default function Invite() {
             <p className="mt-2 text-sm text-muted-foreground">
               {data.kind === "member"
                 ? `You've been invited to join ${data.agencyName} as a team member.`
+                : data.linkExisting
+                ? `${data.agencyName} has invited you to connect your arc account so they can help manage your personal brand. Accept to link your existing profile.`
                 : `${data.agencyName} has prepared a personal brand profile${
                     data.clientFullName ? ` for ${data.clientFullName}` : ""
                   }. Accept to claim it as your own.`}

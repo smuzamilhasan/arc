@@ -15,4 +15,6 @@ export interface InvitationPreview {
   agencyName: string;
   /** @nullable */
   clientFullName: string | null;
+  /** True when this client invite links an existing arc account to the agency (the invitee already has a profile) rather than asking them to claim a freshly prebuilt one. */
+  linkExisting: boolean;
 }

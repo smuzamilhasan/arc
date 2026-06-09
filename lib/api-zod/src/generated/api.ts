@@ -2300,7 +2300,8 @@ export const GetInvitationPreviewResponse = zod.object({
   "email": zod.string(),
   "status": zod.enum(['pending', 'accepted', 'revoked']),
   "agencyName": zod.string(),
-  "clientFullName": zod.string().nullable()
+  "clientFullName": zod.string().nullable(),
+  "linkExisting": zod.boolean().describe('True when this client invite links an existing arc account to the agency (the invitee already has a profile) rather than asking them to claim a freshly prebuilt one.')
 })
 
 

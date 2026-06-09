@@ -11,6 +11,7 @@ import {
   type Agency,
   type AgencyMember,
   type Invitation,
+  type ClientProfile,
 } from "@workspace/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
@@ -72,6 +73,40 @@ async function callerOwnsEmail(userId: string, email: string): Promise<boolean> 
   }
 }
 
+// Looks up whether an arc account already exists for an email: a Clerk user who
+// has that email VERIFIED and already owns a client_profile. Returns that
+// profile so the invite can LINK it to the agency instead of prebuilding a
+// duplicate. Verified-only mirrors the binding rule (an unverified address can't
+// authorize linking someone's profile to an agency). Best-effort: returns null
+// if Clerk lookup fails, so invite creation falls back to today's prebuild path.
+async function findOwnedProfileForEmail(
+  email: string,
+): Promise<ClientProfile | null> {
+  const target = email.trim().toLowerCase();
+  let users;
+  try {
+    const list = await clerkClient.users.getUserList({ emailAddress: [target] });
+    users = list.data;
+  } catch {
+    return null;
+  }
+  for (const u of users) {
+    const verified = u.emailAddresses.some(
+      (e) =>
+        e.emailAddress.toLowerCase() === target &&
+        e.verification?.status === "verified",
+    );
+    if (!verified) continue;
+    const [profile] = await db
+      .select()
+      .from(clientProfileTable)
+      .where(eq(clientProfileTable.userId, u.id))
+      .limit(1);
+    if (profile) return profile;
+  }
+  return null;
+}
+
 function serializeInvitation(inv: Invitation) {
   return {
     id: inv.id,
@@ -92,6 +127,7 @@ async function sendInviteEmail(
   req: Request,
   inv: Invitation,
   agencyName: string,
+  linkExisting = false,
 ): Promise<boolean> {
   try {
     let inviterName = "Your team";
@@ -106,6 +142,7 @@ async function sendInviteEmail(
       kind: inv.kind === "member" ? "member" : "client",
       inviterName,
       agencyName,
+      linkExisting,
     });
     return await sendEmail({ to: inv.email, subject, html, text });
   } catch (err) {
@@ -320,7 +357,35 @@ router.post("/agency/:agencyId/invite", async (req, res) => {
   const agencyName = agency?.name ?? "Your agency";
 
   if (data.kind === "client") {
-    // Create the unclaimed, agency-prebuilt profile + grant + invitation.
+    // If an arc account already exists for this email, link THEIR profile to the
+    // agency instead of prebuilding a duplicate. Crucially we do NOT create the
+    // access grant yet: linking someone's own profile to an agency requires their
+    // consent, so the grant is attached only when they accept (bindInviteForUser).
+    // The invitation points at the existing profile; no new profile is created.
+    const existingProfile = await findOwnedProfileForEmail(data.email);
+    if (existingProfile) {
+      const [inv] = await db
+        .insert(invitationsTable)
+        .values({
+          agencyId,
+          email: data.email.toLowerCase(),
+          kind: "client",
+          clientId: existingProfile.id,
+          token,
+          invitedByUserId: req.userId!,
+        })
+        .returning();
+      const emailSent = await sendInviteEmail(req, inv, agencyName, true);
+      res.status(201).json({
+        ...serializeInvitation(inv),
+        clientId: existingProfile.id,
+        emailSent,
+      });
+      return;
+    }
+
+    // No existing account: create the unclaimed, agency-prebuilt profile + grant
+    // + invitation. On accept (or background reconcile), the invitee claims it.
     const [profile] = await db
       .insert(clientProfileTable)
       .values({ ...data.profile, userId: null, createdByAgencyId: agencyId })
@@ -514,14 +579,24 @@ router.get("/invitations/:token", async (req, res) => {
     .from(agenciesTable)
     .where(eq(agenciesTable.id, inv.agencyId))
     .limit(1);
+  // A "link existing account" invite points at a profile already owned by a
+  // user; a prebuild invite points at an unclaimed profile (userId null). Surface
+  // linkExisting so the accept page shows "connect your account" rather than
+  // "claim a prepared profile", and suppress the profile name for link invites
+  // so a forwarded token can't reveal the existing account holder's name.
   let clientFullName: string | null = null;
+  let linkExisting = false;
   if (inv.clientId) {
     const [c] = await db
-      .select({ fullName: clientProfileTable.fullName })
+      .select({
+        fullName: clientProfileTable.fullName,
+        userId: clientProfileTable.userId,
+      })
       .from(clientProfileTable)
       .where(eq(clientProfileTable.id, inv.clientId))
       .limit(1);
-    clientFullName = c?.fullName ?? null;
+    linkExisting = inv.kind === "client" && c?.userId != null;
+    clientFullName = linkExisting ? null : c?.fullName ?? null;
   }
   res.json({
     kind: inv.kind,
@@ -529,6 +604,7 @@ router.get("/invitations/:token", async (req, res) => {
     status: inv.status,
     agencyName: agency?.name ?? "Agency",
     clientFullName,
+    linkExisting,
   });
 });
 

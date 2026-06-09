@@ -268,6 +268,37 @@ describe("invite binding", () => {
     expect(claimedCount).toBe(1);
   });
 
+  it("links an existing account: attaches the agency grant to the user's own profile without a duplicate", async () => {
+    const user = `u-link-${suffix}`;
+    // The invite points straight at a profile the user ALREADY owns (the agency
+    // detected the existing account at invite time). No grant exists yet.
+    const own = await makeProfile({
+      userId: user,
+      fullName: "Existing Account",
+      createdByAgencyId: null,
+      rich: true,
+      complete: true,
+    });
+    const inv = await makeInvite(`link-${suffix}@example.com`, own.id);
+
+    const bound = await bindInviteForUser(user, inv);
+    expect(bound).toBe(own.id);
+
+    // Profile is unchanged-owner and now has the agency grant; invite accepted.
+    const after = await getProfile(own.id);
+    expect(after.userId).toBe(user);
+    const [grant] = await db
+      .select()
+      .from(agencyClientAccessTable)
+      .where(eq(agencyClientAccessTable.clientId, own.id));
+    expect(grant).toBeDefined();
+    const [invAfter] = await db
+      .select()
+      .from(invitationsTable)
+      .where(eq(invitationsTable.id, inv.id));
+    expect(invAfter.status).toBe("accepted");
+  });
+
   it("reconcileUserInvites binds via the user's verified email", async () => {
     const user = `u-recon-${suffix}`;
     const email = `recon-${suffix}@example.com`;

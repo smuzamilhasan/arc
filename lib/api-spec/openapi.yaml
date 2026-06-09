@@ -3645,7 +3645,7 @@ components:
           $ref: "#/components/schemas/ClientProfileInput"
     InvitationPreview:
       type: object
-      required: [kind, email, status, agencyName, clientFullName]
+      required: [kind, email, status, agencyName, clientFullName, linkExisting]
       properties:
         kind:
           type: string
@@ -3659,6 +3659,9 @@ components:
           type: string
         clientFullName:
           type: ["string", "null"]
+        linkExisting:
+          type: boolean
+          description: True when this client invite links an existing arc account to the agency (the invitee already has a profile) rather than asking them to claim a freshly prebuilt one.
     AcceptInvitationResult:
       type: object
       required: [kind, agencyId]

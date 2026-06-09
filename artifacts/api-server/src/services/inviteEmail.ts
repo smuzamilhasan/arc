@@ -25,6 +25,10 @@ export interface InviteEmailParams {
   kind: InvitationKind;
   inviterName: string;
   agencyName: string;
+  // True for a "client" invite that links an EXISTING arc account to the agency
+  // (the invitee already has a profile) rather than asking them to set up a
+  // freshly prebuilt one. Changes the copy from "set up your profile" to "join".
+  linkExisting?: boolean;
 }
 
 export interface BuiltEmail {
@@ -34,17 +38,21 @@ export interface BuiltEmail {
 }
 
 export function buildInviteEmail(params: InviteEmailParams): BuiltEmail {
-  const { token, kind, inviterName, agencyName } = params;
+  const { token, kind, inviterName, agencyName, linkExisting } = params;
   const url = inviteUrl(token);
   const logoUrl = `${appOrigin()}/email-logo.png`;
-  const roleLine =
-    kind === "member"
-      ? `${inviterName} has invited you to join ${agencyName} as a team member on arc.`
-      : `${inviterName} from ${agencyName} has set up a personal-brand profile for you on arc.`;
-  const subject =
-    kind === "member"
-      ? `You're invited to join ${agencyName} on arc`
-      : `${inviterName} invited you to arc`;
+  let roleLine: string;
+  let subject: string;
+  if (kind === "member") {
+    roleLine = `${inviterName} has invited you to join ${agencyName} as a team member on arc.`;
+    subject = `You're invited to join ${agencyName} on arc`;
+  } else if (linkExisting) {
+    roleLine = `${inviterName} has invited you to connect your arc account to ${agencyName} so they can help manage your personal brand.`;
+    subject = `${inviterName} invited you to join ${agencyName} on arc`;
+  } else {
+    roleLine = `${inviterName} from ${agencyName} has set up a personal-brand profile for you on arc.`;
+    subject = `${inviterName} invited you to arc`;
+  }
 
   const text = [
     roleLine,

@@ -141,13 +141,18 @@ export async function bindInviteForUser(
     .limit(1);
   if (!prebuilt) return null;
 
-  // Already bound to this user — just ensure the invite is marked accepted.
+  // The invite targets a profile this user already owns. This is the "link an
+  // existing account" path (the agency invited an email that already had an arc
+  // profile, so the invitation points straight at it) and also the idempotent
+  // re-run of an already-claimed prebuild. Either way: attach the agency grant
+  // (the grant is created only on accept for link invites) and mark accepted.
   if (prebuilt.userId === userId) {
-    if (inv.status !== "accepted") {
-      await db.transaction((tx) =>
-        acceptInvitation(tx, inv.id, userId, prebuilt.id),
-      );
-    }
+    await db.transaction(async (tx) => {
+      await ensureGrant(tx, inv.agencyId, prebuilt.id);
+      if (inv.status !== "accepted") {
+        await acceptInvitation(tx, inv.id, userId, prebuilt.id);
+      }
+    });
     return prebuilt.id;
   }
 

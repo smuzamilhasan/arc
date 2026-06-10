@@ -4555,7 +4555,8 @@ components:
 
     MarketingFormSource:
       type: object
-      required: [id, provider, formId, fieldMapping, enabled, createdAt]
+      required:
+        [id, provider, formId, fieldMapping, enabled, webhookStatus, createdAt]
       properties:
         id:
           type: integer
@@ -4569,6 +4570,13 @@ components:
           $ref: "#/components/schemas/FormFieldMapping"
         enabled:
           type: boolean
+        webhookStatus:
+          type: string
+          enum: [registered, failed, none]
+          description: >-
+            Actual outcome of the last Typeform webhook registration:
+            "registered" = instant capture via webhook, "failed" = registration
+            was attempted but failed (needs retry), "none" = polling only.
         lastSyncedAt:
           type: ["string", "null"]
         createdAt:

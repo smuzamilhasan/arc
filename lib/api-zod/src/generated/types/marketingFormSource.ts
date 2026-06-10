@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { FormFieldMapping } from './formFieldMapping';
+import type { MarketingFormSourceWebhookStatus } from './marketingFormSourceWebhookStatus';
 
 export interface MarketingFormSource {
   id: number;
@@ -15,6 +16,8 @@ export interface MarketingFormSource {
   formTitle?: string | null;
   fieldMapping: FormFieldMapping;
   enabled: boolean;
+  /** Actual outcome of the last Typeform webhook registration: "registered" = instant capture via webhook, "failed" = registration was attempted but failed (needs retry), "none" = polling only. */
+  webhookStatus: MarketingFormSourceWebhookStatus;
   /** @nullable */
   lastSyncedAt?: string | null;
   createdAt: string;

@@ -2778,6 +2778,7 @@ export const ListMarketingFormSourcesResponseItem = zod.object({
   "message": zod.string().nullish()
 }).describe('Maps a Typeform field ref (or id) to each lead attribute. Email is required.'),
   "enabled": zod.boolean(),
+  "webhookStatus": zod.enum(['registered', 'failed', 'none']).describe('Actual outcome of the last Typeform webhook registration: \"registered\" = instant capture via webhook, \"failed\" = registration was attempted but failed (needs retry), \"none\" = polling only.'),
   "lastSyncedAt": zod.string().nullish(),
   "createdAt": zod.string()
 })
@@ -2811,6 +2812,7 @@ export const SaveMarketingFormSourceResponse = zod.object({
   "message": zod.string().nullish()
 }).describe('Maps a Typeform field ref (or id) to each lead attribute. Email is required.'),
   "enabled": zod.boolean(),
+  "webhookStatus": zod.enum(['registered', 'failed', 'none']).describe('Actual outcome of the last Typeform webhook registration: \"registered\" = instant capture via webhook, \"failed\" = registration was attempted but failed (needs retry), \"none\" = polling only.'),
   "lastSyncedAt": zod.string().nullish(),
   "createdAt": zod.string()
 })

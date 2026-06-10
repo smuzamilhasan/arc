@@ -416,17 +416,26 @@ export function verifyTypeformSignature(
   return timingSafeEqual(a, b);
 }
 
+// Outcome of a webhook registration attempt, mirrored onto the form source so
+// the UI can show whether a form captures instantly or only via polling:
+//   "registered" → the webhook is live (instant capture)
+//   "failed"     → registration was attempted but the API call failed (retry)
+//   "none"       → no webhook was registered (no secret configured) → polling
+export type WebhookStatus = "registered" | "failed" | "none";
+
 // Register (or update) the Typeform webhook for one form so submissions are
 // pushed to us instantly. Best-effort: a failure is logged and swallowed so it
 // never blocks saving the form source — the poller still ingests as a fallback.
-export async function registerFormWebhook(formId: string): Promise<boolean> {
+// Returns the resulting webhook status so the caller can persist whether the
+// form is actually wired for instant capture (not just that an attempt was made).
+export async function registerFormWebhook(formId: string): Promise<WebhookStatus> {
   const secret = getTypeformWebhookSecret();
   if (!secret) {
     logger.warn(
       { formId },
       "Typeform webhook secret not configured; skipping webhook registration (poller will still ingest)",
     );
-    return false;
+    return "none";
   }
   try {
     await tfWrite(
@@ -440,10 +449,10 @@ export async function registerFormWebhook(formId: string): Promise<boolean> {
       },
     );
     logger.info({ formId }, "Registered Typeform webhook");
-    return true;
+    return "registered";
   } catch (err) {
     logger.error({ err, formId }, "Failed to register Typeform webhook");
-    return false;
+    return "failed";
   }
 }
 

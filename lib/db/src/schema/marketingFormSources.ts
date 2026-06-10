@@ -48,6 +48,12 @@ export const marketingFormSourcesTable = pgTable(
       .default(emptyMapping),
     // When false, the poller and manual sync skip this source.
     enabled: boolean("enabled").notNull().default(true),
+    // Reflects the actual outcome of the last Typeform webhook registration so
+    // the UI can show whether a form captures instantly or relies on polling:
+    //   "registered" → webhook is live (instant capture)
+    //   "failed"     → registration was attempted but failed (needs a retry)
+    //   "none"       → no webhook (e.g. no secret configured) → polling only
+    webhookStatus: text("webhook_status").notNull().default("none"),
     // Incremental cursor: the submitted_at timestamp of the newest response
     // ingested so far, used as the `since` bound on the next sync.
     lastResponseToken: text("last_response_token"),

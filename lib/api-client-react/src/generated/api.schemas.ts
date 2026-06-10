@@ -1627,6 +1627,18 @@ export interface FormFieldMapping {
   message?: string | null;
 }
 
+/**
+ * Actual outcome of the last Typeform webhook registration: "registered" = instant capture via webhook, "failed" = registration was attempted but failed (needs retry), "none" = polling only.
+ */
+export type MarketingFormSourceWebhookStatus = typeof MarketingFormSourceWebhookStatus[keyof typeof MarketingFormSourceWebhookStatus];
+
+
+export const MarketingFormSourceWebhookStatus = {
+  registered: 'registered',
+  failed: 'failed',
+  none: 'none',
+} as const;
+
 export interface MarketingFormSource {
   id: number;
   provider: string;
@@ -1635,6 +1647,8 @@ export interface MarketingFormSource {
   formTitle?: string | null;
   fieldMapping: FormFieldMapping;
   enabled: boolean;
+  /** Actual outcome of the last Typeform webhook registration: "registered" = instant capture via webhook, "failed" = registration was attempted but failed (needs retry), "none" = polling only. */
+  webhookStatus: MarketingFormSourceWebhookStatus;
   /** @nullable */
   lastSyncedAt?: string | null;
   createdAt: string;

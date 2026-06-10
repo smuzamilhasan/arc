@@ -82,6 +82,7 @@ function serializeFormSource(s: FormSourceRow) {
     formTitle: s.formTitle,
     fieldMapping: s.fieldMapping as FormFieldMapping,
     enabled: s.enabled,
+    webhookStatus: s.webhookStatus as "registered" | "failed" | "none",
     lastSyncedAt: s.lastSyncedAt ? s.lastSyncedAt.toISOString() : null,
     createdAt: s.createdAt.toISOString(),
   };
@@ -1046,12 +1047,22 @@ router.post("/marketing/form-sources", requireAdmin, async (req, res) => {
   // Manage the Typeform webhook to match the source's enabled state so new
   // submissions arrive instantly. Best-effort (never throws): the poller remains
   // the catch-up safety net if registration fails or no secret is configured.
-  if (saved.enabled) {
-    await registerFormWebhook(saved.formId);
-  } else {
-    await removeFormWebhook(saved.formId);
-  }
-  res.json(serializeFormSource(saved));
+  // Persist the actual outcome so the UI can show instant vs polling-only (and
+  // flag a failed registration for retry) rather than guessing from intent.
+  const webhookStatus = saved.enabled
+    ? await registerFormWebhook(saved.formId)
+    : (await removeFormWebhook(saved.formId), "none" as const);
+  const [withStatus] = await db
+    .update(marketingFormSourcesTable)
+    .set({ webhookStatus, updatedAt: new Date() })
+    .where(
+      and(
+        eq(marketingFormSourcesTable.tenant, MARKETING_TENANT),
+        eq(marketingFormSourcesTable.id, saved.id),
+      ),
+    )
+    .returning();
+  res.json(serializeFormSource(withStatus ?? saved));
 });
 
 router.delete("/marketing/form-sources/:id", requireAdmin, async (req, res) => {

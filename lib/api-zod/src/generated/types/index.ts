@@ -147,6 +147,7 @@ export * from './marketingConnectorCategory';
 export * from './marketingDashboard';
 export * from './marketingFormSource';
 export * from './marketingFormSourceInput';
+export * from './marketingFormSourceWebhookStatus';
 export * from './marketingIntakeAck';
 export * from './marketingLead';
 export * from './marketingLeadDetail';

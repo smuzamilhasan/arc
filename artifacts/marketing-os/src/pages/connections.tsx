@@ -605,6 +605,46 @@ function LeadSourcesSection() {
   );
 }
 
+function CaptureStatusBadge({
+  status,
+  enabled,
+}: {
+  status?: "registered" | "failed" | "none";
+  enabled: boolean;
+}) {
+  // A disabled source is neither capturing instantly nor polling.
+  if (!enabled) {
+    return (
+      <Badge variant="outline" className="shrink-0 gap-1 text-muted-foreground">
+        Paused
+      </Badge>
+    );
+  }
+  if (status === "registered") {
+    return (
+      <Badge variant="outline" className="shrink-0 gap-1 border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2 size={12} />
+        Instant
+      </Badge>
+    );
+  }
+  if (status === "failed") {
+    return (
+      <Badge variant="outline" className="shrink-0 gap-1 border-destructive/40 text-destructive">
+        <AlertCircle size={12} />
+        Instant capture failed
+      </Badge>
+    );
+  }
+  // "none": no webhook (e.g. no secret configured) — leads still arrive on the
+  // periodic poll, just not instantly.
+  return (
+    <Badge variant="outline" className="shrink-0 gap-1 text-muted-foreground">
+      Polling only
+    </Badge>
+  );
+}
+
 function FormSourceRow({ source }: { source: any }) {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -670,13 +710,21 @@ function FormSourceRow({ source }: { source: any }) {
     <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="font-medium truncate">{source.formTitle || source.formId}</div>
+          <div className="flex items-center gap-2">
+            <div className="font-medium truncate">{source.formTitle || source.formId}</div>
+            <CaptureStatusBadge status={source.webhookStatus} enabled={source.enabled} />
+          </div>
           <div className="text-xs text-muted-foreground mt-0.5">
             Maps to: {source.fieldMapping?.email ? "email" : "—"}
             {source.fieldMapping?.name ? ", name" : ""}
             {source.fieldMapping?.company ? ", company" : ""}
             {source.fieldMapping?.message ? ", message" : ""}
           </div>
+          {source.webhookStatus === "failed" && source.enabled && (
+            <div className="text-xs text-destructive mt-1">
+              Instant capture failed to set up. Toggle this source off and on, or use "Sync now", to retry.
+            </div>
+          )}
           <div className="text-xs text-muted-foreground mt-1">Last synced: {lastSynced}</div>
         </div>
         <div className="flex items-center gap-3 shrink-0">

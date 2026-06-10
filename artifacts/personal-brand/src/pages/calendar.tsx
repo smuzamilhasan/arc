@@ -209,15 +209,17 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
         type="button"
         onClick={onClick}
         title={post.title}
-        className="flex flex-1 items-center gap-1.5 overflow-hidden py-1 text-left"
-      >
+        aria-label={`Open ${post.title}`}
+        className="absolute inset-0 z-0 rounded-md"
+      />
+      <div className="pointer-events-none relative z-10 flex flex-1 items-center gap-1.5 overflow-hidden py-1 text-left">
         <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
         <span className="truncate">{post.title}</span>
-      </button>
+      </div>
       <ShareMenu
         post={post}
         align="start"
-        className="h-5 w-5 shrink-0 opacity-0 focus-within:opacity-100 group-hover/card:opacity-100 [&_svg]:h-3 [&_svg]:w-3"
+        className="relative z-10 h-5 w-5 shrink-0 opacity-0 pointer-events-none focus-within:opacity-100 focus-within:pointer-events-auto group-hover/card:opacity-100 group-hover/card:pointer-events-auto [&_svg]:h-3 [&_svg]:w-3"
       />
     </div>
   );
@@ -239,8 +241,10 @@ function PostRow({ post, onClick }: { post: Post; onClick: () => void }) {
         type="button"
         onClick={onClick}
         title={post.title}
-        className="flex flex-col gap-1 text-left"
-      >
+        aria-label={`Open ${post.title}`}
+        className="absolute inset-0 z-0 rounded-md"
+      />
+      <div className="pointer-events-none relative z-10 flex flex-col gap-1 text-left">
         <div className="flex items-center gap-1.5 pr-7">
           <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
           <span className="truncate text-xs font-semibold leading-tight">{post.title}</span>
@@ -254,9 +258,9 @@ function PostRow({ post, onClick }: { post: Post; onClick: () => void }) {
             </>
           )}
         </div>
-      </button>
-      <div className="absolute right-1 top-1">
-        <ShareMenu post={post} className="h-7 w-7 opacity-0 focus-within:opacity-100 group-hover/row:opacity-100" />
+      </div>
+      <div className="absolute right-1 top-1 z-10">
+        <ShareMenu post={post} className="h-7 w-7 opacity-0 pointer-events-none focus-within:opacity-100 focus-within:pointer-events-auto group-hover/row:opacity-100 group-hover/row:pointer-events-auto" />
       </div>
     </div>
   );

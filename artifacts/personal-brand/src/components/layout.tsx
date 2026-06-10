@@ -609,7 +609,7 @@ export function Layout({ children }: LayoutProps) {
               <Menu className="w-5 h-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0 bg-background border-r-border/50">
+          <SheetContent side="left" className="flex w-64 flex-col overflow-y-auto p-0 pb-8 bg-background border-r-border/50">
             <div className="p-8 pb-4">
               <div className="flex flex-col gap-1 mb-6">
                 <Logo className="text-3xl" />

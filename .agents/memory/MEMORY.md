@@ -28,3 +28,4 @@
 - [Resend transactional email](resend-email-sending.md) — send via connector proxy POST /emails; key is send-only so GET /domains 401 is expected; default onboarding domain only delivers to the account owner.
 - [Signup intent routing](signup-intent-routing.md) — "For agencies" only sets a localStorage intent then hits the same /sign-up; Entry must gate agency-create routing on !hasAgency, not personalClientId==null.
 - [Educational insights](educational-insights.md) — strategist's encouragement/teaching output is a SEPARATE class from AssistantAction proposals; never an action kind; 5 pillars; own table/scheduler/SSE type, surfaces in Learn hub + contextual cards + chat.
+- [Hover-revealed controls eat taps on touch](hover-reveal-controls-touch.md) — opacity-0 still captures clicks; pair opacity toggles with pointer-events toggles or hidden hover controls hijack the tap target on mobile.

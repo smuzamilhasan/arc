@@ -175,7 +175,14 @@ export async function syncFormSource(
   // until a short page. The cursor (`since`, a submitted_at timestamp) is only
   // advanced after every page is processed, so a form with >1 page of new
   // submissions never has its cursor skipped past un-ingested responses.
-  const PAGE_SIZE = 1000;
+  // Typeform caps page_size at 1000. Overridable (clamped) via env so the
+  // multi-page pagination path can be exercised in tests with a tiny dataset;
+  // production always uses the full 1000, mirroring MARKETING_TYPEFORM_POLL_MS.
+  const requestedPageSize = Number(process.env.MARKETING_TYPEFORM_PAGE_SIZE ?? 1000);
+  const PAGE_SIZE =
+    Number.isFinite(requestedPageSize) && requestedPageSize > 0
+      ? Math.min(requestedPageSize, 1000)
+      : 1000;
   const MAX_PAGES = 50;
   const items: RawResponse[] = [];
   let before = "";

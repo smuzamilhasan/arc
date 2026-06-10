@@ -21,6 +21,11 @@ arc's shared api-server, DB, Clerk, and AI. Spine: capture lead -> AI scores fit
   relying on global serial-id uniqueness silently breaks the moment a 2nd tenant exists.
 - Cleanup lives in `services/marketingData.ts` `deleteTenantMarketingData(tenant, tx?)`,
   deliberately NOT wired into `deleteClientData` (that is clientId-keyed; these are not).
+  Its authoritative execution path is the admin-only `POST /marketing/reset` route
+  (mirrors `/client/reset`), surfaced as a Danger Zone in the connections page.
+  **Lesson:** a tenant-keyed cleanup helper has no home in the per-user delete path,
+  so it MUST get its own admin reset route + reachable UI + test, or it ships as
+  orphan dead code a review will block on. New marketing tables: add to the helper.
 
 ## Propose-and-approve (two-proposal model)
 ALL external/stage actions are proposals; nothing happens until a human approves.

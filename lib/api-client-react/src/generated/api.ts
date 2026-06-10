@@ -6517,6 +6517,76 @@ export function useGetMarketingDashboard<TData = Awaited<ReturnType<typeof getMa
 
 
 
+export const getResetMarketingDataUrl = () => {
+
+
+
+
+  return `/api/marketing/reset`
+}
+
+/**
+ * @summary Purge all Marketing OS data for the tenant (admin only)
+ */
+export const resetMarketingData = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getResetMarketingDataUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResetMarketingDataMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetMarketingData>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetMarketingData>>, TError,void, TContext> => {
+
+const mutationKey = ['resetMarketingData'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetMarketingData>>, void> = () => {
+
+
+          return  resetMarketingData(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetMarketingDataMutationResult = NonNullable<Awaited<ReturnType<typeof resetMarketingData>>>
+
+    export type ResetMarketingDataMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Purge all Marketing OS data for the tenant (admin only)
+ */
+export const useResetMarketingData = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetMarketingData>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetMarketingData>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getResetMarketingDataMutationOptions(options));
+    }
+
 export const getListMarketingLeadsUrl = (params?: ListMarketingLeadsParams,) => {
   const normalizedParams = new URLSearchParams();
 

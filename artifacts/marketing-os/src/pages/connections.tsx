@@ -3,16 +3,22 @@ import {
   useListMarketingConnections, 
   useSaveMarketingConnection, 
   useDeleteMarketingConnection,
-  getListMarketingConnectionsQueryKey 
+  useResetMarketingData,
+  getListMarketingConnectionsQueryKey,
+  getGetMarketingDashboardQueryKey,
+  getListMarketingLeadsQueryKey,
+  getListMarketingActionsQueryKey,
+  getListMarketingActivityQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plug, CheckCircle2, AlertCircle, Link as LinkIcon, Mail } from "lucide-react";
+import { CheckCircle2, AlertCircle, Link as LinkIcon, Mail, Trash2 } from "lucide-react";
 
 export default function Connections() {
   const { data: connections, isLoading } = useListMarketingConnections();
@@ -39,7 +45,65 @@ export default function Connections() {
         <ResendConnectionCard connection={resendConn} />
         <CalendlyConnectionCard connection={calendlyConn} />
       </div>
+
+      <DangerZoneCard />
     </div>
+  );
+}
+
+function DangerZoneCard() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const resetData = useResetMarketingData();
+
+  const handleReset = () => {
+    resetData.mutate(undefined, {
+      onSuccess: () => {
+        toast({ title: "Marketing data reset", description: "All leads, proposals, and activity have been removed." });
+        qc.invalidateQueries({ queryKey: getGetMarketingDashboardQueryKey() });
+        qc.invalidateQueries({ queryKey: getListMarketingLeadsQueryKey() });
+        qc.invalidateQueries({ queryKey: getListMarketingActionsQueryKey() });
+        qc.invalidateQueries({ queryKey: getListMarketingActivityQueryKey() });
+        qc.invalidateQueries({ queryKey: getListMarketingConnectionsQueryKey() });
+      },
+      onError: (err: any) => {
+        toast({ title: "Reset failed", description: err.message, variant: "destructive" });
+      },
+    });
+  };
+
+  return (
+    <Card className="border-destructive/30">
+      <CardHeader>
+        <CardTitle className="text-lg text-destructive">Danger Zone</CardTitle>
+        <CardDescription>
+          Permanently remove all Marketing OS data — every lead, proposal, connection, and activity record. This cannot be undone.
+        </CardDescription>
+      </CardHeader>
+      <CardFooter className="bg-destructive/5 border-t border-destructive/20 px-6 py-4 flex justify-end">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-2" disabled={resetData.isPending}>
+              <Trash2 size={16} /> {resetData.isPending ? "Resetting..." : "Reset All Data"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset all marketing data?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This deletes every lead, proposal, connection, and activity record for the funnel. This action is permanent and cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleReset}>
+                Reset everything
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardFooter>
+    </Card>
   );
 }
 

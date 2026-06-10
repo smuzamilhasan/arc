@@ -37,6 +37,7 @@ import {
   getBookingUrl,
   getResendApiKey,
   logMarketingActivity,
+  deleteTenantMarketingData,
 } from "../services/marketingData";
 
 const router = Router();
@@ -635,6 +636,15 @@ router.get("/marketing/activity", requireAdmin, async (_req, res) => {
     .orderBy(desc(marketingActivityTable.createdAt))
     .limit(100);
   res.json(rows.map(serializeActivity));
+});
+
+// Authoritative tenant cleanup execution path. Marketing data is tenant-keyed,
+// not clientId-keyed, so it is deliberately NOT part of per-user deleteClientData;
+// this admin-only purge is where the funnel's data lifecycle is reset. Removes
+// every lead, action, connection, and activity row for the tenant.
+router.post("/marketing/reset", requireAdmin, async (_req, res) => {
+  await deleteTenantMarketingData(MARKETING_TENANT);
+  res.status(204).end();
 });
 
 export default router;

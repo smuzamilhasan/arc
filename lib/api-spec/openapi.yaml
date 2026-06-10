@@ -1744,6 +1744,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/MarketingDashboard"
 
+  /marketing/reset:
+    post:
+      operationId: resetMarketingData
+      tags: [marketing]
+      summary: Purge all Marketing OS data for the tenant (admin only)
+      responses:
+        "204":
+          description: All marketing data deleted
+
   /marketing/leads:
     get:
       operationId: listMarketingLeads

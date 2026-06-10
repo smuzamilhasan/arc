@@ -215,4 +215,5 @@ export * from './signatureSeries';
 export * from './typeformField';
 export * from './typeformForm';
 export * from './typeformStatus';
+export * from './typeformWebhookEnvelope';
 export * from './websitePlan';

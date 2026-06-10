@@ -82,3 +82,22 @@ required). Admin-gated routes only; new table wired into deleteTenantMarketingDa
   count it as a skip instead of failing the whole run.
 - Poller (`startTypeformPoller`) must be guarded: single-start, disabled in test
   (NODE_ENV), env-tunable interval (nonpositive disables), and `unref()` the timer.
+
+## Typeform webhooks (instant capture; poller stays as backfill)
+- Public route `POST /marketing/intake/typeform/webhook` (mounted before auth)
+  gives near-instant capture; the poller stays on as a catch-up safety net.
+- Webhook + poller share ONE ingest helper (`ingestResponse`) so dedup-by-token
+  + the unique index make a doubly-delivered response create exactly one lead.
+  The webhook deliberately does NOT advance the source cursor — that stays owned
+  by the poller, so a webhook can never skip the cursor past un-ingested rows.
+- Auth is Typeform's HMAC-SHA256 over the RAW body (`Typeform-Signature` header),
+  constant-time compared. Needs the exact bytes, so `express.json({verify})` in
+  `app.ts` stashes `req.rawBody` — re-serializing the parsed JSON breaks the HMAC.
+  Fail-closed: no secret configured -> 503 and no webhook registration.
+- Secret resolves `MARKETING_TYPEFORM_WEBHOOK_SECRET` then falls back to the
+  shared `MARKETING_WEBHOOK_SECRET`. We register the same secret WITH the webhook
+  (`PUT /forms/{id}/webhooks/{tag}`), so Typeform signs with it.
+- Saving/deleting a form source registers/removes its webhook (per-tenant `tag`),
+  best-effort: failures are logged, never block the source write (poller covers).
+  A disabled source removes its webhook. Connector proxy PUT/DELETE JSON-encodes
+  an object `body` automatically (`tfWrite`).

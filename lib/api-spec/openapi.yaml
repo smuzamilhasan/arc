@@ -1694,6 +1694,38 @@ paths:
         "400":
           description: Invalid input
 
+  /marketing/intake/typeform/webhook:
+    post:
+      operationId: intakeTypeformWebhook
+      tags: [marketing]
+      summary: Ingest a Typeform submission delivered via webhook
+      description: >-
+        Public endpoint that Typeform calls the instant a form is submitted, for
+        near-instant lead capture. Authenticated by Typeform's HMAC-SHA256
+        signature over the raw body (header Typeform-Signature), verified against
+        a shared secret. The payload is Typeform's own form_response envelope. It
+        is resolved to a configured form source and ingested through the shared
+        capture + auto-qualify + dedup spine, so a response also picked up by the
+        backfill poller is ingested exactly once. Disabled (503) when no secret
+        is configured.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TypeformWebhookEnvelope"
+      responses:
+        "202":
+          description: Submission accepted; ingestion runs asynchronously
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingIntakeAck"
+        "401":
+          description: Missing or invalid signature
+        "503":
+          description: Webhook intake is not configured
+
   /marketing/intake/form:
     post:
       operationId: intakeFormLead
@@ -4277,6 +4309,13 @@ components:
       properties:
         received:
           type: boolean
+
+    TypeformWebhookEnvelope:
+      type: object
+      description: >-
+        Typeform's outbound webhook payload. Passed through opaquely; the server
+        reads form_response.form_id / token / answers and ignores the rest.
+      additionalProperties: true
 
     MarketingLeadIntake:
       type: object

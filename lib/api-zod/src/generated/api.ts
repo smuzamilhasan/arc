@@ -2337,6 +2337,13 @@ export const IntakeWebhookLeadBody = zod.object({
 
 
 /**
+ * Public endpoint that Typeform calls the instant a form is submitted, for near-instant lead capture. Authenticated by Typeform's HMAC-SHA256 signature over the raw body (header Typeform-Signature), verified against a shared secret. The payload is Typeform's own form_response envelope. It is resolved to a configured form source and ingested through the shared capture + auto-qualify + dedup spine, so a response also picked up by the backfill poller is ingested exactly once. Disabled (503) when no secret is configured.
+ * @summary Ingest a Typeform submission delivered via webhook
+ */
+export const IntakeTypeformWebhookBody = zod.record(zod.string(), zod.unknown()).describe('Typeform\'s outbound webhook payload. Passed through opaquely; the server reads form_response.form_id \/ token \/ answers and ignores the rest.')
+
+
+/**
  * Public, IP rate-limited endpoint. Persists the lead and kicks off AI qualification in the background.
  * @summary Capture an inbound marketing lead from a public web form
  */

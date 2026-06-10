@@ -122,7 +122,8 @@ import type {
   SchedulerProviderMeta,
   TypeformField,
   TypeformForm,
-  TypeformStatus
+  TypeformStatus,
+  TypeformWebhookEnvelope
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -6299,6 +6300,78 @@ export const useIntakeWebhookLead = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getIntakeWebhookLeadMutationOptions(options));
+    }
+
+export const getIntakeTypeformWebhookUrl = () => {
+
+
+
+
+  return `/api/marketing/intake/typeform/webhook`
+}
+
+/**
+ * Public endpoint that Typeform calls the instant a form is submitted, for near-instant lead capture. Authenticated by Typeform's HMAC-SHA256 signature over the raw body (header Typeform-Signature), verified against a shared secret. The payload is Typeform's own form_response envelope. It is resolved to a configured form source and ingested through the shared capture + auto-qualify + dedup spine, so a response also picked up by the backfill poller is ingested exactly once. Disabled (503) when no secret is configured.
+ * @summary Ingest a Typeform submission delivered via webhook
+ */
+export const intakeTypeformWebhook = async (typeformWebhookEnvelope: TypeformWebhookEnvelope, options?: RequestInit): Promise<MarketingIntakeAck> => {
+
+  return customFetch<MarketingIntakeAck>(getIntakeTypeformWebhookUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      typeformWebhookEnvelope,)
+  }
+);}
+
+
+
+
+export const getIntakeTypeformWebhookMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof intakeTypeformWebhook>>, TError,{data: BodyType<TypeformWebhookEnvelope>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof intakeTypeformWebhook>>, TError,{data: BodyType<TypeformWebhookEnvelope>}, TContext> => {
+
+const mutationKey = ['intakeTypeformWebhook'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof intakeTypeformWebhook>>, {data: BodyType<TypeformWebhookEnvelope>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  intakeTypeformWebhook(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type IntakeTypeformWebhookMutationResult = NonNullable<Awaited<ReturnType<typeof intakeTypeformWebhook>>>
+    export type IntakeTypeformWebhookMutationBody = BodyType<TypeformWebhookEnvelope>
+    export type IntakeTypeformWebhookMutationError = ErrorType<void>
+
+    /**
+ * @summary Ingest a Typeform submission delivered via webhook
+ */
+export const useIntakeTypeformWebhook = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof intakeTypeformWebhook>>, TError,{data: BodyType<TypeformWebhookEnvelope>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof intakeTypeformWebhook>>,
+        TError,
+        {data: BodyType<TypeformWebhookEnvelope>},
+        TContext
+      > => {
+      return useMutation(getIntakeTypeformWebhookMutationOptions(options));
     }
 
 export const getIntakeFormLeadUrl = () => {

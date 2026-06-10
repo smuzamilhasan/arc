@@ -53,6 +53,8 @@ import {
   listTypeformForms,
   getTypeformFields,
   syncFormSource,
+  registerFormWebhook,
+  removeFormWebhook,
 } from "../services/typeform";
 import {
   MARKETING_CONNECTORS,
@@ -1035,6 +1037,14 @@ router.post("/marketing/form-sources", requireAdmin, async (req, res) => {
     `Configured Typeform source "${saved.formTitle ?? saved.formId}"`,
     null,
   );
+  // Manage the Typeform webhook to match the source's enabled state so new
+  // submissions arrive instantly. Best-effort (never throws): the poller remains
+  // the catch-up safety net if registration fails or no secret is configured.
+  if (saved.enabled) {
+    await registerFormWebhook(saved.formId);
+  } else {
+    await removeFormWebhook(saved.formId);
+  }
   res.json(serializeFormSource(saved));
 });
 
@@ -1057,6 +1067,9 @@ router.delete("/marketing/form-sources/:id", requireAdmin, async (req, res) => {
     res.status(404).json({ error: "Not found" });
     return;
   }
+  // Tear down the form's Typeform webhook so it stops delivering to us once the
+  // source is gone. Best-effort and idempotent (tolerates an already-absent hook).
+  await removeFormWebhook(deleted[0].formId);
   res.status(204).send();
 });
 

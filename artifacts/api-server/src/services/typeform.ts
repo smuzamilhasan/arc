@@ -4,6 +4,7 @@
 // Every read/write is scoped to MARKETING_TENANT, consistent with the rest of
 // Marketing OS. Submissions are deduped by their Typeform response token so a
 // re-sync never creates the same lead twice.
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { ReplitConnectors } from "@replit/connectors-sdk";
 import {
   db,
@@ -14,6 +15,7 @@ import {
 } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { appOrigin } from "./inviteEmail";
 import { MARKETING_TENANT } from "./marketing";
 import { captureLead, qualifyInBackground, logMarketingActivity } from "./marketingData";
 
@@ -124,6 +126,20 @@ export async function createTypeformForm(
   };
 }
 
+// A write (PUT/DELETE) through the connector proxy. A 404 is tolerated so
+// removing a webhook that no longer exists is idempotent.
+async function tfWrite(
+  path: string,
+  method: "PUT" | "DELETE",
+  body?: unknown,
+): Promise<void> {
+  const res = await connectors.proxy("typeform", path, { method, body });
+  if (!res.ok && res.status !== 404) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Typeform API ${res.status} for ${path}: ${detail.slice(0, 300)}`);
+  }
+}
+
 // True when a Typeform connection is authorized and reachable.
 export async function getTypeformStatus(): Promise<{ connected: boolean }> {
   try {
@@ -197,12 +213,66 @@ function mappedValue(
   return match ? answerValue(match) : null;
 }
 
+// Turn a single Typeform response into a captured + auto-qualified lead, scoped
+// to the given source's tenant and field mapping. Returns whether a new lead was
+// created. Deduped by the response token (both a pre-check and the DB unique
+// index backstop), so the SAME response delivered by both the webhook and the
+// poller is ingested exactly once. Shared by the poller/manual sync and the
+// inbound webhook so both intake paths behave identically.
+async function ingestResponse(
+  source: MarketingFormSource,
+  resp: RawResponse,
+): Promise<"ingested" | "skipped"> {
+  const mapping = source.fieldMapping as FormFieldMapping;
+
+  // Dedup: skip a response we have already turned into a lead.
+  const [existing] = await db
+    .select({ id: marketingLeadsTable.id })
+    .from(marketingLeadsTable)
+    .where(
+      and(
+        eq(marketingLeadsTable.tenant, MARKETING_TENANT),
+        eq(marketingLeadsTable.externalSource, "typeform"),
+        eq(marketingLeadsTable.externalId, resp.token),
+      ),
+    );
+  if (existing) return "skipped";
+
+  const answers = resp.answers ?? [];
+  const email = mappedValue(answers, mapping.email);
+  if (!email) {
+    // Email is required to create a lead; a response without it is unusable.
+    return "skipped";
+  }
+
+  try {
+    const lead = await captureLead({
+      email,
+      name: mappedValue(answers, mapping.name),
+      company: mappedValue(answers, mapping.company),
+      message: mappedValue(answers, mapping.message),
+      source: "typeform",
+      externalSource: "typeform",
+      externalId: resp.token,
+    });
+    qualifyInBackground(lead.id);
+    return "ingested";
+  } catch (err) {
+    // The (tenant, external_source, external_id) unique index is the backstop
+    // against a race between concurrent ingests (e.g. the webhook and an
+    // overlapping poller run): the SELECT above can miss a row another path is
+    // inserting concurrently. A unique violation means the lead already exists,
+    // so treat it as a skip rather than failing.
+    if (isUniqueViolation(err)) return "skipped";
+    throw err;
+  }
+}
+
 // Pull new responses for one form source, create+qualify leads for each one not
 // already ingested, and advance the source cursor. Idempotent: deduped by token.
 export async function syncFormSource(
   source: MarketingFormSource,
 ): Promise<SyncResult> {
-  const mapping = source.fieldMapping as FormFieldMapping;
   const sinceParam = source.lastResponseToken
     ? `&since=${encodeURIComponent(source.lastResponseToken)}`
     : "";
@@ -245,54 +315,9 @@ export async function syncFormSource(
       newestSubmittedAt = resp.submitted_at;
     }
 
-    // Dedup: skip a response we have already turned into a lead.
-    const [existing] = await db
-      .select({ id: marketingLeadsTable.id })
-      .from(marketingLeadsTable)
-      .where(
-        and(
-          eq(marketingLeadsTable.tenant, MARKETING_TENANT),
-          eq(marketingLeadsTable.externalSource, "typeform"),
-          eq(marketingLeadsTable.externalId, resp.token),
-        ),
-      );
-    if (existing) {
-      skipped += 1;
-      continue;
-    }
-
-    const answers = resp.answers ?? [];
-    const email = mappedValue(answers, mapping.email);
-    if (!email) {
-      // Email is required to create a lead; a response without it is unusable.
-      skipped += 1;
-      continue;
-    }
-
-    try {
-      const lead = await captureLead({
-        email,
-        name: mappedValue(answers, mapping.name),
-        company: mappedValue(answers, mapping.company),
-        message: mappedValue(answers, mapping.message),
-        source: "typeform",
-        externalSource: "typeform",
-        externalId: resp.token,
-      });
-      qualifyInBackground(lead.id);
-      ingested += 1;
-    } catch (err) {
-      // The (tenant, external_source, external_id) unique index is the backstop
-      // against a race between an overlapping manual sync and the poller: the
-      // SELECT above can miss a row another sync is inserting concurrently. A
-      // unique violation here means the lead already exists, so treat it as a
-      // skip rather than failing the whole sync.
-      if (isUniqueViolation(err)) {
-        skipped += 1;
-        continue;
-      }
-      throw err;
-    }
+    const outcome = await ingestResponse(source, resp);
+    if (outcome === "ingested") ingested += 1;
+    else skipped += 1;
   }
 
   await db
@@ -340,6 +365,153 @@ export async function syncAllEnabledSources(): Promise<SyncResult[]> {
     }
   }
   return results;
+}
+
+// --- Webhooks (near-instant lead capture) ---
+//
+// Typeform fires an outbound webhook the instant a form is submitted, which
+// removes most polling lag. We register one webhook per form (a stable per-tenant
+// tag) pointing at our public intake route, signed with a shared secret so the
+// payload can be verified as genuinely from Typeform. The poller stays on as a
+// catch-up/backfill safety net; dedup by response token makes a response
+// delivered by BOTH paths ingest exactly once.
+
+// Stable webhook tag per tenant. Typeform identifies a form's webhook by this
+// tag, so reusing it makes register idempotent (PUT upserts) and remove targeted.
+const WEBHOOK_TAG = `arc-marketing-${MARKETING_TENANT}`;
+
+// The shared secret Typeform signs delivered payloads with. Prefer a dedicated
+// env, fall back to the generic marketing webhook secret so a single configured
+// value enables both. Null when neither is set (fail-closed: no registration,
+// no verification — the poller still covers ingestion).
+export function getTypeformWebhookSecret(): string | null {
+  return (
+    process.env.MARKETING_TYPEFORM_WEBHOOK_SECRET?.trim() ||
+    process.env.MARKETING_WEBHOOK_SECRET?.trim() ||
+    null
+  );
+}
+
+// Public URL Typeform should POST submissions to. Routed through the shared proxy
+// to the api-server, mounted before auth in routes/index.ts.
+function typeformWebhookUrl(): string {
+  return `${appOrigin()}/api/marketing/intake/typeform/webhook`;
+}
+
+// Verify a delivered payload is genuinely from Typeform: HMAC-SHA256 of the RAW
+// request body keyed by our shared secret, base64-encoded, prefixed `sha256=`.
+// Compared in constant time. Requires the exact bytes Typeform sent, so the
+// route must hand us the raw body (not the re-serialized parsed JSON).
+export function verifyTypeformSignature(
+  rawBody: Buffer | string | undefined,
+  signatureHeader: string | undefined,
+  secret: string,
+): boolean {
+  if (rawBody == null || !signatureHeader) return false;
+  const expected =
+    "sha256=" + createHmac("sha256", secret).update(rawBody).digest("base64");
+  const a = Buffer.from(signatureHeader);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+// Register (or update) the Typeform webhook for one form so submissions are
+// pushed to us instantly. Best-effort: a failure is logged and swallowed so it
+// never blocks saving the form source — the poller still ingests as a fallback.
+export async function registerFormWebhook(formId: string): Promise<boolean> {
+  const secret = getTypeformWebhookSecret();
+  if (!secret) {
+    logger.warn(
+      { formId },
+      "Typeform webhook secret not configured; skipping webhook registration (poller will still ingest)",
+    );
+    return false;
+  }
+  try {
+    await tfWrite(
+      `/forms/${encodeURIComponent(formId)}/webhooks/${encodeURIComponent(WEBHOOK_TAG)}`,
+      "PUT",
+      {
+        url: typeformWebhookUrl(),
+        enabled: true,
+        secret,
+        verify_ssl: true,
+      },
+    );
+    logger.info({ formId }, "Registered Typeform webhook");
+    return true;
+  } catch (err) {
+    logger.error({ err, formId }, "Failed to register Typeform webhook");
+    return false;
+  }
+}
+
+// Remove the Typeform webhook for one form. Best-effort and idempotent (a 404 is
+// tolerated). Logged but never thrown so it cannot block deleting a form source.
+export async function removeFormWebhook(formId: string): Promise<boolean> {
+  const secret = getTypeformWebhookSecret();
+  // No secret means we never registered one; nothing to remove.
+  if (!secret) return false;
+  try {
+    await tfWrite(
+      `/forms/${encodeURIComponent(formId)}/webhooks/${encodeURIComponent(WEBHOOK_TAG)}`,
+      "DELETE",
+    );
+    logger.info({ formId }, "Removed Typeform webhook");
+    return true;
+  } catch (err) {
+    logger.error({ err, formId }, "Failed to remove Typeform webhook");
+    return false;
+  }
+}
+
+// The slice of a Typeform webhook payload we read.
+interface WebhookPayload {
+  event_type?: string;
+  form_response?: {
+    form_id?: string;
+    token?: string;
+    submitted_at?: string;
+    answers?: RawAnswer[];
+  };
+}
+
+export type WebhookIngestOutcome = "ingested" | "skipped" | "no_source";
+
+// Ingest a single response delivered by the Typeform webhook. Resolves the
+// matching enabled form source (by tenant + formId) and reuses the shared
+// ingest+qualify+dedup spine. Returns `no_source` when no enabled source is
+// configured for the form so the route can answer 202 without creating a lead.
+// Note: this deliberately does NOT advance the source cursor — the poller will
+// re-fetch recent responses and dedup by token, so the cursor stays owned by
+// the poller and a webhook can never skip the cursor past un-ingested rows.
+export async function ingestTypeformWebhook(
+  payload: unknown,
+): Promise<WebhookIngestOutcome> {
+  const fr = (payload as WebhookPayload)?.form_response;
+  if (!fr || typeof fr.form_id !== "string" || typeof fr.token !== "string") {
+    return "skipped";
+  }
+
+  const [source] = await db
+    .select()
+    .from(marketingFormSourcesTable)
+    .where(
+      and(
+        eq(marketingFormSourcesTable.tenant, MARKETING_TENANT),
+        eq(marketingFormSourcesTable.provider, "typeform"),
+        eq(marketingFormSourcesTable.formId, fr.form_id),
+        eq(marketingFormSourcesTable.enabled, true),
+      ),
+    );
+  if (!source) return "no_source";
+
+  return ingestResponse(source, {
+    token: fr.token,
+    submitted_at: fr.submitted_at ?? new Date().toISOString(),
+    answers: fr.answers ?? [],
+  });
 }
 
 let pollerStarted = false;

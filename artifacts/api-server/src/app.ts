@@ -36,7 +36,16 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
+// Capture the raw request body during JSON parsing so signature-verified
+// webhooks (e.g. Typeform) can validate the HMAC over the exact bytes sent,
+// not the re-serialized parsed object.
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      (req as express.Request & { rawBody?: Buffer }).rawBody = buf;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 
 // Resolve the publishable key from the incoming request host so the same

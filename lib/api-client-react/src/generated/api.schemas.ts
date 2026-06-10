@@ -1414,6 +1414,11 @@ export interface MarketingIntakeAck {
   received: boolean;
 }
 
+/**
+ * Typeform's outbound webhook payload. Passed through opaquely; the server reads form_response.form_id / token / answers and ignores the rest.
+ */
+export interface TypeformWebhookEnvelope { [key: string]: unknown }
+
 export interface MarketingLeadIntake {
   name?: string;
   /** @minLength 3 */

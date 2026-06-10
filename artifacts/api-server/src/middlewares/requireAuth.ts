@@ -6,6 +6,9 @@ declare global {
   namespace Express {
     interface Request {
       userId?: string;
+      // Raw request body bytes, captured by express.json's verify hook so
+      // signature-verified webhooks can validate an HMAC over the exact payload.
+      rawBody?: Buffer;
     }
   }
 }

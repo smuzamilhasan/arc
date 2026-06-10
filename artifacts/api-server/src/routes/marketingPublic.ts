@@ -3,6 +3,11 @@ import type { Request, Response } from "express";
 import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 import { IntakeWebhookLeadBody, IntakeFormLeadBody } from "@workspace/api-zod";
 import { captureLead, qualifyInBackground } from "../services/marketingData";
+import {
+  getTypeformWebhookSecret,
+  verifyTypeformSignature,
+  ingestTypeformWebhook,
+} from "../services/typeform";
 
 const router = Router();
 
@@ -47,6 +52,32 @@ router.post("/marketing/intake/webhook", async (req, res) => {
   });
   qualifyInBackground(lead.id);
   res.status(202).json({ received: true });
+});
+
+// Inbound Typeform webhook: fires the instant a form is submitted, so leads are
+// captured in near-real-time instead of waiting for the next poll. Authenticated
+// by Typeform's HMAC-SHA256 signature over the raw body (header
+// `Typeform-Signature`), verified against our shared secret. Fail closed: if no
+// secret is configured the endpoint is disabled. Returns 202 once accepted; the
+// actual ingest reuses the shared capture + auto-qualify + dedup spine, so a
+// response also picked up by the poller is ingested exactly once.
+router.post("/marketing/intake/typeform/webhook", async (req, res) => {
+  const secret = getTypeformWebhookSecret();
+  if (!secret) {
+    res.status(503).json({ error: "Typeform webhook intake is not configured." });
+    return;
+  }
+  const signature = req.header("typeform-signature") ?? undefined;
+  if (!verifyTypeformSignature(req.rawBody, signature, secret)) {
+    res.status(401).json({ error: "Invalid signature." });
+    return;
+  }
+  // Acknowledge fast and ingest in the background so a slow AI qualifier never
+  // makes Typeform time out and retry (the dedup spine makes a retry safe too).
+  res.status(202).json({ received: true });
+  ingestTypeformWebhook(req.body).catch((err) => {
+    req.log.error({ err }, "Typeform webhook ingest failed");
+  });
 });
 
 // Public web-form intake (e.g. arc's marketing site). IP rate-limited.

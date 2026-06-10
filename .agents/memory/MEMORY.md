@@ -27,5 +27,7 @@
 - [Scheduler hand-off](scheduler-handoff.md) — clients connect their OWN scheduler (BYO API key, encrypted at rest); arc pushes posts but NEVER publishes. Per-post handoff state + CSV/ICS export fallback.
 - [Resend transactional email](resend-email-sending.md) — send via connector proxy POST /emails; key is send-only so GET /domains 401 is expected; default onboarding domain only delivers to the account owner.
 - [Signup intent routing](signup-intent-routing.md) — "For agencies" only sets a localStorage intent then hits the same /sign-up; Entry must gate agency-create routing on !hasAgency, not personalClientId==null.
+- [Marketing OS funnel](marketing-os-funnel.md) — standalone /marketing-os/ app sharing arc's api-server; tables are tenant-keyed (not clientId), so scope EVERY write/delete by tenant + use a separate deleteTenantMarketingData.
+- [IP rate-limit IPv6 helper](marketing-os-funnel.md) — express-rate-limit v8 throws ERR_ERL_KEY_GEN_IPV6 for a custom IP keyGenerator; wrap req.ip with `ipKeyGenerator()` or IPv6 users bypass the limit.
 - [Educational insights](educational-insights.md) — strategist's encouragement/teaching output is a SEPARATE class from AssistantAction proposals; never an action kind; 5 pillars; own table/scheduler/SSE type, surfaces in Learn hub + contextual cards + chat.
 - [Hover-revealed controls eat taps on touch](hover-reveal-controls-touch.md) — opacity-0 still captures clicks; pair opacity toggles with pointer-events toggles or hidden hover controls hijack the tap target on mobile.

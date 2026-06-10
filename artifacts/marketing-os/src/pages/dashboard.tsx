@@ -2,7 +2,7 @@ import { useGetMarketingDashboard } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { Users, Mail, CheckCircle2, TrendingUp, Inbox } from "lucide-react";
+import { Users, Mail, CheckCircle2, TrendingUp, Inbox, Activity } from "lucide-react";
 import { format } from "date-fns";
 
 export default function Dashboard() {

@@ -18,6 +18,8 @@ import assistantRouter from "./assistant";
 import plannerRouter from "./planner";
 import plannerChatRouter from "./plannerChat";
 import managerRouter from "./manager";
+import marketingRouter from "./marketing";
+import marketingPublicRouter from "./marketingPublic";
 import { requireAuth } from "../middlewares/requireAuth";
 import { attachActiveClient } from "../middlewares/activeClient";
 import agencyRouter from "./agency";
@@ -25,6 +27,10 @@ import agencyRouter from "./agency";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+
+// Public Marketing OS intake (shared-secret webhook + IP rate-limited form)
+// must be mounted BEFORE requireAuth so external sources can post leads.
+router.use(marketingPublicRouter);
 
 router.use(requireAuth);
 router.use(agencyRouter);
@@ -47,5 +53,6 @@ router.use(assistantRouter);
 router.use(plannerRouter);
 router.use(plannerChatRouter);
 router.use(managerRouter);
+router.use(marketingRouter);
 
 export default router;

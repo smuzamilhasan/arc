@@ -30,9 +30,47 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft } from "lucide-react";
+import noiseImg from "@/assets/images/noise.png";
+import narrativeImg from "@/assets/images/narrative.png";
+import influenceImg from "@/assets/images/influence.png";
 
 const TOTAL_STEPS = 3;
+
+type EduCard = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  image: string;
+  imageAlt: string;
+};
+
+const EDU_CARDS: EduCard[] = [
+  {
+    eyebrow: "Why arc exists",
+    title: "In the age of AI, sameness is the default.",
+    body: "Building and posting have never been easier, and the feeds are full of interchangeable, AI-generated content. Volume no longer wins attention. A clear, human point of view does. That is the gap arc is built to close.",
+    image: noiseImg,
+    imageAlt:
+      "A grid of identical speech bubbles with a single distinct one outlined in persimmon, standing out from the sameness.",
+  },
+  {
+    eyebrow: "What you'll do here",
+    title: "Take control of your narrative.",
+    body: "arc helps you think mindfully about your positioning and shape it into something elegant, sustainable, and unmistakably yours. We start from your real story, not a template, so your brand holds up over years rather than chasing a single viral moment.",
+    image: narrativeImg,
+    imageAlt:
+      "Scattered marks gathered by a single flowing line into the calm silhouette of a human profile.",
+  },
+  {
+    eyebrow: "Where it leads",
+    title: "Build influence, online and off.",
+    body: "Whatever you create is far easier to share and sell once you hold influence in your niche. arc turns your narrative into a holistic plan, across the web and the real world, to build the authority, distribution, and scale your career needs to grow.",
+    image: influenceImg,
+    imageAlt:
+      "Concentric ripples radiating from a single persimmon node out to a network of online and real-world connections.",
+  },
+];
 
 const onboardSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
@@ -73,6 +111,8 @@ export default function Onboard() {
   const upsertClient = useUpsertClient();
   const [step, setStep] = useState(1);
   const [hydrated, setHydrated] = useState(false);
+  const [phase, setPhase] = useState<"intro" | "form">("intro");
+  const [introIndex, setIntroIndex] = useState(0);
 
   const {
     data: existingClient,
@@ -106,10 +146,19 @@ export default function Onboard() {
     if (hydrated || isLoadingClient) return;
 
     if (isClientError || !existingClient) {
-      // First-time user (or no profile yet): start empty on step 1.
+      // First-time user (or no profile yet): start empty on step 1 and show
+      // the educational intro cards first.
+      setPhase("intro");
       setHydrated(true);
       return;
     }
+
+    // Returning/resuming user: skip the intro and go straight to the form.
+    const resumed =
+      existingClient.onboardingComplete ||
+      (existingClient.onboardingStep ?? 1) > 1 ||
+      Boolean(existingClient.fullName);
+    setPhase(resumed ? "form" : "intro");
 
     form.reset({
       fullName: existingClient.fullName ?? "",
@@ -203,6 +252,103 @@ export default function Onboard() {
         <div className="flex flex-col items-center gap-6 animate-pulse text-muted-foreground">
           <span className="font-serif text-4xl">arc</span>
           <Loader2 className="w-6 h-6 animate-spin opacity-50" />
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === "intro") {
+    const card = EDU_CARDS[introIndex];
+    const isLast = introIndex === EDU_CARDS.length - 1;
+    const advance = () => {
+      if (isLast) {
+        setPhase("form");
+      } else {
+        setIntroIndex((i) => i + 1);
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-2xl">
+          <div className="mb-10 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <span className="font-serif text-3xl text-foreground">arc</span>
+            <p className="text-sm text-muted-foreground font-light tracking-wide">
+              Before we begin, a quick word on why this matters.
+            </p>
+          </div>
+
+          <Card
+            key={introIndex}
+            className="overflow-hidden border-border/50 shadow-xl bg-card/50 backdrop-blur-sm animate-in fade-in slide-in-from-right-8 duration-500"
+          >
+            <div className="relative aspect-[4/3] sm:aspect-[16/9] w-full border-b border-border/50 bg-background">
+              <img
+                src={card.image}
+                alt={card.imageAlt}
+                className="absolute inset-0 h-full w-full object-cover"
+                loading="eager"
+              />
+            </div>
+            <CardContent className="p-8 sm:p-10">
+              <p className="text-xs uppercase tracking-[0.2em] text-primary font-medium mb-3">
+                {card.eyebrow}
+              </p>
+              <h2 className="font-serif text-3xl sm:text-4xl text-foreground leading-tight">
+                {card.title}
+              </h2>
+              <p className="text-muted-foreground text-base sm:text-lg mt-4 leading-relaxed">
+                {card.body}
+              </p>
+
+              <div className="mt-8 pt-6 flex items-center justify-between border-t border-border/50">
+                <div className="flex items-center gap-3">
+                  {introIndex > 0 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setIntroIndex((i) => i - 1)}
+                      className="gap-2 font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Back
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setPhase("form")}
+                      className="font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      Skip
+                    </Button>
+                  )}
+                  <div className="flex items-center gap-1.5" aria-hidden="true">
+                    {EDU_CARDS.map((_, i) => (
+                      <span
+                        key={i}
+                        className={
+                          "h-1.5 rounded-full transition-all duration-300 " +
+                          (i === introIndex
+                            ? "w-6 bg-primary"
+                            : "w-1.5 bg-border")
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={advance}
+                  className="gap-2 px-6 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full h-11"
+                >
+                  {isLast ? "Let's begin" : "Next"}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );

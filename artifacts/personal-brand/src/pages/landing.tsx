@@ -16,6 +16,10 @@ import {
   PenLine,
   Quote,
 } from "lucide-react";
+import heroSignal from "@/assets/images/hero-signal.png";
+import noiseImg from "@/assets/images/noise.png";
+import narrativeImg from "@/assets/images/narrative.png";
+import influenceImg from "@/assets/images/influence.png";
 
 function HeaderCtas() {
   return (
@@ -48,6 +52,51 @@ function HeaderCtas() {
   );
 }
 
+const beliefs = [
+  {
+    eyebrow: "The shift",
+    title: "When anyone can publish, sameness wins by default.",
+    body: "AI made creating effortless, and the feeds show it: endless, interchangeable content with no point of view. Volume is no longer the edge. The scarce, valuable thing is a person worth listening to.",
+    points: [
+      "Building is cheap; attention is not.",
+      "Generic content blends into the noise.",
+      "A real point of view is the new moat.",
+    ],
+    image: noiseImg,
+    imageAlt:
+      "A grid of identical speech bubbles with a single distinct one outlined in persimmon, standing out from the sameness.",
+    flip: false,
+  },
+  {
+    eyebrow: "What we believe",
+    title: "Positioning is a thinking problem, not a posting problem.",
+    body: "In the age of AI it matters more than ever to think mindfully and critically about how you show up. arc helps you take control of your human story and shape positioning that is elegant, sustainable, and unmistakably yours, instead of chasing the algorithm.",
+    points: [
+      "Own your narrative before you scale it.",
+      "Build a brand that lasts, not a viral moment.",
+      "Clarity that holds up over years, not days.",
+    ],
+    image: narrativeImg,
+    imageAlt:
+      "Scattered marks gathered by a single flowing line into the calm silhouette of a human profile.",
+    flip: true,
+  },
+  {
+    eyebrow: "Why it compounds",
+    title: "Influence is the distribution you'll wish you had built.",
+    body: "Whatever you create now or in the future is far easier to sell when you already hold influence in your niche. arc gives you a holistic plan, online and in the real world, to steadily build the authority, distribution, and scale your career needs to grow.",
+    points: [
+      "A plan that spans online and offline.",
+      "Authority you build deliberately, week by week.",
+      "Distribution that's ready before you need it.",
+    ],
+    image: influenceImg,
+    imageAlt:
+      "Concentric ripples radiating from a single persimmon node out to a network of online and real-world connections.",
+    flip: false,
+  },
+];
+
 const flow = [
   {
     step: "01",
@@ -65,7 +114,7 @@ const flow = [
     step: "03",
     icon: Compass,
     title: "Build the Blueprint",
-    body: "Turn your story into a strategy: the pillars, platforms, and priorities that decide where and how you show up.",
+    body: "Turn your story into a strategy: the pillars, platforms, and priorities that decide where and how you show up, online and off.",
   },
   {
     step: "04",
@@ -135,49 +184,117 @@ export default function Landing() {
             }}
             aria-hidden="true"
           />
-          <div className="max-w-6xl mx-auto px-6 md:px-10 pt-20 md:pt-32 pb-20 md:pb-28 text-center">
-            <div className="max-w-3xl mx-auto animate-in fade-in duration-700 slide-in-from-bottom-4">
-              <span className="inline-block text-xs font-medium text-primary tracking-[0.2em] uppercase">
-                Personal brand strategy
-              </span>
-              <h1 className="font-serif text-5xl md:text-7xl tracking-tight text-foreground mt-6 leading-[1.05]">
-                Shape the story
-                <br />
-                people find.
-              </h1>
-              <p className="text-lg md:text-xl text-muted-foreground mt-8 max-w-2xl mx-auto leading-relaxed">
-                arc audits how you show up across Google search and AI models,
-                synthesizes your positioning, and turns it into a content
-                strategy built around who you actually are.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
-                <Link href="/sign-up">
-                  <button
-                    onClick={() => setSignupIntent("individual")}
-                    className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-300 shadow-sm"
-                  >
-                    Get started
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                  </button>
-                </Link>
-                <Link href="/sign-up">
-                  <button
-                    onClick={() => setSignupIntent("agency")}
-                    className="w-full sm:w-auto px-8 py-3.5 rounded-md border border-border text-foreground text-sm font-medium hover:bg-secondary/40 transition-colors duration-300"
-                  >
-                    For agencies
-                  </button>
-                </Link>
+          <div className="max-w-6xl mx-auto px-6 md:px-10 pt-16 md:pt-24 pb-16 md:pb-24">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              <div className="animate-in fade-in duration-700 slide-in-from-bottom-4 text-center lg:text-left">
+                <span className="inline-block text-xs font-medium text-primary tracking-[0.2em] uppercase">
+                  Personal brand strategy for the age of AI
+                </span>
+                <h1 className="font-serif text-5xl md:text-6xl xl:text-7xl tracking-tight text-foreground mt-6 leading-[1.04]">
+                  Anyone can build now.
+                  <br />
+                  The rare thing is
+                  <br />
+                  being heard.
+                </h1>
+                <p className="text-lg md:text-xl text-muted-foreground mt-7 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                  AI made creating effortless, and the feeds are drowning in
+                  sameness. arc helps you think clearly about your positioning,
+                  take ownership of your human story, and build real influence in
+                  your niche, online and off.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mt-9">
+                  <Link href="/sign-up">
+                    <button
+                      onClick={() => setSignupIntent("individual")}
+                      className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-300 shadow-sm"
+                    >
+                      Get started
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                  </Link>
+                  <Link href="/sign-up">
+                    <button
+                      onClick={() => setSignupIntent("agency")}
+                      className="w-full sm:w-auto px-8 py-3.5 rounded-md border border-border text-foreground text-sm font-medium hover:bg-secondary/40 transition-colors duration-300"
+                    >
+                      For agencies
+                    </button>
+                  </Link>
+                </div>
+                <p className="text-xs text-muted-foreground mt-6 tracking-wide">
+                  Individuals and agencies. One strategy each, end to end.
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground mt-6 tracking-wide">
-                Individuals and agencies. One strategy each, end to end.
-              </p>
+
+              <div className="relative animate-in fade-in duration-1000 slide-in-from-bottom-8">
+                <div
+                  className="pointer-events-none absolute -inset-6 -z-10 opacity-70"
+                  style={{
+                    background:
+                      "radial-gradient(60% 60% at 70% 40%, hsl(var(--primary) / 0.10), transparent 70%)",
+                  }}
+                  aria-hidden="true"
+                />
+                <img
+                  src={heroSignal}
+                  alt="A tangle of chaotic lines on the left resolving into a single confident persimmon arc that rises and clears the noise."
+                  className="w-full h-auto rounded-2xl border border-border/60 bg-card shadow-lg"
+                  loading="eager"
+                />
+              </div>
             </div>
           </div>
         </section>
 
-        {/* How it works */}
+        {/* Narrative belief sections */}
         <section className="border-t border-border/50 bg-card/30">
+          <div className="max-w-6xl mx-auto px-6 md:px-10 py-20 md:py-28 space-y-20 md:space-y-28">
+            {beliefs.map((b) => (
+              <div
+                key={b.title}
+                className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center"
+              >
+                <div className={b.flip ? "lg:order-2" : ""}>
+                  <p className="text-xs uppercase tracking-[0.2em] text-primary font-medium mb-3">
+                    {b.eyebrow}
+                  </p>
+                  <h2 className="font-serif text-3xl md:text-4xl xl:text-5xl text-foreground leading-tight">
+                    {b.title}
+                  </h2>
+                  <p className="text-muted-foreground text-lg mt-5 leading-relaxed">
+                    {b.body}
+                  </p>
+                  <ul className="mt-7 space-y-3">
+                    {b.points.map((p) => (
+                      <li
+                        key={p}
+                        className="flex items-start gap-3 text-foreground"
+                      >
+                        <span
+                          className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span className="text-base leading-relaxed">{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className={b.flip ? "lg:order-1" : ""}>
+                  <img
+                    src={b.image}
+                    alt={b.imageAlt}
+                    className="w-full h-auto rounded-2xl border border-border/60 bg-card shadow-md"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="border-t border-border/50">
           <div className="max-w-6xl mx-auto px-6 md:px-10 py-20 md:py-28">
             <div className="max-w-2xl">
               <p className="text-xs uppercase tracking-[0.2em] text-primary font-medium mb-3">
@@ -219,7 +336,7 @@ export default function Landing() {
         </section>
 
         {/* Features grid */}
-        <section className="border-t border-border/50">
+        <section className="border-t border-border/50 bg-card/30">
           <div className="max-w-6xl mx-auto px-6 md:px-10 py-20 md:py-28">
             <div className="max-w-2xl">
               <p className="text-xs uppercase tracking-[0.2em] text-primary font-medium mb-3">
@@ -259,7 +376,7 @@ export default function Landing() {
         </section>
 
         {/* Philosophy / pull quote */}
-        <section className="border-t border-border/50 bg-card/30">
+        <section className="border-t border-border/50">
           <div className="max-w-4xl mx-auto px-6 md:px-10 py-20 md:py-28 text-center">
             <Quote className="w-8 h-8 text-primary/40 mx-auto mb-6" />
             <p className="font-serif text-3xl md:text-4xl text-foreground leading-snug">
@@ -287,11 +404,11 @@ export default function Landing() {
               <div className="relative">
                 <Sparkles className="w-7 h-7 text-primary mx-auto mb-6" />
                 <h2 className="font-serif text-4xl md:text-5xl text-foreground leading-tight max-w-2xl mx-auto">
-                  Start shaping how the world finds you.
+                  Build influence that outlasts the noise.
                 </h2>
                 <p className="text-muted-foreground text-lg mt-5 max-w-xl mx-auto">
-                  Audit your presence, find your narrative, and put a real
-                  strategy behind your name.
+                  Audit your presence, take control of your narrative, and put a
+                  real plan behind your name, online and off.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
                   <Link href="/sign-up">

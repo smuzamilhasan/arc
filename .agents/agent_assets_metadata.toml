@@ -1,0 +1,26 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "1dfrxvmWs6oGPd3OnuIpq"
+uri = "file://artifacts/personal-brand/src/assets/images/hero-signal.png"
+type = "image"
+title = "hero signal over noise"
+
+[[generated]]
+id = "44qqRbwC4uePhHX26d4N7"
+uri = "file://artifacts/personal-brand/src/assets/images/noise.png"
+type = "image"
+title = "ai slop sameness vs original"
+
+[[generated]]
+id = "-_8a_VuPT0Ry8m5ztLNI5"
+uri = "file://artifacts/personal-brand/src/assets/images/narrative.png"
+type = "image"
+title = "human story narrative thread"
+
+[[generated]]
+id = "U2HZDG8IeaqdUXNbK0VpX"
+uri = "file://artifacts/personal-brand/src/assets/images/influence.png"
+type = "image"
+title = "influence distribution ripples network"

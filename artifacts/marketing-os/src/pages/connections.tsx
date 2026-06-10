@@ -4,11 +4,21 @@ import {
   useSaveMarketingConnection, 
   useDeleteMarketingConnection,
   useResetMarketingData,
+  useGetTypeformStatus,
+  useListTypeformForms,
+  useListTypeformFields,
+  useListMarketingFormSources,
+  useSaveMarketingFormSource,
+  useDeleteMarketingFormSource,
+  useSyncMarketingFormSource,
   getListMarketingConnectionsQueryKey,
   getGetMarketingDashboardQueryKey,
   getListMarketingLeadsQueryKey,
   getListMarketingActionsQueryKey,
   getListMarketingActivityQueryKey,
+  getListMarketingFormSourcesQueryKey,
+  getListTypeformFormsQueryKey,
+  getListTypeformFieldsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +28,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, Link as LinkIcon, Mail, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { CheckCircle2, AlertCircle, Link as LinkIcon, Mail, Trash2, FileText, RefreshCw } from "lucide-react";
 
 export default function Connections() {
   const { data: connections, isLoading } = useListMarketingConnections();
@@ -45,6 +57,8 @@ export default function Connections() {
         <ResendConnectionCard connection={resendConn} />
         <CalendlyConnectionCard connection={calendlyConn} />
       </div>
+
+      <LeadSourcesSection />
 
       <DangerZoneCard />
     </div>
@@ -340,5 +354,314 @@ function CalendlyConnectionCard({ connection }: { connection: any }) {
         )}
       </CardFooter>
     </Card>
+  );
+}
+function LeadSourcesSection() {
+  const { data: status, isLoading: statusLoading } = useGetTypeformStatus();
+  const { data: sources, isLoading: sourcesLoading } = useListMarketingFormSources();
+  const connected = status?.connected ?? false;
+
+  return (
+    <Card className={connected ? "border-primary/20 shadow-sm" : ""}>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900 text-white">
+              <FileText size={20} />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Lead Sources</CardTitle>
+              <CardDescription>Pull form submissions in as leads (Typeform)</CardDescription>
+            </div>
+          </div>
+          {statusLoading ? (
+            <Badge variant="secondary" className="gap-1.5 text-muted-foreground">Checking...</Badge>
+          ) : connected ? (
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5">
+              <CheckCircle2 size={12} /> Connected
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1.5 text-muted-foreground">
+              <AlertCircle size={12} /> Not Connected
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          When a Typeform form is connected, new submissions are pulled in one-way as leads and automatically scored and routed. Responses are read only; arc never edits or publishes to your forms.
+        </p>
+
+        {!connected && !statusLoading && (
+          <div className="bg-muted/30 rounded-lg p-4 border border-border/50 text-sm text-muted-foreground">
+            A Typeform account must be connected to this workspace before you can configure a lead source.
+          </div>
+        )}
+
+        {connected && (
+          <>
+            <div className="space-y-3">
+              {sourcesLoading ? (
+                <div className="text-sm text-muted-foreground">Loading sources...</div>
+              ) : sources && sources.length > 0 ? (
+                sources.map((s) => <FormSourceRow key={s.id} source={s} />)
+              ) : (
+                <div className="text-sm text-muted-foreground">No form sources configured yet.</div>
+              )}
+            </div>
+            <AddFormSource />
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FormSourceRow({ source }: { source: any }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const saveSource = useSaveMarketingFormSource();
+  const deleteSource = useDeleteMarketingFormSource();
+  const syncSource = useSyncMarketingFormSource();
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: getListMarketingFormSourcesQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetMarketingDashboardQueryKey() });
+    qc.invalidateQueries({ queryKey: getListMarketingLeadsQueryKey() });
+    qc.invalidateQueries({ queryKey: getListMarketingActivityQueryKey() });
+  };
+
+  const handleSync = () => {
+    syncSource.mutate({ id: source.id }, {
+      onSuccess: (result: any) => {
+        toast({
+          title: "Sync complete",
+          description: `${result.ingested} new lead${result.ingested === 1 ? "" : "s"} ingested (${result.skipped} skipped).`,
+        });
+        invalidate();
+      },
+      onError: (err: any) => {
+        toast({ title: "Sync failed", description: err.message, variant: "destructive" });
+      },
+    });
+  };
+
+  const handleToggle = (enabled: boolean) => {
+    saveSource.mutate({
+      data: {
+        formId: source.formId,
+        formTitle: source.formTitle ?? undefined,
+        fieldMapping: source.fieldMapping,
+        enabled,
+      },
+    }, {
+      onSuccess: () => invalidate(),
+      onError: (err: any) => {
+        toast({ title: "Update failed", description: err.message, variant: "destructive" });
+      },
+    });
+  };
+
+  const handleRemove = () => {
+    deleteSource.mutate({ id: source.id }, {
+      onSuccess: () => {
+        toast({ title: "Source removed" });
+        invalidate();
+      },
+      onError: (err: any) => {
+        toast({ title: "Remove failed", description: err.message, variant: "destructive" });
+      },
+    });
+  };
+
+  const lastSynced = source.lastSyncedAt
+    ? new Date(source.lastSyncedAt).toLocaleString()
+    : "Never";
+
+  return (
+    <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="font-medium truncate">{source.formTitle || source.formId}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            Maps to: {source.fieldMapping?.email ? "email" : "—"}
+            {source.fieldMapping?.name ? ", name" : ""}
+            {source.fieldMapping?.company ? ", company" : ""}
+            {source.fieldMapping?.message ? ", message" : ""}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">Last synced: {lastSynced}</div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={source.enabled}
+              onCheckedChange={handleToggle}
+              disabled={saveSource.isPending}
+              aria-label="Enable source"
+            />
+            <span className="text-xs text-muted-foreground">{source.enabled ? "On" : "Off"}</span>
+          </div>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleSync} disabled={syncSource.isPending}>
+            <RefreshCw size={14} className={syncSource.isPending ? "animate-spin" : ""} />
+            {syncSource.isPending ? "Syncing..." : "Sync now"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleRemove}
+            disabled={deleteSource.isPending}
+          >
+            <Trash2 size={14} />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddFormSource() {
+  const [open, setOpen] = useState(false);
+  const [formId, setFormId] = useState("");
+  const [emailRef, setEmailRef] = useState("");
+  const [nameRef, setNameRef] = useState("");
+  const [companyRef, setCompanyRef] = useState("");
+  const [messageRef, setMessageRef] = useState("");
+
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { data: forms, isLoading: formsLoading } = useListTypeformForms({
+    query: { enabled: open, queryKey: getListTypeformFormsQueryKey() },
+  });
+  const { data: fields, isLoading: fieldsLoading } = useListTypeformFields(formId, {
+    query: { enabled: !!formId, queryKey: getListTypeformFieldsQueryKey(formId) },
+  });
+  const saveSource = useSaveMarketingFormSource();
+
+  const NONE = "__none__";
+  const selectedForm = forms?.find((f) => f.id === formId);
+
+  const reset = () => {
+    setFormId("");
+    setEmailRef("");
+    setNameRef("");
+    setCompanyRef("");
+    setMessageRef("");
+  };
+
+  const handleSave = () => {
+    if (!formId || !emailRef) return;
+    saveSource.mutate({
+      data: {
+        formId,
+        formTitle: selectedForm?.title,
+        fieldMapping: {
+          email: emailRef,
+          name: nameRef || null,
+          company: companyRef || null,
+          message: messageRef || null,
+        },
+        enabled: true,
+      },
+    }, {
+      onSuccess: () => {
+        toast({ title: "Lead source added" });
+        qc.invalidateQueries({ queryKey: getListMarketingFormSourcesQueryKey() });
+        reset();
+        setOpen(false);
+      },
+      onError: (err: any) => {
+        toast({ title: "Could not add source", description: err.message, variant: "destructive" });
+      },
+    });
+  };
+
+  if (!open) {
+    return (
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        Add lead source
+      </Button>
+    );
+  }
+
+  const fieldOptions = fields ?? [];
+
+  return (
+    <div className="rounded-lg border border-border/50 p-4 space-y-4">
+      <div className="space-y-2">
+        <Label>Form</Label>
+        <Select value={formId} onValueChange={(v) => { setFormId(v); setEmailRef(""); setNameRef(""); setCompanyRef(""); setMessageRef(""); }}>
+          <SelectTrigger>
+            <SelectValue placeholder={formsLoading ? "Loading forms..." : "Select a form"} />
+          </SelectTrigger>
+          <SelectContent>
+            {forms?.map((f) => (
+              <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {formId && (
+        <div className="space-y-3">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Map form fields to lead attributes
+          </div>
+          {fieldsLoading ? (
+            <div className="text-sm text-muted-foreground">Loading fields...</div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FieldMap label="Email (required)" value={emailRef} onChange={setEmailRef} options={fieldOptions} noneValue={NONE} allowNone={false} />
+              <FieldMap label="Name" value={nameRef} onChange={setNameRef} options={fieldOptions} noneValue={NONE} allowNone />
+              <FieldMap label="Company" value={companyRef} onChange={setCompanyRef} options={fieldOptions} noneValue={NONE} allowNone />
+              <FieldMap label="Message" value={messageRef} onChange={setMessageRef} options={fieldOptions} noneValue={NONE} allowNone />
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="ghost" size="sm" onClick={() => { reset(); setOpen(false); }}>Cancel</Button>
+        <Button size="sm" onClick={handleSave} disabled={!formId || !emailRef || saveSource.isPending}>
+          {saveSource.isPending ? "Saving..." : "Save source"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function FieldMap({
+  label,
+  value,
+  onChange,
+  options,
+  noneValue,
+  allowNone,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ ref: string; title: string; type: string }>;
+  noneValue: string;
+  allowNone: boolean;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs">{label}</Label>
+      <Select
+        value={value === "" ? (allowNone ? noneValue : "") : value}
+        onValueChange={(v) => onChange(v === noneValue ? "" : v)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Select field" />
+        </SelectTrigger>
+        <SelectContent>
+          {allowNone && <SelectItem value={noneValue}>Not mapped</SelectItem>}
+          {options.map((f) => (
+            <SelectItem key={f.ref} value={f.ref}>{f.title}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

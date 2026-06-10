@@ -62,3 +62,23 @@ Resend connection and passes it, falling back to the proxy when none is connecte
 Webhook = shared-secret header `x-marketing-secret` vs `MARKETING_WEBHOOK_SECRET`,
 fail-closed (503) when the env is unset. Form = IP rate-limited. Both
 fire-and-forget background qualification and return 202.
+
+## External connector ingestion (Typeform lead source)
+One-way pull only: `services/typeform.ts` reads form responses through the
+managed Replit connector proxy (`connectors.proxy("typeform", ...)` — no raw
+token ever persisted) and turns each into a captured+auto-qualified lead. Sources
+live in tenant-keyed `marketing_form_sources` (field mapping as jsonb, email
+required). Admin-gated routes only; new table wired into deleteTenantMarketingData.
+**Ingestion-correctness rules (a review will block on these):**
+- PAGINATE every sync. Fetching only the first page while advancing the cursor
+  permanently skips submissions on busy forms. Walk all pages (token `before`
+  cursor, newest-first) and only advance the cursor AFTER all pages are processed.
+- Cursor = a submitted_at timestamp passed as `since` (inclusive). Dedup by the
+  response `token` (stored as externalId) makes equal-timestamp boundaries safe —
+  re-fetched rows are skipped, never double-ingested.
+- Dedup needs a DB backstop, not just a SELECT-then-insert: a partial unique index
+  on (tenant, external_source, external_id) WHERE external_id IS NOT NULL guards
+  against a poller/manual-sync race. Catch SQLSTATE 23505 in the sync loop and
+  count it as a skip instead of failing the whole run.
+- Poller (`startTypeformPoller`) must be guarded: single-start, disabled in test
+  (NODE_ENV), env-tunable interval (nonpositive disables), and `unref()` the timer.

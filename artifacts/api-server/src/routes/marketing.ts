@@ -5,6 +5,8 @@ import {
   marketingActionsTable,
   marketingConnectionsTable,
   marketingActivityTable,
+  marketingFormSourcesTable,
+  type FormFieldMapping,
 } from "@workspace/db";
 import {
   ListMarketingLeadsQueryParams,
@@ -18,6 +20,9 @@ import {
   RejectMarketingActionParams,
   SaveMarketingConnectionBody,
   DeleteMarketingConnectionParams,
+  SaveMarketingFormSourceBody,
+  DeleteMarketingFormSourceParams,
+  SyncMarketingFormSourceParams,
 } from "@workspace/api-zod";
 import { and, desc, eq } from "drizzle-orm";
 import { isAdmin, requireAdmin } from "../middlewares/requireAdmin";
@@ -39,6 +44,12 @@ import {
   logMarketingActivity,
   deleteTenantMarketingData,
 } from "../services/marketingData";
+import {
+  getTypeformStatus,
+  listTypeformForms,
+  getTypeformFields,
+  syncFormSource,
+} from "../services/typeform";
 
 const router = Router();
 
@@ -46,6 +57,20 @@ type LeadRow = typeof marketingLeadsTable.$inferSelect;
 type ActionRow = typeof marketingActionsTable.$inferSelect;
 type ConnectionRow = typeof marketingConnectionsTable.$inferSelect;
 type ActivityRow = typeof marketingActivityTable.$inferSelect;
+type FormSourceRow = typeof marketingFormSourcesTable.$inferSelect;
+
+function serializeFormSource(s: FormSourceRow) {
+  return {
+    id: s.id,
+    provider: s.provider,
+    formId: s.formId,
+    formTitle: s.formTitle,
+    fieldMapping: s.fieldMapping as FormFieldMapping,
+    enabled: s.enabled,
+    lastSyncedAt: s.lastSyncedAt ? s.lastSyncedAt.toISOString() : null,
+    createdAt: s.createdAt.toISOString(),
+  };
+}
 
 function serializeLead(l: LeadRow) {
   return {
@@ -627,6 +652,157 @@ router.delete("/marketing/connections/:provider", requireAdmin, async (req, res)
   }
   res.status(204).send();
 });
+
+// --- Typeform lead connector (one-way: pull submissions in as leads) ---
+
+router.get("/marketing/typeform/status", requireAdmin, async (_req, res) => {
+  const status = await getTypeformStatus();
+  res.json(status);
+});
+
+router.get(
+  "/marketing/typeform/forms",
+  requireAdmin,
+  externalApiRateLimit,
+  async (req, res) => {
+    try {
+      const forms = await listTypeformForms();
+      res.json(forms);
+    } catch (err) {
+      req.log.error({ err }, "Failed to list Typeform forms");
+      res.status(502).json({ error: "Could not reach Typeform." });
+    }
+  },
+);
+
+router.get(
+  "/marketing/typeform/forms/:formId/fields",
+  requireAdmin,
+  externalApiRateLimit,
+  async (req, res) => {
+    try {
+      const fields = await getTypeformFields(String(req.params.formId));
+      res.json(fields);
+    } catch (err) {
+      req.log.error({ err }, "Failed to list Typeform fields");
+      res.status(502).json({ error: "Could not reach Typeform." });
+    }
+  },
+);
+
+router.get("/marketing/form-sources", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(marketingFormSourcesTable)
+    .where(eq(marketingFormSourcesTable.tenant, MARKETING_TENANT))
+    .orderBy(desc(marketingFormSourcesTable.createdAt));
+  res.json(rows.map(serializeFormSource));
+});
+
+router.post("/marketing/form-sources", requireAdmin, async (req, res) => {
+  const parsed = SaveMarketingFormSourceBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const { formId, formTitle, fieldMapping, enabled } = parsed.data;
+  if (!fieldMapping.email) {
+    res.status(400).json({ error: "An email field mapping is required." });
+    return;
+  }
+  const mapping: FormFieldMapping = {
+    email: fieldMapping.email,
+    name: fieldMapping.name ?? null,
+    company: fieldMapping.company ?? null,
+    message: fieldMapping.message ?? null,
+  };
+  const now = new Date();
+  const [saved] = await db
+    .insert(marketingFormSourcesTable)
+    .values({
+      tenant: MARKETING_TENANT,
+      provider: "typeform",
+      formId,
+      formTitle: formTitle ?? null,
+      fieldMapping: mapping,
+      enabled: enabled ?? true,
+    })
+    .onConflictDoUpdate({
+      target: [
+        marketingFormSourcesTable.tenant,
+        marketingFormSourcesTable.provider,
+        marketingFormSourcesTable.formId,
+      ],
+      set: {
+        formTitle: formTitle ?? null,
+        fieldMapping: mapping,
+        ...(enabled !== undefined ? { enabled } : {}),
+        updatedAt: now,
+      },
+    })
+    .returning();
+  await logMarketingActivity(
+    "form_source_saved",
+    `Configured Typeform source "${saved.formTitle ?? saved.formId}"`,
+    null,
+  );
+  res.json(serializeFormSource(saved));
+});
+
+router.delete("/marketing/form-sources/:id", requireAdmin, async (req, res) => {
+  const parsed = DeleteMarketingFormSourceParams.safeParse({ id: req.params.id });
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const deleted = await db
+    .delete(marketingFormSourcesTable)
+    .where(
+      and(
+        eq(marketingFormSourcesTable.tenant, MARKETING_TENANT),
+        eq(marketingFormSourcesTable.id, parsed.data.id),
+      ),
+    )
+    .returning();
+  if (deleted.length === 0) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  res.status(204).send();
+});
+
+router.post(
+  "/marketing/form-sources/:id/sync",
+  requireAdmin,
+  externalApiRateLimit,
+  async (req, res) => {
+    const parsed = SyncMarketingFormSourceParams.safeParse({ id: req.params.id });
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const [source] = await db
+      .select()
+      .from(marketingFormSourcesTable)
+      .where(
+        and(
+          eq(marketingFormSourcesTable.tenant, MARKETING_TENANT),
+          eq(marketingFormSourcesTable.id, parsed.data.id),
+        ),
+      );
+    if (!source) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    try {
+      const result = await syncFormSource(source);
+      res.json(result);
+    } catch (err) {
+      req.log.error({ err }, "Typeform sync failed");
+      res.status(502).json({ error: "Could not sync from Typeform." });
+    }
+  },
+);
 
 router.get("/marketing/activity", requireAdmin, async (_req, res) => {
   const rows = await db

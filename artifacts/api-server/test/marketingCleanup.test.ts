@@ -6,6 +6,7 @@ import {
   marketingActionsTable,
   marketingConnectionsTable,
   marketingActivityTable,
+  marketingFormSourcesTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { deleteTenantMarketingData } from "../src/services/marketingData";
@@ -42,10 +43,16 @@ async function seedTenant(tenant: string) {
     kind: "lead_captured",
     summary: "Seed activity",
   });
+  await db.insert(marketingFormSourcesTable).values({
+    tenant,
+    provider: "typeform",
+    formId: `form-${tenant}`,
+    formTitle: "Seed Form",
+  });
 }
 
 async function countTenant(tenant: string) {
-  const [leads, actions, connections, activity] = await Promise.all([
+  const [leads, actions, connections, activity, formSources] = await Promise.all([
     db.select().from(marketingLeadsTable).where(eq(marketingLeadsTable.tenant, tenant)),
     db.select().from(marketingActionsTable).where(eq(marketingActionsTable.tenant, tenant)),
     db
@@ -56,12 +63,17 @@ async function countTenant(tenant: string) {
       .select()
       .from(marketingActivityTable)
       .where(eq(marketingActivityTable.tenant, tenant)),
+    db
+      .select()
+      .from(marketingFormSourcesTable)
+      .where(eq(marketingFormSourcesTable.tenant, tenant)),
   ]);
   return {
     leads: leads.length,
     actions: actions.length,
     connections: connections.length,
     activity: activity.length,
+    formSources: formSources.length,
   };
 }
 
@@ -79,12 +91,12 @@ describe("deleteTenantMarketingData", () => {
   it("removes every marketing table row for the tenant", async () => {
     await seedTenant(TENANT);
     const before = await countTenant(TENANT);
-    expect(before).toEqual({ leads: 1, actions: 1, connections: 1, activity: 1 });
+    expect(before).toEqual({ leads: 1, actions: 1, connections: 1, activity: 1, formSources: 1 });
 
     await deleteTenantMarketingData(TENANT);
 
     const after = await countTenant(TENANT);
-    expect(after).toEqual({ leads: 0, actions: 0, connections: 0, activity: 0 });
+    expect(after).toEqual({ leads: 0, actions: 0, connections: 0, activity: 0, formSources: 0 });
   });
 
   it("does not touch other tenants' data", async () => {
@@ -94,9 +106,9 @@ describe("deleteTenantMarketingData", () => {
     await deleteTenantMarketingData(TENANT);
 
     const purged = await countTenant(TENANT);
-    expect(purged).toEqual({ leads: 0, actions: 0, connections: 0, activity: 0 });
+    expect(purged).toEqual({ leads: 0, actions: 0, connections: 0, activity: 0, formSources: 0 });
 
     const kept = await countTenant(OTHER_TENANT);
-    expect(kept).toEqual({ leads: 1, actions: 1, connections: 1, activity: 1 });
+    expect(kept).toEqual({ leads: 1, actions: 1, connections: 1, activity: 1, formSources: 1 });
   });
 });

@@ -89,11 +89,14 @@ import type {
   MarketingConnection,
   MarketingConnectionInput,
   MarketingDashboard,
+  MarketingFormSource,
+  MarketingFormSourceInput,
   MarketingIntakeAck,
   MarketingLead,
   MarketingLeadDetail,
   MarketingLeadInput,
   MarketingLeadIntake,
+  MarketingSyncResult,
   NarrativeGenerateInput,
   NarrativeProfile,
   NarrativeUpdateInput,
@@ -112,7 +115,10 @@ import type {
   SaveConnectionInput,
   ScheduleBatchInput,
   SchedulerConnection,
-  SchedulerProviderMeta
+  SchedulerProviderMeta,
+  TypeformField,
+  TypeformForm,
+  TypeformStatus
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -7482,4 +7488,523 @@ export function useListMarketingActivity<TData = Awaited<ReturnType<typeof listM
 
 
 
+
+export const getGetTypeformStatusUrl = () => {
+
+
+
+
+  return `/api/marketing/typeform/status`
+}
+
+/**
+ * @summary Whether a Typeform connection is authorized and reachable
+ */
+export const getTypeformStatus = async ( options?: RequestInit): Promise<TypeformStatus> => {
+
+  return customFetch<TypeformStatus>(getGetTypeformStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTypeformStatusQueryKey = () => {
+    return [
+    `/api/marketing/typeform/status`
+    ] as const;
+    }
+
+
+export const getGetTypeformStatusQueryOptions = <TData = Awaited<ReturnType<typeof getTypeformStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTypeformStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTypeformStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTypeformStatus>>> = ({ signal }) => getTypeformStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTypeformStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTypeformStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getTypeformStatus>>>
+export type GetTypeformStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Whether a Typeform connection is authorized and reachable
+ */
+
+export function useGetTypeformStatus<TData = Awaited<ReturnType<typeof getTypeformStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTypeformStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTypeformStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListTypeformFormsUrl = () => {
+
+
+
+
+  return `/api/marketing/typeform/forms`
+}
+
+/**
+ * @summary List the connected Typeform account's forms
+ */
+export const listTypeformForms = async ( options?: RequestInit): Promise<TypeformForm[]> => {
+
+  return customFetch<TypeformForm[]>(getListTypeformFormsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListTypeformFormsQueryKey = () => {
+    return [
+    `/api/marketing/typeform/forms`
+    ] as const;
+    }
+
+
+export const getListTypeformFormsQueryOptions = <TData = Awaited<ReturnType<typeof listTypeformForms>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTypeformForms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTypeformFormsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTypeformForms>>> = ({ signal }) => listTypeformForms({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTypeformForms>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListTypeformFormsQueryResult = NonNullable<Awaited<ReturnType<typeof listTypeformForms>>>
+export type ListTypeformFormsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the connected Typeform account's forms
+ */
+
+export function useListTypeformForms<TData = Awaited<ReturnType<typeof listTypeformForms>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTypeformForms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListTypeformFormsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListTypeformFieldsUrl = (formId: string,) => {
+
+
+
+
+  return `/api/marketing/typeform/forms/${formId}/fields`
+}
+
+/**
+ * @summary List a Typeform form's fields for mapping
+ */
+export const listTypeformFields = async (formId: string, options?: RequestInit): Promise<TypeformField[]> => {
+
+  return customFetch<TypeformField[]>(getListTypeformFieldsUrl(formId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListTypeformFieldsQueryKey = (formId: string,) => {
+    return [
+    `/api/marketing/typeform/forms/${formId}/fields`
+    ] as const;
+    }
+
+
+export const getListTypeformFieldsQueryOptions = <TData = Awaited<ReturnType<typeof listTypeformFields>>, TError = ErrorType<unknown>>(formId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTypeformFields>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTypeformFieldsQueryKey(formId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTypeformFields>>> = ({ signal }) => listTypeformFields(formId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(formId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTypeformFields>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListTypeformFieldsQueryResult = NonNullable<Awaited<ReturnType<typeof listTypeformFields>>>
+export type ListTypeformFieldsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List a Typeform form's fields for mapping
+ */
+
+export function useListTypeformFields<TData = Awaited<ReturnType<typeof listTypeformFields>>, TError = ErrorType<unknown>>(
+ formId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTypeformFields>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListTypeformFieldsQueryOptions(formId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListMarketingFormSourcesUrl = () => {
+
+
+
+
+  return `/api/marketing/form-sources`
+}
+
+/**
+ * @summary List configured form-source connectors
+ */
+export const listMarketingFormSources = async ( options?: RequestInit): Promise<MarketingFormSource[]> => {
+
+  return customFetch<MarketingFormSource[]>(getListMarketingFormSourcesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMarketingFormSourcesQueryKey = () => {
+    return [
+    `/api/marketing/form-sources`
+    ] as const;
+    }
+
+
+export const getListMarketingFormSourcesQueryOptions = <TData = Awaited<ReturnType<typeof listMarketingFormSources>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMarketingFormSources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMarketingFormSourcesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMarketingFormSources>>> = ({ signal }) => listMarketingFormSources({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMarketingFormSources>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMarketingFormSourcesQueryResult = NonNullable<Awaited<ReturnType<typeof listMarketingFormSources>>>
+export type ListMarketingFormSourcesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List configured form-source connectors
+ */
+
+export function useListMarketingFormSources<TData = Awaited<ReturnType<typeof listMarketingFormSources>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMarketingFormSources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMarketingFormSourcesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSaveMarketingFormSourceUrl = () => {
+
+
+
+
+  return `/api/marketing/form-sources`
+}
+
+/**
+ * @summary Create or update a form-source connector
+ */
+export const saveMarketingFormSource = async (marketingFormSourceInput: MarketingFormSourceInput, options?: RequestInit): Promise<MarketingFormSource> => {
+
+  return customFetch<MarketingFormSource>(getSaveMarketingFormSourceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      marketingFormSourceInput,)
+  }
+);}
+
+
+
+
+export const getSaveMarketingFormSourceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveMarketingFormSource>>, TError,{data: BodyType<MarketingFormSourceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveMarketingFormSource>>, TError,{data: BodyType<MarketingFormSourceInput>}, TContext> => {
+
+const mutationKey = ['saveMarketingFormSource'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveMarketingFormSource>>, {data: BodyType<MarketingFormSourceInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveMarketingFormSource(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveMarketingFormSourceMutationResult = NonNullable<Awaited<ReturnType<typeof saveMarketingFormSource>>>
+    export type SaveMarketingFormSourceMutationBody = BodyType<MarketingFormSourceInput>
+    export type SaveMarketingFormSourceMutationError = ErrorType<void>
+
+    /**
+ * @summary Create or update a form-source connector
+ */
+export const useSaveMarketingFormSource = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveMarketingFormSource>>, TError,{data: BodyType<MarketingFormSourceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveMarketingFormSource>>,
+        TError,
+        {data: BodyType<MarketingFormSourceInput>},
+        TContext
+      > => {
+      return useMutation(getSaveMarketingFormSourceMutationOptions(options));
+    }
+
+export const getDeleteMarketingFormSourceUrl = (id: number,) => {
+
+
+
+
+  return `/api/marketing/form-sources/${id}`
+}
+
+/**
+ * @summary Remove a form-source connector
+ */
+export const deleteMarketingFormSource = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteMarketingFormSourceUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteMarketingFormSourceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMarketingFormSource>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMarketingFormSource>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteMarketingFormSource'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMarketingFormSource>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteMarketingFormSource(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMarketingFormSourceMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMarketingFormSource>>>
+
+    export type DeleteMarketingFormSourceMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove a form-source connector
+ */
+export const useDeleteMarketingFormSource = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMarketingFormSource>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMarketingFormSource>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteMarketingFormSourceMutationOptions(options));
+    }
+
+export const getSyncMarketingFormSourceUrl = (id: number,) => {
+
+
+
+
+  return `/api/marketing/form-sources/${id}/sync`
+}
+
+/**
+ * @summary Pull new submissions for a form source and qualify them as leads
+ */
+export const syncMarketingFormSource = async (id: number, options?: RequestInit): Promise<MarketingSyncResult> => {
+
+  return customFetch<MarketingSyncResult>(getSyncMarketingFormSourceUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSyncMarketingFormSourceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncMarketingFormSource>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncMarketingFormSource>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['syncMarketingFormSource'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncMarketingFormSource>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  syncMarketingFormSource(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncMarketingFormSourceMutationResult = NonNullable<Awaited<ReturnType<typeof syncMarketingFormSource>>>
+
+    export type SyncMarketingFormSourceMutationError = ErrorType<void>
+
+    /**
+ * @summary Pull new submissions for a form source and qualify them as leads
+ */
+export const useSyncMarketingFormSource = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncMarketingFormSource>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncMarketingFormSource>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getSyncMarketingFormSourceMutationOptions(options));
+    }
 

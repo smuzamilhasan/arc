@@ -8,6 +8,7 @@ import {
   marketingActionsTable,
   marketingConnectionsTable,
   marketingActivityTable,
+  marketingFormSourcesTable,
 } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
@@ -23,6 +24,10 @@ export interface CaptureLeadInput {
   company?: string | null;
   message?: string | null;
   source: string;
+  // For leads ingested from an external provider (e.g. Typeform), the provider
+  // key and the source record id, used to dedupe re-syncs.
+  externalSource?: string | null;
+  externalId?: string | null;
 }
 
 // Append an entry to the Marketing OS activity feed. Never throws — a failed
@@ -55,6 +60,8 @@ export async function captureLead(input: CaptureLeadInput) {
       company: input.company ?? null,
       message: input.message ?? null,
       source: input.source,
+      externalSource: input.externalSource ?? null,
+      externalId: input.externalId ?? null,
     })
     .returning();
   await logMarketingActivity(
@@ -208,6 +215,9 @@ export async function deleteTenantMarketingData(
     await t
       .delete(marketingConnectionsTable)
       .where(eq(marketingConnectionsTable.tenant, tenant));
+    await t
+      .delete(marketingFormSourcesTable)
+      .where(eq(marketingFormSourcesTable.tenant, tenant));
     await t
       .delete(marketingLeadsTable)
       .where(eq(marketingLeadsTable.tenant, tenant));

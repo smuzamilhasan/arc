@@ -2722,3 +2722,113 @@ export const ListMarketingActivityResponseItem = zod.object({
 export const ListMarketingActivityResponse = zod.array(ListMarketingActivityResponseItem)
 
 
+/**
+ * @summary Whether a Typeform connection is authorized and reachable
+ */
+export const GetTypeformStatusResponse = zod.object({
+  "connected": zod.boolean()
+})
+
+
+/**
+ * @summary List the connected Typeform account's forms
+ */
+export const ListTypeformFormsResponseItem = zod.object({
+  "id": zod.string(),
+  "title": zod.string()
+})
+export const ListTypeformFormsResponse = zod.array(ListTypeformFormsResponseItem)
+
+
+/**
+ * @summary List a Typeform form's fields for mapping
+ */
+export const ListTypeformFieldsParams = zod.object({
+  "formId": zod.coerce.string()
+})
+
+export const ListTypeformFieldsResponseItem = zod.object({
+  "ref": zod.string(),
+  "id": zod.string(),
+  "title": zod.string(),
+  "type": zod.string()
+})
+export const ListTypeformFieldsResponse = zod.array(ListTypeformFieldsResponseItem)
+
+
+/**
+ * @summary List configured form-source connectors
+ */
+export const ListMarketingFormSourcesResponseItem = zod.object({
+  "id": zod.number(),
+  "provider": zod.string(),
+  "formId": zod.string(),
+  "formTitle": zod.string().nullish(),
+  "fieldMapping": zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "company": zod.string().nullish(),
+  "message": zod.string().nullish()
+}).describe('Maps a Typeform field ref (or id) to each lead attribute. Email is required.'),
+  "enabled": zod.boolean(),
+  "lastSyncedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListMarketingFormSourcesResponse = zod.array(ListMarketingFormSourcesResponseItem)
+
+
+/**
+ * @summary Create or update a form-source connector
+ */
+export const SaveMarketingFormSourceBody = zod.object({
+  "formId": zod.string(),
+  "formTitle": zod.string().optional(),
+  "fieldMapping": zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "company": zod.string().nullish(),
+  "message": zod.string().nullish()
+}).describe('Maps a Typeform field ref (or id) to each lead attribute. Email is required.'),
+  "enabled": zod.boolean().optional()
+})
+
+export const SaveMarketingFormSourceResponse = zod.object({
+  "id": zod.number(),
+  "provider": zod.string(),
+  "formId": zod.string(),
+  "formTitle": zod.string().nullish(),
+  "fieldMapping": zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "company": zod.string().nullish(),
+  "message": zod.string().nullish()
+}).describe('Maps a Typeform field ref (or id) to each lead attribute. Email is required.'),
+  "enabled": zod.boolean(),
+  "lastSyncedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Remove a form-source connector
+ */
+export const DeleteMarketingFormSourceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Pull new submissions for a form source and qualify them as leads
+ */
+export const SyncMarketingFormSourceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SyncMarketingFormSourceResponse = zod.object({
+  "formId": zod.string(),
+  "ingested": zod.number(),
+  "skipped": zod.number(),
+  "total": zod.number()
+})
+
+

@@ -22,3 +22,4 @@ export * from "./marketingLeads";
 export * from "./marketingActions";
 export * from "./marketingConnections";
 export * from "./marketingActivity";
+export * from "./marketingFormSources";

@@ -2006,6 +2006,127 @@ paths:
                 items:
                   $ref: "#/components/schemas/MarketingActivity"
 
+  /marketing/typeform/status:
+    get:
+      operationId: getTypeformStatus
+      tags: [marketing]
+      summary: Whether a Typeform connection is authorized and reachable
+      responses:
+        "200":
+          description: Connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TypeformStatus"
+
+  /marketing/typeform/forms:
+    get:
+      operationId: listTypeformForms
+      tags: [marketing]
+      summary: List the connected Typeform account's forms
+      responses:
+        "200":
+          description: Forms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TypeformForm"
+
+  /marketing/typeform/forms/{formId}/fields:
+    get:
+      operationId: listTypeformFields
+      tags: [marketing]
+      summary: List a Typeform form's fields for mapping
+      parameters:
+        - name: formId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Fields
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TypeformField"
+
+  /marketing/form-sources:
+    get:
+      operationId: listMarketingFormSources
+      tags: [marketing]
+      summary: List configured form-source connectors
+      responses:
+        "200":
+          description: Form sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketingFormSource"
+    post:
+      operationId: saveMarketingFormSource
+      tags: [marketing]
+      summary: Create or update a form-source connector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketingFormSourceInput"
+      responses:
+        "200":
+          description: Saved form source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingFormSource"
+        "400":
+          description: Invalid input
+
+  /marketing/form-sources/{id}:
+    delete:
+      operationId: deleteMarketingFormSource
+      tags: [marketing]
+      summary: Remove a form-source connector
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+        "404":
+          description: Not found
+
+  /marketing/form-sources/{id}/sync:
+    post:
+      operationId: syncMarketingFormSource
+      tags: [marketing]
+      summary: Pull new submissions for a form source and qualify them as leads
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingSyncResult"
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -4240,3 +4361,93 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MarketingActivity"
+
+    TypeformStatus:
+      type: object
+      required: [connected]
+      properties:
+        connected:
+          type: boolean
+
+    TypeformForm:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+
+    TypeformField:
+      type: object
+      required: [ref, id, title, type]
+      properties:
+        ref:
+          type: string
+        id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+
+    FormFieldMapping:
+      type: object
+      description: Maps a Typeform field ref (or id) to each lead attribute. Email is required.
+      required: [email]
+      properties:
+        email:
+          type: string
+        name:
+          type: ["string", "null"]
+        company:
+          type: ["string", "null"]
+        message:
+          type: ["string", "null"]
+
+    MarketingFormSource:
+      type: object
+      required: [id, provider, formId, fieldMapping, enabled, createdAt]
+      properties:
+        id:
+          type: integer
+        provider:
+          type: string
+        formId:
+          type: string
+        formTitle:
+          type: ["string", "null"]
+        fieldMapping:
+          $ref: "#/components/schemas/FormFieldMapping"
+        enabled:
+          type: boolean
+        lastSyncedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    MarketingFormSourceInput:
+      type: object
+      required: [formId, fieldMapping]
+      properties:
+        formId:
+          type: string
+        formTitle:
+          type: string
+        fieldMapping:
+          $ref: "#/components/schemas/FormFieldMapping"
+        enabled:
+          type: boolean
+
+    MarketingSyncResult:
+      type: object
+      required: [formId, ingested, skipped, total]
+      properties:
+        formId:
+          type: string
+        ingested:
+          type: integer
+        skipped:
+          type: integer
+        total:
+          type: integer

@@ -1585,6 +1585,62 @@ export interface MarketingDashboard {
   recentActivity: MarketingActivity[];
 }
 
+export interface TypeformStatus {
+  connected: boolean;
+}
+
+export interface TypeformForm {
+  id: string;
+  title: string;
+}
+
+export interface TypeformField {
+  ref: string;
+  id: string;
+  title: string;
+  type: string;
+}
+
+/**
+ * Maps a Typeform field ref (or id) to each lead attribute. Email is required.
+ */
+export interface FormFieldMapping {
+  email: string;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  company?: string | null;
+  /** @nullable */
+  message?: string | null;
+}
+
+export interface MarketingFormSource {
+  id: number;
+  provider: string;
+  formId: string;
+  /** @nullable */
+  formTitle?: string | null;
+  fieldMapping: FormFieldMapping;
+  enabled: boolean;
+  /** @nullable */
+  lastSyncedAt?: string | null;
+  createdAt: string;
+}
+
+export interface MarketingFormSourceInput {
+  formId: string;
+  formTitle?: string;
+  fieldMapping: FormFieldMapping;
+  enabled?: boolean;
+}
+
+export interface MarketingSyncResult {
+  formId: string;
+  ingested: number;
+  skipped: number;
+  total: number;
+}
+
 export type ListPostsParams = {
 platform?: string;
 status?: string;

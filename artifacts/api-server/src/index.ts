@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startProactiveScheduler } from "./services/proactiveScheduler";
+import { startTypeformPoller } from "./services/typeform";
 
 const rawPort = process.env["PORT"];
 
@@ -24,4 +25,5 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
   startProactiveScheduler();
+  startTypeformPoller();
 });

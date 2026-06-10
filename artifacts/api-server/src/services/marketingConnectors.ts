@@ -46,7 +46,7 @@ export const MARKETING_CONNECTORS: ConnectorMeta[] = [
     label: "Make.com",
     category: "qualify",
     authType: "byokey",
-    provisionable: false,
+    provisionable: true,
     description:
       "Qualify: orchestrate scenarios that route captured leads through enrichment and scoring.",
     accountRefLabel: "API base URL (your zone, e.g. https://eu1.make.com/api/v2)",
@@ -57,7 +57,7 @@ export const MARKETING_CONNECTORS: ConnectorMeta[] = [
     label: "Instantly",
     category: "convert",
     authType: "byokey",
-    provisionable: false,
+    provisionable: true,
     description: "Convert: run cold-outreach sequences against qualified leads.",
   },
   {

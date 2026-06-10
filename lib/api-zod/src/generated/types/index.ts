@@ -131,6 +131,7 @@ export * from './marketingConnectionInput';
 export * from './marketingConnectionInputProvider';
 export * from './marketingConnectionProvider';
 export * from './marketingDashboard';
+export * from './marketingIntakeAck';
 export * from './marketingLead';
 export * from './marketingLeadDetail';
 export * from './marketingLeadFitTier';

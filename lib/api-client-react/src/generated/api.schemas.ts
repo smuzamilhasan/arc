@@ -1407,6 +1407,10 @@ export interface MarketingLead {
   updatedAt: string;
 }
 
+export interface MarketingIntakeAck {
+  received: boolean;
+}
+
 export interface MarketingLeadIntake {
   name?: string;
   /** @minLength 3 */

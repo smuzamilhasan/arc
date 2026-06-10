@@ -89,6 +89,7 @@ import type {
   MarketingConnection,
   MarketingConnectionInput,
   MarketingDashboard,
+  MarketingIntakeAck,
   MarketingLead,
   MarketingLeadDetail,
   MarketingLeadInput,
@@ -6230,9 +6231,9 @@ export const getIntakeWebhookLeadUrl = () => {
  * Public endpoint guarded by a shared secret header (x-marketing-secret). Persists the lead and kicks off AI qualification in the background.
  * @summary Capture an inbound marketing lead from an external webhook
  */
-export const intakeWebhookLead = async (marketingLeadIntake: MarketingLeadIntake, options?: RequestInit): Promise<MarketingLead> => {
+export const intakeWebhookLead = async (marketingLeadIntake: MarketingLeadIntake, options?: RequestInit): Promise<MarketingIntakeAck> => {
 
-  return customFetch<MarketingLead>(getIntakeWebhookLeadUrl(),
+  return customFetch<MarketingIntakeAck>(getIntakeWebhookLeadUrl(),
   {
     ...options,
     method: 'POST',
@@ -6302,9 +6303,9 @@ export const getIntakeFormLeadUrl = () => {
  * Public, IP rate-limited endpoint. Persists the lead and kicks off AI qualification in the background.
  * @summary Capture an inbound marketing lead from a public web form
  */
-export const intakeFormLead = async (marketingLeadIntake: MarketingLeadIntake, options?: RequestInit): Promise<MarketingLead> => {
+export const intakeFormLead = async (marketingLeadIntake: MarketingLeadIntake, options?: RequestInit): Promise<MarketingIntakeAck> => {
 
-  return customFetch<MarketingLead>(getIntakeFormLeadUrl(),
+  return customFetch<MarketingIntakeAck>(getIntakeFormLeadUrl(),
   {
     ...options,
     method: 'POST',

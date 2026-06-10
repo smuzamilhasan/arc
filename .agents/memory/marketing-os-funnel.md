@@ -26,6 +26,16 @@ arc's shared api-server, DB, Clerk, and AI. Spine: capture lead -> AI scores fit
 ALL external actions are proposals. The qualifier writes a single `pending`
 `outreach_email` action; nothing sends until a human approves. Re-qualifying
 deletes the prior pending action first so proposals never stack.
+**All THREE intake paths must auto-qualify** — webhook, public form, AND the
+admin manual `POST /marketing/leads`. The manual path is easy to forget; it must
+call `qualifyInBackground` too or it silently produces no proposal.
+
+## Sending
+Approve-send must use the tenant's CONNECTED Resend key, not just the shared
+proxy — otherwise the stored BYO connection is decorative. `sendEmail` takes an
+optional `apiKey`; when set it POSTs the Resend API directly with a Bearer token,
+else it uses the Replit connector proxy. The approve route decrypts the marketing
+Resend connection and passes it, falling back to the proxy when none is connected.
 
 ## Public intake
 `routes/marketingPublic.ts` is mounted BEFORE `requireAuth` in routes/index.ts.

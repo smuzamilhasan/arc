@@ -28,7 +28,9 @@ import { MARKETING_TENANT } from "../services/marketing";
 import {
   captureLead,
   runQualification,
+  qualifyInBackground,
   getBookingUrl,
+  getResendApiKey,
   logMarketingActivity,
 } from "../services/marketingData";
 
@@ -201,6 +203,10 @@ router.post("/marketing/leads", requireAdmin, async (req, res) => {
     message: parsed.data.message ?? null,
     source: parsed.data.source ?? "manual",
   });
+  // Manual leads follow the same capture -> auto-qualify spine as the public
+  // intake paths: kick off AI qualification in the background so a proposal is
+  // produced without blocking the create response.
+  qualifyInBackground(lead.id);
   res.status(201).json(serializeLead(lead));
 });
 
@@ -392,11 +398,16 @@ router.post(
       return;
     }
 
+    // Prefer the tenant's connected Resend key (BYO, decrypted from the
+    // marketing connection) so the stored connection actually drives delivery;
+    // fall back to the shared connector proxy when no key is configured.
+    const resendApiKey = await getResendApiKey();
     const sent = await sendEmail({
       to: lead.email,
       subject: action.emailSubject ?? "A note from the arc team",
       html: bodyToHtml(action.emailBody ?? ""),
       text: action.emailBody ?? undefined,
+      apiKey: resendApiKey ?? undefined,
     });
     if (!sent) {
       res.status(502).json({ error: "Email delivery failed" });

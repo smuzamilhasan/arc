@@ -25,6 +25,9 @@ export interface SendEmailInput {
   html: string;
   text?: string;
   from?: string;
+  // When provided, the email is sent directly via the Resend API using this
+  // (caller-decrypted) BYO key instead of the shared Replit connector proxy.
+  apiKey?: string;
 }
 
 // Sends a single transactional email. Returns true on success, false on
@@ -38,18 +41,28 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
       "Sending email via Resend's shared onboarding domain; set RESEND_FROM with a verified custom domain for production delivery to arbitrary recipients",
     );
   }
+  const payload = JSON.stringify({
+    from,
+    to: input.to,
+    subject: input.subject,
+    html: input.html,
+    ...(input.text ? { text: input.text } : {}),
+  });
   try {
-    const response = await connectors.proxy("resend", "/emails", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from,
-        to: input.to,
-        subject: input.subject,
-        html: input.html,
-        ...(input.text ? { text: input.text } : {}),
-      }),
-    });
+    const response = input.apiKey
+      ? await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${input.apiKey}`,
+          },
+          body: payload,
+        })
+      : await connectors.proxy("resend", "/emails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+        });
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
       logger.error(

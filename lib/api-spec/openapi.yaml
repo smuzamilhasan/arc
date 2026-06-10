@@ -1683,12 +1683,12 @@ paths:
             schema:
               $ref: "#/components/schemas/MarketingLeadIntake"
       responses:
-        "201":
-          description: Captured lead
+        "202":
+          description: Lead accepted; qualification runs asynchronously
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MarketingLead"
+                $ref: "#/components/schemas/MarketingIntakeAck"
         "401":
           description: Missing or invalid shared secret
         "400":
@@ -1707,12 +1707,12 @@ paths:
             schema:
               $ref: "#/components/schemas/MarketingLeadIntake"
       responses:
-        "201":
-          description: Captured lead
+        "202":
+          description: Lead accepted; qualification runs asynchronously
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MarketingLead"
+                $ref: "#/components/schemas/MarketingIntakeAck"
         "400":
           description: Invalid input
         "429":
@@ -4031,6 +4031,13 @@ components:
           type: string
         updatedAt:
           type: string
+
+    MarketingIntakeAck:
+      type: object
+      required: [received]
+      properties:
+        received:
+          type: boolean
 
     MarketingLeadIntake:
       type: object

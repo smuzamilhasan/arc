@@ -11,6 +11,7 @@ import {
 } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { decryptSecret } from "../lib/crypto";
 import { MARKETING_TENANT, qualifyLead } from "./marketing";
 
 type TxExecutor = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -75,6 +76,24 @@ export async function getBookingUrl(): Promise<string | null> {
       ),
     );
   return calendly?.bookingUrl ?? null;
+}
+
+// The tenant's BYO Resend API key (decrypted), if a Resend connection is
+// configured. Used as the source of truth for sending approved outreach so the
+// stored connection actually drives delivery; null falls back to the shared
+// connector proxy.
+export async function getResendApiKey(): Promise<string | null> {
+  const [resend] = await db
+    .select()
+    .from(marketingConnectionsTable)
+    .where(
+      and(
+        eq(marketingConnectionsTable.tenant, MARKETING_TENANT),
+        eq(marketingConnectionsTable.provider, "resend"),
+      ),
+    );
+  if (!resend?.apiKeyEncrypted) return null;
+  return decryptSecret(resend.apiKeyEncrypted);
 }
 
 // Run the AI qualifier for a lead and persist the result: upsert a single

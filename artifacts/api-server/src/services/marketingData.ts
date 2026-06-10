@@ -9,6 +9,8 @@ import {
   marketingConnectionsTable,
   marketingActivityTable,
   marketingFormSourcesTable,
+  marketingBlueprintsTable,
+  marketingProvisionRunsTable,
 } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
@@ -218,6 +220,12 @@ export async function deleteTenantMarketingData(
     await t
       .delete(marketingFormSourcesTable)
       .where(eq(marketingFormSourcesTable.tenant, tenant));
+    await t
+      .delete(marketingProvisionRunsTable)
+      .where(eq(marketingProvisionRunsTable.tenant, tenant));
+    await t
+      .delete(marketingBlueprintsTable)
+      .where(eq(marketingBlueprintsTable.tenant, tenant));
     await t
       .delete(marketingLeadsTable)
       .where(eq(marketingLeadsTable.tenant, tenant));

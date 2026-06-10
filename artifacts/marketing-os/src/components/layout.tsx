@@ -20,7 +20,8 @@ import {
   CheckSquare, 
   Activity, 
   Plug,
-  Target
+  Target,
+  Hammer
 } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -66,6 +67,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <Link href="/actions" className="flex items-center gap-3 px-6 py-2">
                         <CheckSquare size={18} />
                         <span>Approvals</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.startsWith("/build")}>
+                      <Link href="/build" className="flex items-center gap-3 px-6 py-2">
+                        <Hammer size={18} />
+                        <span>Build</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

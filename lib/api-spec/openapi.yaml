@@ -2127,6 +2127,115 @@ paths:
         "404":
           description: Not found
 
+  /marketing/connectors:
+    get:
+      operationId: listMarketingConnectors
+      tags: [marketing]
+      summary: List all orchestratable tools with connection status
+      description: Returns the connector registry (one entry per supported tool) annotated with whether it is currently connected for this tenant.
+      responses:
+        "200":
+          description: Connectors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketingConnector"
+
+  /marketing/blueprint:
+    get:
+      operationId: getMarketingBlueprint
+      tags: [marketing]
+      summary: The funnel blueprint (desired state) for this tenant
+      responses:
+        "200":
+          description: Blueprint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingBlueprint"
+    put:
+      operationId: updateMarketingBlueprint
+      tags: [marketing]
+      summary: Replace the funnel blueprint definition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketingBlueprintUpdate"
+      responses:
+        "200":
+          description: Saved blueprint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingBlueprint"
+        "400":
+          description: Invalid input
+
+  /marketing/provision/{provider}/plan:
+    post:
+      operationId: planMarketingProvision
+      tags: [marketing]
+      summary: Plan (preview) the changes to reconcile a tool toward the blueprint
+      description: Computes and persists a planned provisioning run. Nothing is written to the external tool until the run is explicitly applied.
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Planned run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingProvisionRun"
+        "400":
+          description: Provider not provisionable or prerequisites not met
+
+  /marketing/provision/runs:
+    get:
+      operationId: listMarketingProvisionRuns
+      tags: [marketing]
+      summary: List provisioning runs (planned and applied) for this tenant
+      responses:
+        "200":
+          description: Runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketingProvisionRun"
+
+  /marketing/provision/runs/{id}/apply:
+    post:
+      operationId: applyMarketingProvisionRun
+      tags: [marketing]
+      summary: Apply a previously-planned provisioning run to the external tool
+      description: Executes the confirmed plan against the connected tool. This is the only path that writes to an external service.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Applied run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingProvisionRun"
+        "400":
+          description: Run is not in a plannable state or apply failed
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -4272,7 +4381,7 @@ components:
       properties:
         provider:
           type: string
-          enum: [resend, calendly]
+          enum: [resend, calendly, airtable, make, instantly, beehiiv]
         connected:
           type: boolean
         accountRef:
@@ -4290,7 +4399,7 @@ components:
       properties:
         provider:
           type: string
-          enum: [resend, calendly]
+          enum: [resend, calendly, airtable, make, instantly, beehiiv]
         apiKey:
           type: string
         bookingUrl:
@@ -4451,3 +4560,173 @@ components:
           type: integer
         total:
           type: integer
+
+    MarketingConnector:
+      type: object
+      required: [id, label, category, authType, provisionable, description, connected]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        category:
+          type: string
+          enum: [capture, qualify, convert, nurture, reengage, email]
+        authType:
+          type: string
+          enum: [managed, byokey, url]
+        provisionable:
+          type: boolean
+        description:
+          type: string
+        accountRefLabel:
+          type: ["string", "null"]
+        accountRefRequired:
+          type: boolean
+        connected:
+          type: boolean
+        accountRef:
+          type: ["string", "null"]
+
+    BlueprintIntakeField:
+      type: object
+      required: [key, label, type, required]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum: [short_text, long_text, email, number]
+        required:
+          type: boolean
+
+    BlueprintCrmField:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [short_text, long_text, email, number]
+
+    BlueprintCrmTable:
+      type: object
+      required: [name, fields]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/BlueprintCrmField"
+
+    BlueprintDefinition:
+      type: object
+      required: [intakeForm, crm]
+      properties:
+        intakeForm:
+          type: object
+          required: [title, fields]
+          properties:
+            title:
+              type: string
+            fields:
+              type: array
+              items:
+                $ref: "#/components/schemas/BlueprintIntakeField"
+        crm:
+          type: object
+          required: [baseName, tables]
+          properties:
+            baseName:
+              type: string
+            tables:
+              type: array
+              items:
+                $ref: "#/components/schemas/BlueprintCrmTable"
+
+    MarketingBlueprint:
+      type: object
+      required: [id, name, definition, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        definition:
+          $ref: "#/components/schemas/BlueprintDefinition"
+        updatedAt:
+          type: string
+
+    MarketingBlueprintUpdate:
+      type: object
+      required: [definition]
+      properties:
+        definition:
+          $ref: "#/components/schemas/BlueprintDefinition"
+
+    ProvisionChange:
+      type: object
+      required: [op, summary]
+      properties:
+        op:
+          type: string
+        summary:
+          type: string
+        detail:
+          type: object
+          additionalProperties: true
+
+    ProvisionPlan:
+      type: object
+      required: [provider, summary, changes]
+      properties:
+        provider:
+          type: string
+        summary:
+          type: string
+        changes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProvisionChange"
+
+    ProvisionResult:
+      type: object
+      required: [applied]
+      properties:
+        applied:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProvisionChange"
+        outputs:
+          type: object
+          additionalProperties: true
+
+    MarketingProvisionRun:
+      type: object
+      required: [id, provider, status, plan, createdAt]
+      properties:
+        id:
+          type: integer
+        provider:
+          type: string
+        status:
+          type: string
+          enum: [planned, applying, applied, failed]
+        plan:
+          $ref: "#/components/schemas/ProvisionPlan"
+        result:
+          oneOf:
+            - $ref: "#/components/schemas/ProvisionResult"
+            - type: "null"
+        error:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        appliedAt:
+          type: ["string", "null"]

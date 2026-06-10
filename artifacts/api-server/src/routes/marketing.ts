@@ -6,6 +6,7 @@ import {
   marketingConnectionsTable,
   marketingActivityTable,
   marketingFormSourcesTable,
+  marketingProvisionRunsTable,
   type FormFieldMapping,
 } from "@workspace/db";
 import {
@@ -23,6 +24,9 @@ import {
   SaveMarketingFormSourceBody,
   DeleteMarketingFormSourceParams,
   SyncMarketingFormSourceParams,
+  UpdateMarketingBlueprintBody,
+  PlanMarketingProvisionParams,
+  ApplyMarketingProvisionRunParams,
 } from "@workspace/api-zod";
 import { and, desc, eq } from "drizzle-orm";
 import { isAdmin, requireAdmin } from "../middlewares/requireAdmin";
@@ -50,6 +54,15 @@ import {
   getTypeformFields,
   syncFormSource,
 } from "../services/typeform";
+import {
+  MARKETING_CONNECTORS,
+  getConnector,
+} from "../services/marketingConnectors";
+import { getOrCreateBlueprint, updateBlueprint } from "../services/blueprint";
+import {
+  getProvisionAdapter,
+  ProvisionError,
+} from "../services/provisioning";
 
 const router = Router();
 
@@ -117,9 +130,16 @@ function serializeActivity(a: ActivityRow) {
 }
 
 function serializeConnection(c: ConnectionRow) {
+  const meta = getConnector(c.provider);
+  // Connection is "connected" per its auth model: url providers need a booking
+  // URL, byokey providers need a stored encrypted key.
+  const connected =
+    meta?.authType === "url"
+      ? Boolean(c.bookingUrl)
+      : Boolean(c.apiKeyEncrypted);
   return {
     provider: c.provider,
-    connected: c.provider === "resend" ? Boolean(c.apiKeyEncrypted) : Boolean(c.bookingUrl),
+    connected,
     accountRef: c.accountRef,
     bookingUrl: c.bookingUrl,
     createdAt: c.createdAt.toISOString(),
@@ -590,24 +610,54 @@ router.post("/marketing/connections", requireAdmin, async (req, res) => {
   }
   const { provider, apiKey, bookingUrl, accountRef } = parsed.data;
 
-  if (provider === "resend") {
-    if (!apiKey) {
-      res.status(400).json({ error: "An API key is required for Resend." });
+  const meta = getConnector(provider);
+  if (!meta) {
+    res.status(400).json({ error: "Unknown provider." });
+    return;
+  }
+  if (meta.authType === "managed") {
+    res.status(400).json({ error: `${meta.label} is connected through Replit, not an API key.` });
+    return;
+  }
+
+  // Look up any existing connection so updates can change only some fields
+  // (e.g. an account ref) without forcing the operator to re-enter the key.
+  const [existing] = await db
+    .select()
+    .from(marketingConnectionsTable)
+    .where(
+      and(
+        eq(marketingConnectionsTable.tenant, MARKETING_TENANT),
+        eq(marketingConnectionsTable.provider, provider),
+      ),
+    );
+
+  if (meta.authType === "url") {
+    if (!bookingUrl && !existing?.bookingUrl) {
+      res.status(400).json({ error: `A URL is required for ${meta.label}.` });
       return;
     }
-    if (!isEncryptionConfigured()) {
+  } else {
+    // byokey
+    if (!apiKey && !existing?.apiKeyEncrypted) {
+      res.status(400).json({ error: `An API key is required for ${meta.label}.` });
+      return;
+    }
+    if (apiKey && !isEncryptionConfigured()) {
       req.log.error("APP_ENCRYPTION_KEY missing; cannot store marketing key");
       res.status(500).json({ error: "Server is not configured to store API keys." });
       return;
     }
-  }
-  if (provider === "calendly" && !bookingUrl) {
-    res.status(400).json({ error: "A booking URL is required for Calendly." });
-    return;
+    if (meta.accountRefRequired && !accountRef && !existing?.accountRef) {
+      res.status(400).json({
+        error: `${meta.accountRefLabel ?? "An account reference"} is required for ${meta.label}.`,
+      });
+      return;
+    }
   }
 
   const now = new Date();
-  const encrypted = provider === "resend" && apiKey ? encryptSecret(apiKey) : null;
+  const encrypted = meta.authType !== "url" && apiKey ? encryptSecret(apiKey) : null;
   const [saved] = await db
     .insert(marketingConnectionsTable)
     .values({
@@ -652,6 +702,245 @@ router.delete("/marketing/connections/:provider", requireAdmin, async (req, res)
   }
   res.status(204).send();
 });
+
+// --- Control plane: connector registry, blueprint, provisioning ---
+
+function serializeRun(r: typeof marketingProvisionRunsTable.$inferSelect) {
+  return {
+    id: r.id,
+    provider: r.provider,
+    status: r.status,
+    plan: r.plan,
+    result: r.result ?? null,
+    error: r.error ?? null,
+    createdAt: r.createdAt.toISOString(),
+    appliedAt: r.appliedAt ? r.appliedAt.toISOString() : null,
+  };
+}
+
+// The registry of orchestratable tools, annotated with live connection status so
+// the Build/Connections UI can render one card per tool.
+router.get("/marketing/connectors", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(marketingConnectionsTable)
+    .where(eq(marketingConnectionsTable.tenant, MARKETING_TENANT));
+  const byProvider = new Map(rows.map((r) => [r.provider, r]));
+  const tfStatus = await getTypeformStatus().catch(() => ({ connected: false }));
+
+  const connectors = MARKETING_CONNECTORS.map((meta) => {
+    const row = byProvider.get(meta.id);
+    let connected = false;
+    let accountRef: string | null = null;
+    if (meta.authType === "managed") {
+      connected = meta.id === "typeform" ? tfStatus.connected : false;
+    } else if (meta.authType === "url") {
+      connected = Boolean(row?.bookingUrl);
+    } else {
+      connected = Boolean(row?.apiKeyEncrypted);
+      accountRef = row?.accountRef ?? null;
+    }
+    return {
+      id: meta.id,
+      label: meta.label,
+      category: meta.category,
+      authType: meta.authType,
+      provisionable: meta.provisionable,
+      description: meta.description,
+      accountRefLabel: meta.accountRefLabel ?? null,
+      accountRefRequired: Boolean(meta.accountRefRequired),
+      connected,
+      accountRef,
+    };
+  });
+  res.json(connectors);
+});
+
+router.get("/marketing/blueprint", requireAdmin, async (_req, res) => {
+  const bp = await getOrCreateBlueprint();
+  res.json({
+    id: bp.id,
+    name: bp.name,
+    definition: bp.definition,
+    updatedAt: bp.updatedAt.toISOString(),
+  });
+});
+
+router.put("/marketing/blueprint", requireAdmin, async (req, res) => {
+  const parsed = UpdateMarketingBlueprintBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const bp = await updateBlueprint(parsed.data.definition);
+  await logMarketingActivity("blueprint_saved", "Updated funnel blueprint", null);
+  res.json({
+    id: bp.id,
+    name: bp.name,
+    definition: bp.definition,
+    updatedAt: bp.updatedAt.toISOString(),
+  });
+});
+
+// Preview the changes needed to reconcile a tool toward the blueprint. Persists
+// a `planned` run; NOTHING is written to the external tool here.
+router.post(
+  "/marketing/provision/:provider/plan",
+  requireAdmin,
+  externalApiRateLimit,
+  async (req, res) => {
+    const parsed = PlanMarketingProvisionParams.safeParse({
+      provider: req.params.provider,
+    });
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid provider" });
+      return;
+    }
+    const { provider } = parsed.data;
+    const meta = getConnector(provider);
+    const adapter = getProvisionAdapter(provider);
+    if (!meta || !meta.provisionable || !adapter) {
+      res.status(400).json({ error: "This tool cannot be provisioned." });
+      return;
+    }
+    const bp = await getOrCreateBlueprint();
+    let plan;
+    try {
+      plan = await adapter.plan(bp.definition);
+    } catch (err) {
+      if (err instanceof ProvisionError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      req.log.error({ err }, "provision plan failed");
+      res.status(400).json({ error: "Could not plan this provisioning run." });
+      return;
+    }
+    const [run] = await db
+      .insert(marketingProvisionRunsTable)
+      .values({
+        tenant: MARKETING_TENANT,
+        blueprintId: bp.id,
+        provider,
+        status: "planned",
+        plan,
+      })
+      .returning();
+    await logMarketingActivity(
+      "provision_planned",
+      `Planned provisioning for ${meta.label}`,
+      null,
+    );
+    res.json(serializeRun(run));
+  },
+);
+
+router.get("/marketing/provision/runs", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(marketingProvisionRunsTable)
+    .where(eq(marketingProvisionRunsTable.tenant, MARKETING_TENANT))
+    .orderBy(desc(marketingProvisionRunsTable.createdAt));
+  res.json(rows.map(serializeRun));
+});
+
+// Apply a previously-planned run. This is the ONLY path that writes to an
+// external tool, and only runs after the operator has confirmed the plan.
+router.post(
+  "/marketing/provision/runs/:id/apply",
+  requireAdmin,
+  externalApiRateLimit,
+  async (req, res) => {
+    const parsed = ApplyMarketingProvisionRunParams.safeParse({
+      id: req.params.id,
+    });
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid run id" });
+      return;
+    }
+    const [run] = await db
+      .select()
+      .from(marketingProvisionRunsTable)
+      .where(
+        and(
+          eq(marketingProvisionRunsTable.tenant, MARKETING_TENANT),
+          eq(marketingProvisionRunsTable.id, parsed.data.id),
+        ),
+      );
+    if (!run) {
+      res.status(404).json({ error: "Run not found" });
+      return;
+    }
+    if (run.status !== "planned") {
+      res.status(400).json({ error: `Run is already ${run.status}.` });
+      return;
+    }
+    const adapter = getProvisionAdapter(run.provider);
+    if (!adapter) {
+      res.status(400).json({ error: "This tool cannot be provisioned." });
+      return;
+    }
+    // Atomically claim the run before any external write. Only the request that
+    // flips planned->applying proceeds; a concurrent confirm finds 0 rows and is
+    // rejected, so the external tool is never written twice for one run.
+    const claimed = await db
+      .update(marketingProvisionRunsTable)
+      .set({ status: "applying" })
+      .where(
+        and(
+          eq(marketingProvisionRunsTable.tenant, MARKETING_TENANT),
+          eq(marketingProvisionRunsTable.id, run.id),
+          eq(marketingProvisionRunsTable.status, "planned"),
+        ),
+      )
+      .returning();
+    if (claimed.length === 0) {
+      res.status(409).json({ error: "Run is already being applied." });
+      return;
+    }
+    const claimedRun = claimed[0];
+    try {
+      const result = await adapter.apply(claimedRun.plan);
+      const [updated] = await db
+        .update(marketingProvisionRunsTable)
+        .set({ status: "applied", result, error: null, appliedAt: new Date() })
+        .where(
+          and(
+            eq(marketingProvisionRunsTable.tenant, MARKETING_TENANT),
+            eq(marketingProvisionRunsTable.id, claimedRun.id),
+            eq(marketingProvisionRunsTable.status, "applying"),
+          ),
+        )
+        .returning();
+      await logMarketingActivity(
+        "provision_applied",
+        `Applied provisioning for ${getConnector(run.provider)?.label ?? run.provider}`,
+        null,
+      );
+      res.json(serializeRun(updated));
+    } catch (err) {
+      const message =
+        err instanceof ProvisionError
+          ? err.message
+          : "Provisioning failed while writing to the tool.";
+      if (!(err instanceof ProvisionError)) {
+        req.log.error({ err }, "provision apply failed");
+      }
+      const [updated] = await db
+        .update(marketingProvisionRunsTable)
+        .set({ status: "failed", error: message })
+        .where(
+          and(
+            eq(marketingProvisionRunsTable.tenant, MARKETING_TENANT),
+            eq(marketingProvisionRunsTable.id, claimedRun.id),
+            eq(marketingProvisionRunsTable.status, "applying"),
+          ),
+        )
+        .returning();
+      res.status(400).json({ error: message, run: serializeRun(updated) });
+    }
+  },
+);
 
 // --- Typeform lead connector (one-way: pull submissions in as leads) ---
 

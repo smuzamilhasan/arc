@@ -12,4 +12,8 @@ export type MarketingConnectionInputProvider = typeof MarketingConnectionInputPr
 export const MarketingConnectionInputProvider = {
   resend: 'resend',
   calendly: 'calendly',
+  airtable: 'airtable',
+  make: 'make',
+  instantly: 'instantly',
+  beehiiv: 'beehiiv',
 } as const;

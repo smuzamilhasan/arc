@@ -2670,7 +2670,7 @@ export const RejectMarketingActionResponse = zod.object({
  * @summary List connected marketing services
  */
 export const ListMarketingConnectionsResponseItem = zod.object({
-  "provider": zod.enum(['resend', 'calendly']),
+  "provider": zod.enum(['resend', 'calendly', 'airtable', 'make', 'instantly', 'beehiiv']),
   "connected": zod.boolean(),
   "accountRef": zod.string().nullish(),
   "bookingUrl": zod.string().nullish(),
@@ -2685,14 +2685,14 @@ export const ListMarketingConnectionsResponse = zod.array(ListMarketingConnectio
  * @summary Connect or update a marketing service
  */
 export const SaveMarketingConnectionBody = zod.object({
-  "provider": zod.enum(['resend', 'calendly']),
+  "provider": zod.enum(['resend', 'calendly', 'airtable', 'make', 'instantly', 'beehiiv']),
   "apiKey": zod.string().optional(),
   "bookingUrl": zod.string().optional(),
   "accountRef": zod.string().optional()
 })
 
 export const SaveMarketingConnectionResponse = zod.object({
-  "provider": zod.enum(['resend', 'calendly']),
+  "provider": zod.enum(['resend', 'calendly', 'airtable', 'make', 'instantly', 'beehiiv']),
   "connected": zod.boolean(),
   "accountRef": zod.string().nullish(),
   "bookingUrl": zod.string().nullish(),
@@ -2829,6 +2829,215 @@ export const SyncMarketingFormSourceResponse = zod.object({
   "ingested": zod.number(),
   "skipped": zod.number(),
   "total": zod.number()
+})
+
+
+/**
+ * Returns the connector registry (one entry per supported tool) annotated with whether it is currently connected for this tenant.
+ * @summary List all orchestratable tools with connection status
+ */
+export const ListMarketingConnectorsResponseItem = zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "category": zod.enum(['capture', 'qualify', 'convert', 'nurture', 'reengage', 'email']),
+  "authType": zod.enum(['managed', 'byokey', 'url']),
+  "provisionable": zod.boolean(),
+  "description": zod.string(),
+  "accountRefLabel": zod.string().nullish(),
+  "accountRefRequired": zod.boolean().optional(),
+  "connected": zod.boolean(),
+  "accountRef": zod.string().nullish()
+})
+export const ListMarketingConnectorsResponse = zod.array(ListMarketingConnectorsResponseItem)
+
+
+/**
+ * @summary The funnel blueprint (desired state) for this tenant
+ */
+export const GetMarketingBlueprintResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "definition": zod.object({
+  "intakeForm": zod.object({
+  "title": zod.string(),
+  "fields": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'email', 'number']),
+  "required": zod.boolean()
+}))
+}),
+  "crm": zod.object({
+  "baseName": zod.string(),
+  "tables": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "fields": zod.array(zod.object({
+  "name": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'email', 'number'])
+}))
+}))
+})
+}),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Replace the funnel blueprint definition
+ */
+export const UpdateMarketingBlueprintBody = zod.object({
+  "definition": zod.object({
+  "intakeForm": zod.object({
+  "title": zod.string(),
+  "fields": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'email', 'number']),
+  "required": zod.boolean()
+}))
+}),
+  "crm": zod.object({
+  "baseName": zod.string(),
+  "tables": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "fields": zod.array(zod.object({
+  "name": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'email', 'number'])
+}))
+}))
+})
+})
+})
+
+export const UpdateMarketingBlueprintResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "definition": zod.object({
+  "intakeForm": zod.object({
+  "title": zod.string(),
+  "fields": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'email', 'number']),
+  "required": zod.boolean()
+}))
+}),
+  "crm": zod.object({
+  "baseName": zod.string(),
+  "tables": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "fields": zod.array(zod.object({
+  "name": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'email', 'number'])
+}))
+}))
+})
+}),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * Computes and persists a planned provisioning run. Nothing is written to the external tool until the run is explicitly applied.
+ * @summary Plan (preview) the changes to reconcile a tool toward the blueprint
+ */
+export const PlanMarketingProvisionParams = zod.object({
+  "provider": zod.coerce.string()
+})
+
+export const PlanMarketingProvisionResponse = zod.object({
+  "id": zod.number(),
+  "provider": zod.string(),
+  "status": zod.enum(['planned', 'applying', 'applied', 'failed']),
+  "plan": zod.object({
+  "provider": zod.string(),
+  "summary": zod.string(),
+  "changes": zod.array(zod.object({
+  "op": zod.string(),
+  "summary": zod.string(),
+  "detail": zod.record(zod.string(), zod.unknown()).optional()
+}))
+}),
+  "result": zod.union([zod.object({
+  "applied": zod.array(zod.object({
+  "op": zod.string(),
+  "summary": zod.string(),
+  "detail": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "outputs": zod.record(zod.string(), zod.unknown()).optional()
+}),zod.null()]).optional(),
+  "error": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "appliedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary List provisioning runs (planned and applied) for this tenant
+ */
+export const ListMarketingProvisionRunsResponseItem = zod.object({
+  "id": zod.number(),
+  "provider": zod.string(),
+  "status": zod.enum(['planned', 'applying', 'applied', 'failed']),
+  "plan": zod.object({
+  "provider": zod.string(),
+  "summary": zod.string(),
+  "changes": zod.array(zod.object({
+  "op": zod.string(),
+  "summary": zod.string(),
+  "detail": zod.record(zod.string(), zod.unknown()).optional()
+}))
+}),
+  "result": zod.union([zod.object({
+  "applied": zod.array(zod.object({
+  "op": zod.string(),
+  "summary": zod.string(),
+  "detail": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "outputs": zod.record(zod.string(), zod.unknown()).optional()
+}),zod.null()]).optional(),
+  "error": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "appliedAt": zod.string().nullish()
+})
+export const ListMarketingProvisionRunsResponse = zod.array(ListMarketingProvisionRunsResponseItem)
+
+
+/**
+ * Executes the confirmed plan against the connected tool. This is the only path that writes to an external service.
+ * @summary Apply a previously-planned provisioning run to the external tool
+ */
+export const ApplyMarketingProvisionRunParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ApplyMarketingProvisionRunResponse = zod.object({
+  "id": zod.number(),
+  "provider": zod.string(),
+  "status": zod.enum(['planned', 'applying', 'applied', 'failed']),
+  "plan": zod.object({
+  "provider": zod.string(),
+  "summary": zod.string(),
+  "changes": zod.array(zod.object({
+  "op": zod.string(),
+  "summary": zod.string(),
+  "detail": zod.record(zod.string(), zod.unknown()).optional()
+}))
+}),
+  "result": zod.union([zod.object({
+  "applied": zod.array(zod.object({
+  "op": zod.string(),
+  "summary": zod.string(),
+  "detail": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "outputs": zod.record(zod.string(), zod.unknown()).optional()
+}),zod.null()]).optional(),
+  "error": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "appliedAt": zod.string().nullish()
 })
 
 

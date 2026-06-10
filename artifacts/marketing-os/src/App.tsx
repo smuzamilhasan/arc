@@ -28,6 +28,7 @@ import Leads from "@/pages/leads";
 import LeadDetail from "@/pages/lead-detail";
 import Actions from "@/pages/actions";
 import Connections from "@/pages/connections";
+import Build from "@/pages/build";
 import Activity from "@/pages/activity";
 import AccessDenied from "@/pages/access-denied";
 import NotFound from "@/pages/not-found";
@@ -199,6 +200,7 @@ function ClerkProviderWithRoutes() {
                     <Route path="/leads" component={Leads} />
                     <Route path="/leads/:id" component={LeadDetail} />
                     <Route path="/actions" component={Actions} />
+                    <Route path="/build" component={Build} />
                     <Route path="/connections" component={Connections} />
                     <Route path="/activity" component={Activity} />
                     <Route component={NotFound} />

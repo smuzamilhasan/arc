@@ -23,3 +23,5 @@ export * from "./marketingActions";
 export * from "./marketingConnections";
 export * from "./marketingActivity";
 export * from "./marketingFormSources";
+export * from "./marketingBlueprints";
+export * from "./marketingProvisionRuns";

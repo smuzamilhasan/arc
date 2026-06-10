@@ -87,6 +87,43 @@ async function tf<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+// POST a JSON body to the Typeform API through the managed connector proxy.
+// Used by the provisioning engine to CREATE config (e.g. an intake form) inside
+// the connected account — the only write path Marketing OS has into Typeform.
+async function tfPost<T>(path: string, body: unknown): Promise<T> {
+  const res = await connectors.proxy("typeform", path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Typeform API ${res.status} for ${path}: ${detail.slice(0, 300)}`);
+  }
+  return (await res.json()) as T;
+}
+
+export interface CreatedTypeformForm {
+  id: string;
+  url: string;
+}
+
+// Create a new Typeform form from a provisioning plan. `fields` are already in
+// Typeform's create shape. Returns the new form id and its public link.
+export async function createTypeformForm(
+  title: string,
+  fields: Array<{ title: string; ref: string; type: string; validations?: { required?: boolean } }>,
+): Promise<CreatedTypeformForm> {
+  const created = await tfPost<{ id: string; _links?: { display?: string } }>(
+    "/forms",
+    { title, fields },
+  );
+  return {
+    id: created.id,
+    url: created._links?.display ?? `https://form.typeform.com/to/${created.id}`,
+  };
+}
+
 // True when a Typeform connection is authorized and reachable.
 export async function getTypeformStatus(): Promise<{ connected: boolean }> {
   try {

@@ -7,6 +7,8 @@ import {
   marketingConnectionsTable,
   marketingActivityTable,
   marketingFormSourcesTable,
+  marketingBlueprintsTable,
+  marketingProvisionRunsTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { deleteTenantMarketingData } from "../src/services/marketingData";
@@ -49,31 +51,60 @@ async function seedTenant(tenant: string) {
     formId: `form-${tenant}`,
     formTitle: "Seed Form",
   });
+  const [blueprint] = await db
+    .insert(marketingBlueprintsTable)
+    .values({
+      tenant,
+      name: "default",
+      definition: {
+        intakeForm: { title: "Seed", fields: [] },
+        crm: { baseName: "Seed CRM", tables: [] },
+      },
+    })
+    .returning();
+  await db.insert(marketingProvisionRunsTable).values({
+    tenant,
+    blueprintId: blueprint.id,
+    provider: "typeform",
+    status: "planned",
+    plan: { provider: "typeform", summary: "Seed plan", changes: [] },
+  });
 }
 
 async function countTenant(tenant: string) {
-  const [leads, actions, connections, activity, formSources] = await Promise.all([
-    db.select().from(marketingLeadsTable).where(eq(marketingLeadsTable.tenant, tenant)),
-    db.select().from(marketingActionsTable).where(eq(marketingActionsTable.tenant, tenant)),
-    db
-      .select()
-      .from(marketingConnectionsTable)
-      .where(eq(marketingConnectionsTable.tenant, tenant)),
-    db
-      .select()
-      .from(marketingActivityTable)
-      .where(eq(marketingActivityTable.tenant, tenant)),
-    db
-      .select()
-      .from(marketingFormSourcesTable)
-      .where(eq(marketingFormSourcesTable.tenant, tenant)),
-  ]);
+  const [leads, actions, connections, activity, formSources, blueprints, provisionRuns] =
+    await Promise.all([
+      db.select().from(marketingLeadsTable).where(eq(marketingLeadsTable.tenant, tenant)),
+      db.select().from(marketingActionsTable).where(eq(marketingActionsTable.tenant, tenant)),
+      db
+        .select()
+        .from(marketingConnectionsTable)
+        .where(eq(marketingConnectionsTable.tenant, tenant)),
+      db
+        .select()
+        .from(marketingActivityTable)
+        .where(eq(marketingActivityTable.tenant, tenant)),
+      db
+        .select()
+        .from(marketingFormSourcesTable)
+        .where(eq(marketingFormSourcesTable.tenant, tenant)),
+      db
+        .select()
+        .from(marketingBlueprintsTable)
+        .where(eq(marketingBlueprintsTable.tenant, tenant)),
+      db
+        .select()
+        .from(marketingProvisionRunsTable)
+        .where(eq(marketingProvisionRunsTable.tenant, tenant)),
+    ]);
   return {
     leads: leads.length,
     actions: actions.length,
     connections: connections.length,
     activity: activity.length,
     formSources: formSources.length,
+    blueprints: blueprints.length,
+    provisionRuns: provisionRuns.length,
   };
 }
 
@@ -91,12 +122,28 @@ describe("deleteTenantMarketingData", () => {
   it("removes every marketing table row for the tenant", async () => {
     await seedTenant(TENANT);
     const before = await countTenant(TENANT);
-    expect(before).toEqual({ leads: 1, actions: 1, connections: 1, activity: 1, formSources: 1 });
+    expect(before).toEqual({
+      leads: 1,
+      actions: 1,
+      connections: 1,
+      activity: 1,
+      formSources: 1,
+      blueprints: 1,
+      provisionRuns: 1,
+    });
 
     await deleteTenantMarketingData(TENANT);
 
     const after = await countTenant(TENANT);
-    expect(after).toEqual({ leads: 0, actions: 0, connections: 0, activity: 0, formSources: 0 });
+    expect(after).toEqual({
+      leads: 0,
+      actions: 0,
+      connections: 0,
+      activity: 0,
+      formSources: 0,
+      blueprints: 0,
+      provisionRuns: 0,
+    });
   });
 
   it("does not touch other tenants' data", async () => {
@@ -106,9 +153,25 @@ describe("deleteTenantMarketingData", () => {
     await deleteTenantMarketingData(TENANT);
 
     const purged = await countTenant(TENANT);
-    expect(purged).toEqual({ leads: 0, actions: 0, connections: 0, activity: 0, formSources: 0 });
+    expect(purged).toEqual({
+      leads: 0,
+      actions: 0,
+      connections: 0,
+      activity: 0,
+      formSources: 0,
+      blueprints: 0,
+      provisionRuns: 0,
+    });
 
     const kept = await countTenant(OTHER_TENANT);
-    expect(kept).toEqual({ leads: 1, actions: 1, connections: 1, activity: 1, formSources: 1 });
+    expect(kept).toEqual({
+      leads: 1,
+      actions: 1,
+      connections: 1,
+      activity: 1,
+      formSources: 1,
+      blueprints: 1,
+      provisionRuns: 1,
+    });
   });
 });

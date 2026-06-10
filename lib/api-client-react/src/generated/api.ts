@@ -86,8 +86,11 @@ import type {
   MarketingAction,
   MarketingActionUpdate,
   MarketingActivity,
+  MarketingBlueprint,
+  MarketingBlueprintUpdate,
   MarketingConnection,
   MarketingConnectionInput,
+  MarketingConnector,
   MarketingDashboard,
   MarketingFormSource,
   MarketingFormSourceInput,
@@ -96,6 +99,7 @@ import type {
   MarketingLeadDetail,
   MarketingLeadInput,
   MarketingLeadIntake,
+  MarketingProvisionRun,
   MarketingSyncResult,
   NarrativeGenerateInput,
   NarrativeProfile,
@@ -8006,5 +8010,450 @@ export const useSyncMarketingFormSource = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getSyncMarketingFormSourceMutationOptions(options));
+    }
+
+export const getListMarketingConnectorsUrl = () => {
+
+
+
+
+  return `/api/marketing/connectors`
+}
+
+/**
+ * Returns the connector registry (one entry per supported tool) annotated with whether it is currently connected for this tenant.
+ * @summary List all orchestratable tools with connection status
+ */
+export const listMarketingConnectors = async ( options?: RequestInit): Promise<MarketingConnector[]> => {
+
+  return customFetch<MarketingConnector[]>(getListMarketingConnectorsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMarketingConnectorsQueryKey = () => {
+    return [
+    `/api/marketing/connectors`
+    ] as const;
+    }
+
+
+export const getListMarketingConnectorsQueryOptions = <TData = Awaited<ReturnType<typeof listMarketingConnectors>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMarketingConnectors>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMarketingConnectorsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMarketingConnectors>>> = ({ signal }) => listMarketingConnectors({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMarketingConnectors>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMarketingConnectorsQueryResult = NonNullable<Awaited<ReturnType<typeof listMarketingConnectors>>>
+export type ListMarketingConnectorsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all orchestratable tools with connection status
+ */
+
+export function useListMarketingConnectors<TData = Awaited<ReturnType<typeof listMarketingConnectors>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMarketingConnectors>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMarketingConnectorsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMarketingBlueprintUrl = () => {
+
+
+
+
+  return `/api/marketing/blueprint`
+}
+
+/**
+ * @summary The funnel blueprint (desired state) for this tenant
+ */
+export const getMarketingBlueprint = async ( options?: RequestInit): Promise<MarketingBlueprint> => {
+
+  return customFetch<MarketingBlueprint>(getGetMarketingBlueprintUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketingBlueprintQueryKey = () => {
+    return [
+    `/api/marketing/blueprint`
+    ] as const;
+    }
+
+
+export const getGetMarketingBlueprintQueryOptions = <TData = Awaited<ReturnType<typeof getMarketingBlueprint>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketingBlueprint>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketingBlueprintQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketingBlueprint>>> = ({ signal }) => getMarketingBlueprint({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketingBlueprint>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketingBlueprintQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketingBlueprint>>>
+export type GetMarketingBlueprintQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The funnel blueprint (desired state) for this tenant
+ */
+
+export function useGetMarketingBlueprint<TData = Awaited<ReturnType<typeof getMarketingBlueprint>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketingBlueprint>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketingBlueprintQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateMarketingBlueprintUrl = () => {
+
+
+
+
+  return `/api/marketing/blueprint`
+}
+
+/**
+ * @summary Replace the funnel blueprint definition
+ */
+export const updateMarketingBlueprint = async (marketingBlueprintUpdate: MarketingBlueprintUpdate, options?: RequestInit): Promise<MarketingBlueprint> => {
+
+  return customFetch<MarketingBlueprint>(getUpdateMarketingBlueprintUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      marketingBlueprintUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateMarketingBlueprintMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMarketingBlueprint>>, TError,{data: BodyType<MarketingBlueprintUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMarketingBlueprint>>, TError,{data: BodyType<MarketingBlueprintUpdate>}, TContext> => {
+
+const mutationKey = ['updateMarketingBlueprint'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMarketingBlueprint>>, {data: BodyType<MarketingBlueprintUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMarketingBlueprint(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMarketingBlueprintMutationResult = NonNullable<Awaited<ReturnType<typeof updateMarketingBlueprint>>>
+    export type UpdateMarketingBlueprintMutationBody = BodyType<MarketingBlueprintUpdate>
+    export type UpdateMarketingBlueprintMutationError = ErrorType<void>
+
+    /**
+ * @summary Replace the funnel blueprint definition
+ */
+export const useUpdateMarketingBlueprint = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMarketingBlueprint>>, TError,{data: BodyType<MarketingBlueprintUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMarketingBlueprint>>,
+        TError,
+        {data: BodyType<MarketingBlueprintUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateMarketingBlueprintMutationOptions(options));
+    }
+
+export const getPlanMarketingProvisionUrl = (provider: string,) => {
+
+
+
+
+  return `/api/marketing/provision/${provider}/plan`
+}
+
+/**
+ * Computes and persists a planned provisioning run. Nothing is written to the external tool until the run is explicitly applied.
+ * @summary Plan (preview) the changes to reconcile a tool toward the blueprint
+ */
+export const planMarketingProvision = async (provider: string, options?: RequestInit): Promise<MarketingProvisionRun> => {
+
+  return customFetch<MarketingProvisionRun>(getPlanMarketingProvisionUrl(provider),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getPlanMarketingProvisionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof planMarketingProvision>>, TError,{provider: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof planMarketingProvision>>, TError,{provider: string}, TContext> => {
+
+const mutationKey = ['planMarketingProvision'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof planMarketingProvision>>, {provider: string}> = (props) => {
+          const {provider} = props ?? {};
+
+          return  planMarketingProvision(provider,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PlanMarketingProvisionMutationResult = NonNullable<Awaited<ReturnType<typeof planMarketingProvision>>>
+
+    export type PlanMarketingProvisionMutationError = ErrorType<void>
+
+    /**
+ * @summary Plan (preview) the changes to reconcile a tool toward the blueprint
+ */
+export const usePlanMarketingProvision = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof planMarketingProvision>>, TError,{provider: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof planMarketingProvision>>,
+        TError,
+        {provider: string},
+        TContext
+      > => {
+      return useMutation(getPlanMarketingProvisionMutationOptions(options));
+    }
+
+export const getListMarketingProvisionRunsUrl = () => {
+
+
+
+
+  return `/api/marketing/provision/runs`
+}
+
+/**
+ * @summary List provisioning runs (planned and applied) for this tenant
+ */
+export const listMarketingProvisionRuns = async ( options?: RequestInit): Promise<MarketingProvisionRun[]> => {
+
+  return customFetch<MarketingProvisionRun[]>(getListMarketingProvisionRunsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMarketingProvisionRunsQueryKey = () => {
+    return [
+    `/api/marketing/provision/runs`
+    ] as const;
+    }
+
+
+export const getListMarketingProvisionRunsQueryOptions = <TData = Awaited<ReturnType<typeof listMarketingProvisionRuns>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMarketingProvisionRuns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMarketingProvisionRunsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMarketingProvisionRuns>>> = ({ signal }) => listMarketingProvisionRuns({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMarketingProvisionRuns>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMarketingProvisionRunsQueryResult = NonNullable<Awaited<ReturnType<typeof listMarketingProvisionRuns>>>
+export type ListMarketingProvisionRunsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List provisioning runs (planned and applied) for this tenant
+ */
+
+export function useListMarketingProvisionRuns<TData = Awaited<ReturnType<typeof listMarketingProvisionRuns>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMarketingProvisionRuns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMarketingProvisionRunsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getApplyMarketingProvisionRunUrl = (id: number,) => {
+
+
+
+
+  return `/api/marketing/provision/runs/${id}/apply`
+}
+
+/**
+ * Executes the confirmed plan against the connected tool. This is the only path that writes to an external service.
+ * @summary Apply a previously-planned provisioning run to the external tool
+ */
+export const applyMarketingProvisionRun = async (id: number, options?: RequestInit): Promise<MarketingProvisionRun> => {
+
+  return customFetch<MarketingProvisionRun>(getApplyMarketingProvisionRunUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getApplyMarketingProvisionRunMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyMarketingProvisionRun>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof applyMarketingProvisionRun>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['applyMarketingProvisionRun'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof applyMarketingProvisionRun>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  applyMarketingProvisionRun(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApplyMarketingProvisionRunMutationResult = NonNullable<Awaited<ReturnType<typeof applyMarketingProvisionRun>>>
+
+    export type ApplyMarketingProvisionRunMutationError = ErrorType<void>
+
+    /**
+ * @summary Apply a previously-planned provisioning run to the external tool
+ */
+export const useApplyMarketingProvisionRun = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyMarketingProvisionRun>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof applyMarketingProvisionRun>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getApplyMarketingProvisionRunMutationOptions(options));
     }
 

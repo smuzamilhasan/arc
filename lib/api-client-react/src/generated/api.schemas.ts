@@ -1533,6 +1533,10 @@ export type MarketingConnectionProvider = typeof MarketingConnectionProvider[key
 export const MarketingConnectionProvider = {
   resend: 'resend',
   calendly: 'calendly',
+  airtable: 'airtable',
+  make: 'make',
+  instantly: 'instantly',
+  beehiiv: 'beehiiv',
 } as const;
 
 export interface MarketingConnection {
@@ -1552,6 +1556,10 @@ export type MarketingConnectionInputProvider = typeof MarketingConnectionInputPr
 export const MarketingConnectionInputProvider = {
   resend: 'resend',
   calendly: 'calendly',
+  airtable: 'airtable',
+  make: 'make',
+  instantly: 'instantly',
+  beehiiv: 'beehiiv',
 } as const;
 
 export interface MarketingConnectionInput {
@@ -1639,6 +1647,150 @@ export interface MarketingSyncResult {
   ingested: number;
   skipped: number;
   total: number;
+}
+
+export type MarketingConnectorCategory = typeof MarketingConnectorCategory[keyof typeof MarketingConnectorCategory];
+
+
+export const MarketingConnectorCategory = {
+  capture: 'capture',
+  qualify: 'qualify',
+  convert: 'convert',
+  nurture: 'nurture',
+  reengage: 'reengage',
+  email: 'email',
+} as const;
+
+export type MarketingConnectorAuthType = typeof MarketingConnectorAuthType[keyof typeof MarketingConnectorAuthType];
+
+
+export const MarketingConnectorAuthType = {
+  managed: 'managed',
+  byokey: 'byokey',
+  url: 'url',
+} as const;
+
+export interface MarketingConnector {
+  id: string;
+  label: string;
+  category: MarketingConnectorCategory;
+  authType: MarketingConnectorAuthType;
+  provisionable: boolean;
+  description: string;
+  /** @nullable */
+  accountRefLabel?: string | null;
+  accountRefRequired?: boolean;
+  connected: boolean;
+  /** @nullable */
+  accountRef?: string | null;
+}
+
+export type BlueprintIntakeFieldType = typeof BlueprintIntakeFieldType[keyof typeof BlueprintIntakeFieldType];
+
+
+export const BlueprintIntakeFieldType = {
+  short_text: 'short_text',
+  long_text: 'long_text',
+  email: 'email',
+  number: 'number',
+} as const;
+
+export interface BlueprintIntakeField {
+  key: string;
+  label: string;
+  type: BlueprintIntakeFieldType;
+  required: boolean;
+}
+
+export type BlueprintCrmFieldType = typeof BlueprintCrmFieldType[keyof typeof BlueprintCrmFieldType];
+
+
+export const BlueprintCrmFieldType = {
+  short_text: 'short_text',
+  long_text: 'long_text',
+  email: 'email',
+  number: 'number',
+} as const;
+
+export interface BlueprintCrmField {
+  name: string;
+  type: BlueprintCrmFieldType;
+}
+
+export interface BlueprintCrmTable {
+  name: string;
+  description?: string;
+  fields: BlueprintCrmField[];
+}
+
+export type BlueprintDefinitionIntakeForm = {
+  title: string;
+  fields: BlueprintIntakeField[];
+};
+
+export type BlueprintDefinitionCrm = {
+  baseName: string;
+  tables: BlueprintCrmTable[];
+};
+
+export interface BlueprintDefinition {
+  intakeForm: BlueprintDefinitionIntakeForm;
+  crm: BlueprintDefinitionCrm;
+}
+
+export interface MarketingBlueprint {
+  id: number;
+  name: string;
+  definition: BlueprintDefinition;
+  updatedAt: string;
+}
+
+export interface MarketingBlueprintUpdate {
+  definition: BlueprintDefinition;
+}
+
+export type ProvisionChangeDetail = { [key: string]: unknown };
+
+export interface ProvisionChange {
+  op: string;
+  summary: string;
+  detail?: ProvisionChangeDetail;
+}
+
+export interface ProvisionPlan {
+  provider: string;
+  summary: string;
+  changes: ProvisionChange[];
+}
+
+export type ProvisionResultOutputs = { [key: string]: unknown };
+
+export interface ProvisionResult {
+  applied: ProvisionChange[];
+  outputs?: ProvisionResultOutputs;
+}
+
+export type MarketingProvisionRunStatus = typeof MarketingProvisionRunStatus[keyof typeof MarketingProvisionRunStatus];
+
+
+export const MarketingProvisionRunStatus = {
+  planned: 'planned',
+  applying: 'applying',
+  applied: 'applied',
+  failed: 'failed',
+} as const;
+
+export interface MarketingProvisionRun {
+  id: number;
+  provider: string;
+  status: MarketingProvisionRunStatus;
+  plan: ProvisionPlan;
+  result?: ProvisionResult | null;
+  /** @nullable */
+  error?: string | null;
+  createdAt: string;
+  /** @nullable */
+  appliedAt?: string | null;
 }
 
 export type ListPostsParams = {

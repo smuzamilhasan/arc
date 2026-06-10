@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { 
   useListMarketingConnections, 
+  useListMarketingConnectors,
   useSaveMarketingConnection, 
   useDeleteMarketingConnection,
   useResetMarketingData,
@@ -12,6 +13,7 @@ import {
   useDeleteMarketingFormSource,
   useSyncMarketingFormSource,
   getListMarketingConnectionsQueryKey,
+  getListMarketingConnectorsQueryKey,
   getGetMarketingDashboardQueryKey,
   getListMarketingLeadsQueryKey,
   getListMarketingActionsQueryKey,
@@ -30,7 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CheckCircle2, AlertCircle, Link as LinkIcon, Mail, Trash2, FileText, RefreshCw } from "lucide-react";
+import { CheckCircle2, AlertCircle, Link as LinkIcon, Mail, Trash2, FileText, RefreshCw, Plug } from "lucide-react";
 
 export default function Connections() {
   const { data: connections, isLoading } = useListMarketingConnections();
@@ -57,6 +59,8 @@ export default function Connections() {
         <ResendConnectionCard connection={resendConn} />
         <CalendlyConnectionCard connection={calendlyConn} />
       </div>
+
+      <MarketingToolsSection />
 
       <LeadSourcesSection />
 
@@ -356,6 +360,190 @@ function CalendlyConnectionCard({ connection }: { connection: any }) {
     </Card>
   );
 }
+function MarketingToolsSection() {
+  // BYO-key tools the control plane orchestrates, beyond Resend (which has its
+  // own card above). Driven by the connector registry so status, labels, and
+  // account-ref requirements stay server-authoritative.
+  const { data: connectors, isLoading } = useListMarketingConnectors();
+  const tools = (connectors ?? []).filter(
+    (c: any) => c.authType === "byokey" && c.id !== "resend",
+  );
+
+  if (isLoading) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-serif text-xl font-bold tracking-tight">Marketing stack</h2>
+        <p className="text-muted-foreground text-sm mt-1">
+          Connect the tools the control plane provisions and orchestrates. Keys are encrypted and never displayed.
+        </p>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        {tools.map((c: any) => (
+          <ByoKeyConnectionCard key={c.id} connector={c} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ByoKeyConnectionCard({ connector }: { connector: any }) {
+  const [apiKey, setApiKey] = useState("");
+  const [accountRef, setAccountRef] = useState(connector?.accountRef || "");
+  const [isEditing, setIsEditing] = useState(!connector?.connected);
+
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const saveConnection = useSaveMarketingConnection();
+  const deleteConnection = useDeleteMarketingConnection();
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: getListMarketingConnectorsQueryKey() });
+    qc.invalidateQueries({ queryKey: getListMarketingConnectionsQueryKey() });
+  };
+
+  const needsRef = Boolean(connector.accountRefRequired);
+
+  const handleSave = () => {
+    if (!apiKey && !connector.connected) return;
+    if (needsRef && !accountRef) return;
+    saveConnection.mutate(
+      {
+        data: {
+          provider: connector.id,
+          ...(apiKey ? { apiKey } : {}),
+          ...(needsRef ? { accountRef } : {}),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: `${connector.label} connected` });
+          setApiKey("");
+          setIsEditing(false);
+          invalidate();
+        },
+        onError: (err: any) =>
+          toast({ title: "Connection failed", description: err.message, variant: "destructive" }),
+      },
+    );
+  };
+
+  const handleDisconnect = () => {
+    deleteConnection.mutate(
+      { provider: connector.id },
+      {
+        onSuccess: () => {
+          toast({ title: `${connector.label} disconnected` });
+          setApiKey("");
+          setAccountRef("");
+          setIsEditing(true);
+          invalidate();
+        },
+      },
+    );
+  };
+
+  return (
+    <Card className={connector.connected ? "border-primary/20 shadow-sm" : ""}>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900 text-white">
+              <Plug size={20} />
+            </div>
+            <div>
+              <CardTitle className="text-lg">{connector.label}</CardTitle>
+              <CardDescription className="capitalize">{connector.category}</CardDescription>
+            </div>
+          </div>
+          {connector.connected ? (
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5">
+              <CheckCircle2 size={12} /> Connected
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1.5 text-muted-foreground">
+              <AlertCircle size={12} /> Not Connected
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-6">{connector.description}</p>
+
+        {isEditing ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor={`${connector.id}-api`}>API Key</Label>
+              <Input
+                id={`${connector.id}-api`}
+                type="password"
+                placeholder={connector.connected ? "Leave blank to keep current key" : "Paste your API key"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </div>
+            {needsRef && (
+              <div className="space-y-2">
+                <Label htmlFor={`${connector.id}-ref`}>{connector.accountRefLabel || "Account reference"}</Label>
+                <Input
+                  id={`${connector.id}-ref`}
+                  value={accountRef}
+                  onChange={(e) => setAccountRef(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-muted/30 rounded-lg p-4 flex items-center justify-between border border-border/50">
+            <div className="flex items-center gap-2 text-sm font-mono text-muted-foreground">
+              <span>••••••••••••••••••••••••</span>
+            </div>
+            <span className="text-xs text-muted-foreground">Encrypted</span>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="bg-muted/10 border-t border-border/50 px-6 py-4 flex justify-between">
+        {isEditing ? (
+          <>
+            {connector.connected ? (
+              <Button variant="ghost" size="sm" onClick={() => { setApiKey(""); setIsEditing(false); }}>
+                Cancel
+              </Button>
+            ) : (
+              <div />
+            )}
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={saveConnection.isPending || (!apiKey && !connector.connected) || (needsRef && !accountRef)}
+            >
+              {saveConnection.isPending ? "Connecting..." : "Connect"}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={handleDisconnect}
+              disabled={deleteConnection.isPending}
+            >
+              Disconnect
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              Update
+            </Button>
+          </>
+        )}
+      </CardFooter>
+    </Card>
+  );
+}
+
 function LeadSourcesSection() {
   const { data: status, isLoading: statusLoading } = useGetTypeformStatus();
   const { data: sources, isLoading: sourcesLoading } = useListMarketingFormSources();

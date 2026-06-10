@@ -18,3 +18,7 @@ export * from "./agencies";
 export * from "./agencyMembers";
 export * from "./agencyClientAccess";
 export * from "./invitations";
+export * from "./marketingLeads";
+export * from "./marketingActions";
+export * from "./marketingConnections";
+export * from "./marketingActivity";

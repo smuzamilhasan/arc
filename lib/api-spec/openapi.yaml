@@ -1670,6 +1670,333 @@ paths:
         "410":
           description: Invitation no longer active
 
+  /marketing/intake/webhook:
+    post:
+      operationId: intakeWebhookLead
+      tags: [marketing]
+      summary: Capture an inbound marketing lead from an external webhook
+      description: Public endpoint guarded by a shared secret header (x-marketing-secret). Persists the lead and kicks off AI qualification in the background.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketingLeadIntake"
+      responses:
+        "201":
+          description: Captured lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingLead"
+        "401":
+          description: Missing or invalid shared secret
+        "400":
+          description: Invalid input
+
+  /marketing/intake/form:
+    post:
+      operationId: intakeFormLead
+      tags: [marketing]
+      summary: Capture an inbound marketing lead from a public web form
+      description: Public, IP rate-limited endpoint. Persists the lead and kicks off AI qualification in the background.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketingLeadIntake"
+      responses:
+        "201":
+          description: Captured lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingLead"
+        "400":
+          description: Invalid input
+        "429":
+          description: Too many requests
+
+  /marketing/access:
+    get:
+      operationId: getMarketingAccess
+      tags: [marketing]
+      summary: Whether the current user can access Marketing OS
+      responses:
+        "200":
+          description: Access flag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingAccess"
+
+  /marketing/dashboard:
+    get:
+      operationId: getMarketingDashboard
+      tags: [marketing]
+      summary: Marketing OS funnel summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingDashboard"
+
+  /marketing/leads:
+    get:
+      operationId: listMarketingLeads
+      tags: [marketing]
+      summary: List captured leads, newest first
+      parameters:
+        - name: tier
+          in: query
+          schema:
+            type: string
+            enum: [high, medium, low]
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Leads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketingLead"
+    post:
+      operationId: createMarketingLead
+      tags: [marketing]
+      summary: Manually add a lead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketingLeadInput"
+      responses:
+        "201":
+          description: Created lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingLead"
+        "400":
+          description: Invalid input
+
+  /marketing/leads/{id}:
+    get:
+      operationId: getMarketingLead
+      tags: [marketing]
+      summary: Get a lead with its proposed action and activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lead detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingLeadDetail"
+        "404":
+          description: Not found
+
+  /marketing/leads/{id}/qualify:
+    post:
+      operationId: qualifyMarketingLead
+      tags: [marketing]
+      summary: Score lead fit and draft a routed outreach email (proposal only)
+      description: Runs the AI qualifier, scores fit (0-100) and tier, recommends a route, and drafts an editable outreach email as a pending action. Nothing is sent.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lead detail with the freshly proposed action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingLeadDetail"
+        "404":
+          description: Not found
+
+  /marketing/actions:
+    get:
+      operationId: listMarketingActions
+      tags: [marketing]
+      summary: List proposed actions, newest first
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        "200":
+          description: Actions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketingAction"
+
+  /marketing/actions/{id}:
+    patch:
+      operationId: updateMarketingAction
+      tags: [marketing]
+      summary: Edit a pending action's draft email before approval
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketingActionUpdate"
+      responses:
+        "200":
+          description: Updated action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingAction"
+        "404":
+          description: Not found
+        "409":
+          description: Action is not pending
+
+  /marketing/actions/{id}/approve:
+    post:
+      operationId: approveMarketingAction
+      tags: [marketing]
+      summary: Approve and execute an action (sends the drafted email)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Executed action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingAction"
+        "404":
+          description: Not found
+        "409":
+          description: Action is not pending
+        "502":
+          description: Email delivery failed
+
+  /marketing/actions/{id}/reject:
+    post:
+      operationId: rejectMarketingAction
+      tags: [marketing]
+      summary: Reject a proposed action without executing it
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rejected action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingAction"
+        "404":
+          description: Not found
+        "409":
+          description: Action is not pending
+
+  /marketing/connections:
+    get:
+      operationId: listMarketingConnections
+      tags: [marketing]
+      summary: List connected marketing services
+      description: Returns connection status per provider. Never returns the stored API key.
+      responses:
+        "200":
+          description: Connections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketingConnection"
+    post:
+      operationId: saveMarketingConnection
+      tags: [marketing]
+      summary: Connect or update a marketing service
+      description: Stores any API key encrypted at rest and saves provider config (such as a Calendly booking URL). Returns status without the key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketingConnectionInput"
+      responses:
+        "200":
+          description: Saved connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingConnection"
+        "400":
+          description: Invalid input
+
+  /marketing/connections/{provider}:
+    delete:
+      operationId: deleteMarketingConnection
+      tags: [marketing]
+      summary: Disconnect a marketing service and remove its stored key
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Disconnected
+        "404":
+          description: Not connected
+
+  /marketing/activity:
+    get:
+      operationId: listMarketingActivity
+      tags: [marketing]
+      summary: Recent Marketing OS activity feed
+      responses:
+        "200":
+          description: Activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketingActivity"
+
 components:
   schemas:
     HealthStatus:
@@ -3673,3 +4000,223 @@ components:
           type: integer
         clientId:
           type: ["integer", "null"]
+
+    MarketingLead:
+      type: object
+      required: [id, email, source, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: ["string", "null"]
+        email:
+          type: string
+        company:
+          type: ["string", "null"]
+        message:
+          type: ["string", "null"]
+        source:
+          type: string
+          description: Where the lead came from (webhook, form, manual).
+        fitScore:
+          type: ["integer", "null"]
+          description: AI-assessed fit, 0-100.
+        fitTier:
+          type: ["string", "null"]
+          enum: [high, medium, low, null]
+        status:
+          type: string
+          enum: [new, qualified, contacted, booked, archived]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    MarketingLeadIntake:
+      type: object
+      required: [email]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          minLength: 3
+        company:
+          type: string
+        message:
+          type: string
+        source:
+          type: string
+
+    MarketingLeadInput:
+      type: object
+      required: [email]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          minLength: 3
+        company:
+          type: string
+        message:
+          type: string
+        source:
+          type: string
+
+    MarketingLeadDetail:
+      type: object
+      required: [lead, activity]
+      properties:
+        lead:
+          $ref: "#/components/schemas/MarketingLead"
+        action:
+          oneOf:
+            - $ref: "#/components/schemas/MarketingAction"
+            - type: "null"
+        activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketingActivity"
+
+    MarketingAction:
+      type: object
+      required: [id, leadId, kind, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        leadId:
+          type: integer
+        kind:
+          type: string
+          enum: [outreach_email]
+        fitScore:
+          type: ["integer", "null"]
+        fitTier:
+          type: ["string", "null"]
+          enum: [high, medium, low, null]
+        rationale:
+          type: ["string", "null"]
+          description: Why the lead was scored and routed this way.
+        route:
+          type: ["string", "null"]
+          enum: [high, medium, low, null]
+          description: Recommended routing track based on fit.
+        emailSubject:
+          type: ["string", "null"]
+        emailBody:
+          type: ["string", "null"]
+        bookingUrl:
+          type: ["string", "null"]
+          description: Calendly booking link surfaced for high-fit leads.
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    MarketingActionUpdate:
+      type: object
+      properties:
+        emailSubject:
+          type: string
+        emailBody:
+          type: string
+
+    MarketingConnection:
+      type: object
+      required: [provider, connected, createdAt, updatedAt]
+      properties:
+        provider:
+          type: string
+          enum: [resend, calendly]
+        connected:
+          type: boolean
+        accountRef:
+          type: ["string", "null"]
+        bookingUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    MarketingConnectionInput:
+      type: object
+      required: [provider]
+      properties:
+        provider:
+          type: string
+          enum: [resend, calendly]
+        apiKey:
+          type: string
+        bookingUrl:
+          type: string
+        accountRef:
+          type: string
+
+    MarketingActivity:
+      type: object
+      required: [id, kind, summary, createdAt]
+      properties:
+        id:
+          type: integer
+        leadId:
+          type: ["integer", "null"]
+        kind:
+          type: string
+        summary:
+          type: string
+        createdAt:
+          type: string
+
+    MarketingTierCount:
+      type: object
+      required: [tier, count]
+      properties:
+        tier:
+          type: string
+        count:
+          type: integer
+
+    MarketingAccess:
+      type: object
+      required: [isAdmin]
+      properties:
+        isAdmin:
+          type: boolean
+
+    MarketingDashboard:
+      type: object
+      required: [totalLeads, newLeads, highFit, mediumFit, lowFit, pendingActions, emailsSent, leadsByTier, recentLeads, recentActivity]
+      properties:
+        totalLeads:
+          type: integer
+        newLeads:
+          type: integer
+        highFit:
+          type: integer
+        mediumFit:
+          type: integer
+        lowFit:
+          type: integer
+        pendingActions:
+          type: integer
+        emailsSent:
+          type: integer
+        bookingUrl:
+          type: ["string", "null"]
+        leadsByTier:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketingTierCount"
+        recentLeads:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketingLead"
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketingActivity"

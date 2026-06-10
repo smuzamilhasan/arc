@@ -2319,3 +2319,376 @@ export const AcceptInvitationResponse = zod.object({
 })
 
 
+/**
+ * Public endpoint guarded by a shared secret header (x-marketing-secret). Persists the lead and kicks off AI qualification in the background.
+ * @summary Capture an inbound marketing lead from an external webhook
+ */
+export const intakeWebhookLeadBodyEmailMin = 3;
+
+
+
+export const IntakeWebhookLeadBody = zod.object({
+  "name": zod.string().optional(),
+  "email": zod.string().min(intakeWebhookLeadBodyEmailMin),
+  "company": zod.string().optional(),
+  "message": zod.string().optional(),
+  "source": zod.string().optional()
+})
+
+
+/**
+ * Public, IP rate-limited endpoint. Persists the lead and kicks off AI qualification in the background.
+ * @summary Capture an inbound marketing lead from a public web form
+ */
+export const intakeFormLeadBodyEmailMin = 3;
+
+
+
+export const IntakeFormLeadBody = zod.object({
+  "name": zod.string().optional(),
+  "email": zod.string().min(intakeFormLeadBodyEmailMin),
+  "company": zod.string().optional(),
+  "message": zod.string().optional(),
+  "source": zod.string().optional()
+})
+
+
+/**
+ * @summary Whether the current user can access Marketing OS
+ */
+export const GetMarketingAccessResponse = zod.object({
+  "isAdmin": zod.boolean()
+})
+
+
+/**
+ * @summary Marketing OS funnel summary
+ */
+export const GetMarketingDashboardResponse = zod.object({
+  "totalLeads": zod.number(),
+  "newLeads": zod.number(),
+  "highFit": zod.number(),
+  "mediumFit": zod.number(),
+  "lowFit": zod.number(),
+  "pendingActions": zod.number(),
+  "emailsSent": zod.number(),
+  "bookingUrl": zod.string().nullish(),
+  "leadsByTier": zod.array(zod.object({
+  "tier": zod.string(),
+  "count": zod.number()
+})),
+  "recentLeads": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string().nullish(),
+  "email": zod.string(),
+  "company": zod.string().nullish(),
+  "message": zod.string().nullish(),
+  "source": zod.string().describe('Where the lead came from (webhook, form, manual).'),
+  "fitScore": zod.number().nullish().describe('AI-assessed fit, 0-100.'),
+  "fitTier": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish(),
+  "status": zod.enum(['new', 'qualified', 'contacted', 'booked', 'archived']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "recentActivity": zod.array(zod.object({
+  "id": zod.number(),
+  "leadId": zod.number().nullish(),
+  "kind": zod.string(),
+  "summary": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary List captured leads, newest first
+ */
+export const ListMarketingLeadsQueryParams = zod.object({
+  "tier": zod.enum(['high', 'medium', 'low']).optional(),
+  "status": zod.coerce.string().optional()
+})
+
+export const ListMarketingLeadsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string().nullish(),
+  "email": zod.string(),
+  "company": zod.string().nullish(),
+  "message": zod.string().nullish(),
+  "source": zod.string().describe('Where the lead came from (webhook, form, manual).'),
+  "fitScore": zod.number().nullish().describe('AI-assessed fit, 0-100.'),
+  "fitTier": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish(),
+  "status": zod.enum(['new', 'qualified', 'contacted', 'booked', 'archived']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListMarketingLeadsResponse = zod.array(ListMarketingLeadsResponseItem)
+
+
+/**
+ * @summary Manually add a lead
+ */
+export const createMarketingLeadBodyEmailMin = 3;
+
+
+
+export const CreateMarketingLeadBody = zod.object({
+  "name": zod.string().optional(),
+  "email": zod.string().min(createMarketingLeadBodyEmailMin),
+  "company": zod.string().optional(),
+  "message": zod.string().optional(),
+  "source": zod.string().optional()
+})
+
+
+/**
+ * @summary Get a lead with its proposed action and activity
+ */
+export const GetMarketingLeadParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetMarketingLeadResponse = zod.object({
+  "lead": zod.object({
+  "id": zod.number(),
+  "name": zod.string().nullish(),
+  "email": zod.string(),
+  "company": zod.string().nullish(),
+  "message": zod.string().nullish(),
+  "source": zod.string().describe('Where the lead came from (webhook, form, manual).'),
+  "fitScore": zod.number().nullish().describe('AI-assessed fit, 0-100.'),
+  "fitTier": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish(),
+  "status": zod.enum(['new', 'qualified', 'contacted', 'booked', 'archived']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),
+  "action": zod.union([zod.object({
+  "id": zod.number(),
+  "leadId": zod.number(),
+  "kind": zod.enum(['outreach_email']),
+  "fitScore": zod.number().nullish(),
+  "fitTier": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish(),
+  "rationale": zod.string().nullish().describe('Why the lead was scored and routed this way.'),
+  "route": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish().describe('Recommended routing track based on fit.'),
+  "emailSubject": zod.string().nullish(),
+  "emailBody": zod.string().nullish(),
+  "bookingUrl": zod.string().nullish().describe('Calendly booking link surfaced for high-fit leads.'),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),zod.null()]).optional(),
+  "activity": zod.array(zod.object({
+  "id": zod.number(),
+  "leadId": zod.number().nullish(),
+  "kind": zod.string(),
+  "summary": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * Runs the AI qualifier, scores fit (0-100) and tier, recommends a route, and drafts an editable outreach email as a pending action. Nothing is sent.
+ * @summary Score lead fit and draft a routed outreach email (proposal only)
+ */
+export const QualifyMarketingLeadParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const QualifyMarketingLeadResponse = zod.object({
+  "lead": zod.object({
+  "id": zod.number(),
+  "name": zod.string().nullish(),
+  "email": zod.string(),
+  "company": zod.string().nullish(),
+  "message": zod.string().nullish(),
+  "source": zod.string().describe('Where the lead came from (webhook, form, manual).'),
+  "fitScore": zod.number().nullish().describe('AI-assessed fit, 0-100.'),
+  "fitTier": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish(),
+  "status": zod.enum(['new', 'qualified', 'contacted', 'booked', 'archived']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),
+  "action": zod.union([zod.object({
+  "id": zod.number(),
+  "leadId": zod.number(),
+  "kind": zod.enum(['outreach_email']),
+  "fitScore": zod.number().nullish(),
+  "fitTier": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish(),
+  "rationale": zod.string().nullish().describe('Why the lead was scored and routed this way.'),
+  "route": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish().describe('Recommended routing track based on fit.'),
+  "emailSubject": zod.string().nullish(),
+  "emailBody": zod.string().nullish(),
+  "bookingUrl": zod.string().nullish().describe('Calendly booking link surfaced for high-fit leads.'),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),zod.null()]).optional(),
+  "activity": zod.array(zod.object({
+  "id": zod.number(),
+  "leadId": zod.number().nullish(),
+  "kind": zod.string(),
+  "summary": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary List proposed actions, newest first
+ */
+export const ListMarketingActionsQueryParams = zod.object({
+  "status": zod.enum(['pending', 'approved', 'rejected']).optional()
+})
+
+export const ListMarketingActionsResponseItem = zod.object({
+  "id": zod.number(),
+  "leadId": zod.number(),
+  "kind": zod.enum(['outreach_email']),
+  "fitScore": zod.number().nullish(),
+  "fitTier": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish(),
+  "rationale": zod.string().nullish().describe('Why the lead was scored and routed this way.'),
+  "route": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish().describe('Recommended routing track based on fit.'),
+  "emailSubject": zod.string().nullish(),
+  "emailBody": zod.string().nullish(),
+  "bookingUrl": zod.string().nullish().describe('Calendly booking link surfaced for high-fit leads.'),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListMarketingActionsResponse = zod.array(ListMarketingActionsResponseItem)
+
+
+/**
+ * @summary Edit a pending action's draft email before approval
+ */
+export const UpdateMarketingActionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateMarketingActionBody = zod.object({
+  "emailSubject": zod.string().optional(),
+  "emailBody": zod.string().optional()
+})
+
+export const UpdateMarketingActionResponse = zod.object({
+  "id": zod.number(),
+  "leadId": zod.number(),
+  "kind": zod.enum(['outreach_email']),
+  "fitScore": zod.number().nullish(),
+  "fitTier": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish(),
+  "rationale": zod.string().nullish().describe('Why the lead was scored and routed this way.'),
+  "route": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish().describe('Recommended routing track based on fit.'),
+  "emailSubject": zod.string().nullish(),
+  "emailBody": zod.string().nullish(),
+  "bookingUrl": zod.string().nullish().describe('Calendly booking link surfaced for high-fit leads.'),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Approve and execute an action (sends the drafted email)
+ */
+export const ApproveMarketingActionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ApproveMarketingActionResponse = zod.object({
+  "id": zod.number(),
+  "leadId": zod.number(),
+  "kind": zod.enum(['outreach_email']),
+  "fitScore": zod.number().nullish(),
+  "fitTier": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish(),
+  "rationale": zod.string().nullish().describe('Why the lead was scored and routed this way.'),
+  "route": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish().describe('Recommended routing track based on fit.'),
+  "emailSubject": zod.string().nullish(),
+  "emailBody": zod.string().nullish(),
+  "bookingUrl": zod.string().nullish().describe('Calendly booking link surfaced for high-fit leads.'),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Reject a proposed action without executing it
+ */
+export const RejectMarketingActionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RejectMarketingActionResponse = zod.object({
+  "id": zod.number(),
+  "leadId": zod.number(),
+  "kind": zod.enum(['outreach_email']),
+  "fitScore": zod.number().nullish(),
+  "fitTier": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish(),
+  "rationale": zod.string().nullish().describe('Why the lead was scored and routed this way.'),
+  "route": zod.union([zod.literal('high'),zod.literal('medium'),zod.literal('low'),zod.literal(null)]).nullish().describe('Recommended routing track based on fit.'),
+  "emailSubject": zod.string().nullish(),
+  "emailBody": zod.string().nullish(),
+  "bookingUrl": zod.string().nullish().describe('Calendly booking link surfaced for high-fit leads.'),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * Returns connection status per provider. Never returns the stored API key.
+ * @summary List connected marketing services
+ */
+export const ListMarketingConnectionsResponseItem = zod.object({
+  "provider": zod.enum(['resend', 'calendly']),
+  "connected": zod.boolean(),
+  "accountRef": zod.string().nullish(),
+  "bookingUrl": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListMarketingConnectionsResponse = zod.array(ListMarketingConnectionsResponseItem)
+
+
+/**
+ * Stores any API key encrypted at rest and saves provider config (such as a Calendly booking URL). Returns status without the key.
+ * @summary Connect or update a marketing service
+ */
+export const SaveMarketingConnectionBody = zod.object({
+  "provider": zod.enum(['resend', 'calendly']),
+  "apiKey": zod.string().optional(),
+  "bookingUrl": zod.string().optional(),
+  "accountRef": zod.string().optional()
+})
+
+export const SaveMarketingConnectionResponse = zod.object({
+  "provider": zod.enum(['resend', 'calendly']),
+  "connected": zod.boolean(),
+  "accountRef": zod.string().nullish(),
+  "bookingUrl": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Disconnect a marketing service and remove its stored key
+ */
+export const DeleteMarketingConnectionParams = zod.object({
+  "provider": zod.coerce.string()
+})
+
+
+/**
+ * @summary Recent Marketing OS activity feed
+ */
+export const ListMarketingActivityResponseItem = zod.object({
+  "id": zod.number(),
+  "leadId": zod.number().nullish(),
+  "kind": zod.string(),
+  "summary": zod.string(),
+  "createdAt": zod.string()
+})
+export const ListMarketingActivityResponse = zod.array(ListMarketingActivityResponseItem)
+
+

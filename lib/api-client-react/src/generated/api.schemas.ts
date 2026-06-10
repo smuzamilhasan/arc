@@ -1361,8 +1361,250 @@ export interface AcceptInvitationResult {
   clientId?: number | null;
 }
 
+/**
+ * @nullable
+ */
+export type MarketingLeadFitTier = typeof MarketingLeadFitTier[keyof typeof MarketingLeadFitTier] | null;
+
+
+export const MarketingLeadFitTier = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export type MarketingLeadStatus = typeof MarketingLeadStatus[keyof typeof MarketingLeadStatus];
+
+
+export const MarketingLeadStatus = {
+  new: 'new',
+  qualified: 'qualified',
+  contacted: 'contacted',
+  booked: 'booked',
+  archived: 'archived',
+} as const;
+
+export interface MarketingLead {
+  id: number;
+  /** @nullable */
+  name?: string | null;
+  email: string;
+  /** @nullable */
+  company?: string | null;
+  /** @nullable */
+  message?: string | null;
+  /** Where the lead came from (webhook, form, manual). */
+  source: string;
+  /**
+     * AI-assessed fit, 0-100.
+     * @nullable
+     */
+  fitScore?: number | null;
+  /** @nullable */
+  fitTier?: MarketingLeadFitTier;
+  status: MarketingLeadStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MarketingLeadIntake {
+  name?: string;
+  /** @minLength 3 */
+  email: string;
+  company?: string;
+  message?: string;
+  source?: string;
+}
+
+export interface MarketingLeadInput {
+  name?: string;
+  /** @minLength 3 */
+  email: string;
+  company?: string;
+  message?: string;
+  source?: string;
+}
+
+export type MarketingActionKind = typeof MarketingActionKind[keyof typeof MarketingActionKind];
+
+
+export const MarketingActionKind = {
+  outreach_email: 'outreach_email',
+} as const;
+
+/**
+ * @nullable
+ */
+export type MarketingActionFitTier = typeof MarketingActionFitTier[keyof typeof MarketingActionFitTier] | null;
+
+
+export const MarketingActionFitTier = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+/**
+ * Recommended routing track based on fit.
+ * @nullable
+ */
+export type MarketingActionRoute = typeof MarketingActionRoute[keyof typeof MarketingActionRoute] | null;
+
+
+export const MarketingActionRoute = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export type MarketingActionStatus = typeof MarketingActionStatus[keyof typeof MarketingActionStatus];
+
+
+export const MarketingActionStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface MarketingAction {
+  id: number;
+  leadId: number;
+  kind: MarketingActionKind;
+  /** @nullable */
+  fitScore?: number | null;
+  /** @nullable */
+  fitTier?: MarketingActionFitTier;
+  /**
+     * Why the lead was scored and routed this way.
+     * @nullable
+     */
+  rationale?: string | null;
+  /**
+     * Recommended routing track based on fit.
+     * @nullable
+     */
+  route?: MarketingActionRoute;
+  /** @nullable */
+  emailSubject?: string | null;
+  /** @nullable */
+  emailBody?: string | null;
+  /**
+     * Calendly booking link surfaced for high-fit leads.
+     * @nullable
+     */
+  bookingUrl?: string | null;
+  status: MarketingActionStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MarketingActivity {
+  id: number;
+  /** @nullable */
+  leadId?: number | null;
+  kind: string;
+  summary: string;
+  createdAt: string;
+}
+
+export interface MarketingLeadDetail {
+  lead: MarketingLead;
+  action?: MarketingAction | null;
+  activity: MarketingActivity[];
+}
+
+export interface MarketingActionUpdate {
+  emailSubject?: string;
+  emailBody?: string;
+}
+
+export type MarketingConnectionProvider = typeof MarketingConnectionProvider[keyof typeof MarketingConnectionProvider];
+
+
+export const MarketingConnectionProvider = {
+  resend: 'resend',
+  calendly: 'calendly',
+} as const;
+
+export interface MarketingConnection {
+  provider: MarketingConnectionProvider;
+  connected: boolean;
+  /** @nullable */
+  accountRef?: string | null;
+  /** @nullable */
+  bookingUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MarketingConnectionInputProvider = typeof MarketingConnectionInputProvider[keyof typeof MarketingConnectionInputProvider];
+
+
+export const MarketingConnectionInputProvider = {
+  resend: 'resend',
+  calendly: 'calendly',
+} as const;
+
+export interface MarketingConnectionInput {
+  provider: MarketingConnectionInputProvider;
+  apiKey?: string;
+  bookingUrl?: string;
+  accountRef?: string;
+}
+
+export interface MarketingTierCount {
+  tier: string;
+  count: number;
+}
+
+export interface MarketingAccess {
+  isAdmin: boolean;
+}
+
+export interface MarketingDashboard {
+  totalLeads: number;
+  newLeads: number;
+  highFit: number;
+  mediumFit: number;
+  lowFit: number;
+  pendingActions: number;
+  emailsSent: number;
+  /** @nullable */
+  bookingUrl?: string | null;
+  leadsByTier: MarketingTierCount[];
+  recentLeads: MarketingLead[];
+  recentActivity: MarketingActivity[];
+}
+
 export type ListPostsParams = {
 platform?: string;
 status?: string;
 };
+
+export type ListMarketingLeadsParams = {
+tier?: ListMarketingLeadsTier;
+status?: string;
+};
+
+export type ListMarketingLeadsTier = typeof ListMarketingLeadsTier[keyof typeof ListMarketingLeadsTier];
+
+
+export const ListMarketingLeadsTier = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export type ListMarketingActionsParams = {
+status?: ListMarketingActionsStatus;
+};
+
+export type ListMarketingActionsStatus = typeof ListMarketingActionsStatus[keyof typeof ListMarketingActionsStatus];
+
+
+export const ListMarketingActionsStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
 

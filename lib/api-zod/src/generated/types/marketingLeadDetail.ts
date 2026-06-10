@@ -12,5 +12,6 @@ import type { MarketingLead } from './marketingLead';
 export interface MarketingLeadDetail {
   lead: MarketingLead;
   action?: MarketingAction | null;
+  routeAction?: MarketingAction | null;
   activity: MarketingActivity[];
 }

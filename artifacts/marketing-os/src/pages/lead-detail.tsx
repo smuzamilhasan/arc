@@ -62,6 +62,40 @@ export default function LeadDetail() {
   }
 
   const { lead, action, activity } = detail;
+  const routeAction = (detail as any).routeAction ?? null;
+
+  const routeLabel: Record<string, string> = {
+    high: "Discovery call",
+    medium: "Warm nurture",
+    low: "Low-touch nurture",
+  };
+
+  const invalidateLead = () => {
+    qc.invalidateQueries({ queryKey: getGetMarketingLeadQueryKey(id) });
+    qc.invalidateQueries({ queryKey: getListMarketingActionsQueryKey() });
+    qc.invalidateQueries({ queryKey: getListMarketingLeadsQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetMarketingDashboardQueryKey() });
+  };
+
+  const handleApproveRoute = () => {
+    if (!routeAction) return;
+    approveAction.mutate({ id: routeAction.id }, {
+      onSuccess: () => {
+        toast({ title: "Route approved", description: "The lead has advanced to the next stage." });
+        invalidateLead();
+      },
+    });
+  };
+
+  const handleRejectRoute = () => {
+    if (!routeAction) return;
+    rejectAction.mutate({ id: routeAction.id }, {
+      onSuccess: () => {
+        toast({ title: "Route rejected" });
+        invalidateLead();
+      },
+    });
+  };
 
   const handleQualify = () => {
     qualifyLead.mutate({ id }, {
@@ -191,6 +225,55 @@ export default function LeadDetail() {
                 >
                   {qualifyLead.isPending ? "Scoring Lead..." : "Run AI Qualification"}
                 </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {routeAction && (
+            <Card className={routeAction.status === "pending" ? "border-primary/30 shadow-sm" : ""}>
+              <CardHeader className="pb-3 border-b border-border/50 bg-muted/10">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <Sparkles size={16} className="text-primary" /> Route Decision
+                  </CardTitle>
+                  <Badge variant={routeAction.status === "pending" ? "outline" : routeAction.status === "approved" ? "default" : "destructive"}>
+                    {routeAction.status.toUpperCase()}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div className="bg-muted/20 p-4 rounded-lg border border-border/50">
+                  <div className="text-xs text-muted-foreground uppercase font-semibold mb-1">Recommended Track</div>
+                  <div className="text-lg font-medium">{routeLabel[routeAction.route] ?? routeAction.route}</div>
+                </div>
+                {routeAction.bookingUrl && (
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-primary">Booking Link</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {routeAction.status === "approved"
+                        ? "Surfaced for this high-fit lead. Share to book a discovery call."
+                        : "Will be surfaced for this high-fit lead once the route is approved."}
+                    </p>
+                    <a href={routeAction.bookingUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                      <ExternalLink size={12} /> {new URL(routeAction.bookingUrl).hostname}
+                    </a>
+                  </div>
+                )}
+                {routeAction.status === "pending" && (
+                  <div className="flex items-center justify-between pt-2">
+                    <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-2" onClick={handleRejectRoute} disabled={rejectAction.isPending}>
+                      <XCircle size={16} /> Reject
+                    </Button>
+                    <Button className="gap-2 px-8" onClick={handleApproveRoute} disabled={approveAction.isPending}>
+                      <CheckCircle2 size={16} /> Approve Route
+                    </Button>
+                  </div>
+                )}
+                {routeAction.status === "approved" && (
+                  <div className="text-center text-sm font-medium text-primary flex items-center justify-center gap-2 pt-1">
+                    <CheckCircle2 size={16} /> Route approved — lead advanced
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -330,12 +413,14 @@ export default function LeadDetail() {
                   {activity.map((act, i) => (
                     <div key={act.id} className="relative flex items-start gap-4">
                       <div className={`z-10 mt-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background ring-2 ring-background
-                        ${act.kind.includes('action') ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                        {act.kind === 'lead_created' && <Users size={10} />}
+                        ${['email_sent', 'route_approved'].includes(act.kind) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                        {act.kind === 'lead_captured' && <Users size={10} />}
                         {act.kind === 'lead_qualified' && <Sparkles size={10} />}
-                        {act.kind === 'action_approved' && <CheckCircle2 size={10} />}
+                        {act.kind === 'route_approved' && <Sparkles size={10} />}
+                        {act.kind === 'email_sent' && <CheckCircle2 size={10} />}
                         {act.kind === 'action_rejected' && <XCircle size={10} />}
-                        {!['lead_created', 'lead_qualified', 'action_approved', 'action_rejected'].includes(act.kind) && <Activity size={10} />}
+                        {act.kind === 'connection_saved' && <CheckCircle2 size={10} />}
+                        {!['lead_captured', 'lead_qualified', 'route_approved', 'email_sent', 'action_rejected', 'connection_saved'].includes(act.kind) && <Activity size={10} />}
                       </div>
                       <div className="flex-1 pb-1">
                         <p className="text-sm font-medium leading-none text-foreground">{act.summary}</p>

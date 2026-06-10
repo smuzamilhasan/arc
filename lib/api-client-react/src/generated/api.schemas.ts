@@ -1379,6 +1379,9 @@ export type MarketingLeadStatus = typeof MarketingLeadStatus[keyof typeof Market
 export const MarketingLeadStatus = {
   new: 'new',
   qualified: 'qualified',
+  booking: 'booking',
+  warm: 'warm',
+  nurturing: 'nurturing',
   contacted: 'contacted',
   booked: 'booked',
   archived: 'archived',
@@ -1434,6 +1437,7 @@ export type MarketingActionKind = typeof MarketingActionKind[keyof typeof Market
 
 export const MarketingActionKind = {
   outreach_email: 'outreach_email',
+  route_decision: 'route_decision',
 } as const;
 
 /**
@@ -1514,6 +1518,7 @@ export interface MarketingActivity {
 export interface MarketingLeadDetail {
   lead: MarketingLead;
   action?: MarketingAction | null;
+  routeAction?: MarketingAction | null;
   activity: MarketingActivity[];
 }
 

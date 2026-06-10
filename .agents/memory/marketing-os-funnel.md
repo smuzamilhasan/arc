@@ -22,13 +22,28 @@ arc's shared api-server, DB, Clerk, and AI. Spine: capture lead -> AI scores fit
 - Cleanup lives in `services/marketingData.ts` `deleteTenantMarketingData(tenant, tx?)`,
   deliberately NOT wired into `deleteClientData` (that is clientId-keyed; these are not).
 
-## Propose-and-approve
-ALL external actions are proposals. The qualifier writes a single `pending`
-`outreach_email` action; nothing sends until a human approves. Re-qualifying
-deletes the prior pending action first so proposals never stack.
+## Propose-and-approve (two-proposal model)
+ALL external/stage actions are proposals; nothing happens until a human approves.
+The qualifier writes TWO independent `pending` actions per lead: a `route_decision`
+(which funnel track to advance into) AND an `outreach_email` (the drafted email).
+Re-qualifying deletes ALL prior pending actions (kind-agnostic) first so proposals
+never stack. The approve route branches by `action.kind`:
+- `route_decision` approve = pure stage transition: advances `lead.status` via
+  `leadStatusForRoute` (high->booking, medium->warm, low->nurturing), logs
+  `route_approved`, surfaces booking link for high-fit. NO email side effect.
+- `outreach_email` approve = sends via `sendEmail`, and only nudges status to
+  `contacted` when it is still `new|qualified`, so an approved route is never
+  clobbered. `dashboard.emailsSent` counts ONLY approved `outreach_email`.
+`GET /leads/:id` and the qualify response return BOTH `action` (latest
+outreach_email) and `routeAction` (latest route_decision).
+**Why two:** routing (internal funnel stage) and outreach (external send) are
+distinct decisions an operator approves/rejects independently.
 **All THREE intake paths must auto-qualify** — webhook, public form, AND the
 admin manual `POST /marketing/leads`. The manual path is easy to forget; it must
 call `qualifyInBackground` too or it silently produces no proposal.
+UI activity icon maps must use the REAL backend kinds (lead_captured,
+lead_qualified, email_sent, action_rejected, route_approved, connection_saved) —
+stale placeholder kinds render no icon.
 
 ## Sending
 Approve-send must use the tenant's CONNECTED Resend key, not just the shared

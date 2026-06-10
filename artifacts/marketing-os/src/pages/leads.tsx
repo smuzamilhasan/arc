@@ -21,12 +21,14 @@ export default function Leads() {
   const [search, setSearch] = useState("");
   
   const params: any = {};
-  if (tierFilter !== "all") params.tier = tierFilter as MarketingLeadFitTier;
+  // "unscored" is not a server-side tier; filter it client-side instead.
+  if (tierFilter !== "all" && tierFilter !== "unscored") params.tier = tierFilter as MarketingLeadFitTier;
   if (statusFilter !== "all") params.status = statusFilter as MarketingLeadStatus;
 
   const { data: leads, isLoading } = useListMarketingLeads(params);
   
   const filteredLeads = leads?.filter(lead => {
+    if (tierFilter === "unscored" && lead.fitTier != null) return false;
     if (!search) return true;
     const s = search.toLowerCase();
     return (lead.name?.toLowerCase().includes(s) || lead.email.toLowerCase().includes(s) || lead.company?.toLowerCase().includes(s));
@@ -76,6 +78,9 @@ export default function Leads() {
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="new">New</SelectItem>
                 <SelectItem value="qualified">Qualified</SelectItem>
+                <SelectItem value="booking">Booking</SelectItem>
+                <SelectItem value="warm">Warm</SelectItem>
+                <SelectItem value="nurturing">Nurturing</SelectItem>
                 <SelectItem value="contacted">Contacted</SelectItem>
                 <SelectItem value="booked">Booked</SelectItem>
                 <SelectItem value="archived">Archived</SelectItem>
@@ -127,6 +132,11 @@ export default function Leads() {
                         <span className="font-medium text-foreground">{lead.name || lead.email}</span>
                         {lead.status === "new" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">New</Badge>}
                         {lead.status === "qualified" && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary text-primary">Qualified</Badge>}
+                        {lead.status === "booking" && <Badge className="text-[10px] px-1.5 py-0 bg-primary hover:bg-primary">Booking</Badge>}
+                        {lead.status === "warm" && <Badge className="text-[10px] px-1.5 py-0 bg-chart-4 hover:bg-chart-4 text-black">Warm</Badge>}
+                        {lead.status === "nurturing" && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Nurturing</Badge>}
+                        {lead.status === "contacted" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Contacted</Badge>}
+                        {lead.status === "booked" && <Badge className="text-[10px] px-1.5 py-0 bg-primary hover:bg-primary">Booked</Badge>}
                       </div>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                         <span>{lead.company || "No company"}</span>

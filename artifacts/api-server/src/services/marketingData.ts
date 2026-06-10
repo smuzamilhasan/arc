@@ -13,6 +13,7 @@ import { and, eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { decryptSecret } from "../lib/crypto";
 import { MARKETING_TENANT, qualifyLead } from "./marketing";
+import type { FitTier } from "./marketing";
 
 type TxExecutor = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -126,6 +127,21 @@ export async function runQualification(leadId: number) {
         eq(marketingActionsTable.status, "pending"),
       ),
     );
+
+  // The qualification produces TWO independent proposals, each approved or
+  // rejected on its own: a route decision (which funnel track to advance the
+  // lead into) and the drafted outreach email. Nothing is executed here.
+  await db.insert(marketingActionsTable).values({
+    tenant: MARKETING_TENANT,
+    leadId,
+    kind: "route_decision",
+    fitScore: result.fitScore,
+    fitTier: result.fitTier,
+    rationale: result.rationale,
+    route: result.route,
+    bookingUrl: includeBooking,
+    status: "pending",
+  });
 
   const [action] = await db
     .insert(marketingActionsTable)

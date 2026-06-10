@@ -11,4 +11,5 @@ export type MarketingActionKind = typeof MarketingActionKind[keyof typeof Market
 
 export const MarketingActionKind = {
   outreach_email: 'outreach_email',
+  route_decision: 'route_decision',
 } as const;

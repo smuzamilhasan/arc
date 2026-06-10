@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { CheckSquare, Send, XCircle, PencilLine, Mail, Clock, ExternalLink } from "lucide-react";
+import { CheckSquare, Send, XCircle, PencilLine, Mail, Clock, ExternalLink, Route } from "lucide-react";
 
 export default function Actions() {
   const { data: actions, isLoading } = useListMarketingActions({ status: "pending" });
@@ -70,12 +70,127 @@ export default function Actions() {
         </div>
       ) : (
         <div className="space-y-8">
-          {actions?.map((action, i) => (
-            <ActionReviewCard key={action.id} action={action} index={i} />
-          ))}
+          {actions?.map((action, i) =>
+            action.kind === "route_decision" ? (
+              <RouteReviewCard key={action.id} action={action} index={i} />
+            ) : (
+              <ActionReviewCard key={action.id} action={action} index={i} />
+            ),
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function RouteReviewCard({ action, index }: { action: any, index: number }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  const approveAction = useApproveMarketingAction();
+  const rejectAction = useRejectMarketingAction();
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: getListMarketingActionsQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetMarketingLeadQueryKey(action.leadId) });
+    qc.invalidateQueries({ queryKey: getGetMarketingDashboardQueryKey() });
+  };
+
+  const handleApprove = () => {
+    approveAction.mutate({ id: action.id }, {
+      onSuccess: () => {
+        toast({ title: "Route approved", description: "The lead has advanced to the next stage." });
+        invalidate();
+      },
+    });
+  };
+
+  const handleReject = () => {
+    rejectAction.mutate({ id: action.id }, {
+      onSuccess: () => {
+        toast({ title: "Route rejected" });
+        invalidate();
+      },
+    });
+  };
+
+  const routeLabel: Record<string, string> = {
+    high: "Discovery call",
+    medium: "Warm nurture",
+    low: "Low-touch nurture",
+  };
+
+  return (
+    <Card
+      className="overflow-hidden border-border/80 shadow-md transition-all hover:shadow-lg"
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <div className="bg-muted/30 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between border-b border-border/50 gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-mono font-bold border border-primary/20">
+            {action.fitScore}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Lead #{action.leadId}</span>
+              <Link href={`/leads/${action.leadId}`} className="text-xs text-primary hover:underline flex items-center gap-1">
+                View Profile <ExternalLink size={10} />
+              </Link>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+              <Clock size={12} /> {format(new Date(action.createdAt), "MMM d, h:mm a")}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="gap-1.5">
+            <Route size={12} /> Route Decision
+          </Badge>
+          {action.fitTier === "high" && <Badge className="bg-primary">High Fit</Badge>}
+          {action.fitTier === "medium" && <Badge className="bg-chart-4 text-black">Medium Fit</Badge>}
+          {action.fitTier === "low" && <Badge variant="outline">Low Fit</Badge>}
+        </div>
+      </div>
+
+      <div className="p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="bg-muted/20 p-4 rounded-lg border border-border/50 flex-1">
+            <div className="text-xs text-muted-foreground uppercase font-semibold mb-1">Recommended Track</div>
+            <div className="text-lg font-medium">{routeLabel[action.route] ?? action.route}</div>
+          </div>
+        </div>
+        <div>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Rationale</h4>
+          <p className="text-sm text-foreground/80 leading-relaxed bg-muted/20 p-3 rounded border border-border/50">
+            {action.rationale}
+          </p>
+        </div>
+        {action.bookingUrl && (
+          <div className="bg-primary/5 border border-primary/20 p-3 rounded">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Booking Link (surfaced on approval)</h4>
+            <p className="text-xs text-muted-foreground truncate">{action.bookingUrl}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-muted/20 px-6 py-4 border-t border-border/50 flex items-center justify-between">
+        <Button
+          variant="outline"
+          className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive gap-2"
+          onClick={handleReject}
+          disabled={rejectAction.isPending}
+        >
+          <XCircle size={16} /> Reject
+        </Button>
+        <Button
+          className="gap-2 px-8 shadow-sm"
+          onClick={handleApprove}
+          disabled={approveAction.isPending}
+        >
+          <CheckSquare size={16} /> Approve Route
+        </Button>
+      </div>
+    </Card>
   );
 }
 

@@ -4026,7 +4026,7 @@ components:
           enum: [high, medium, low, null]
         status:
           type: string
-          enum: [new, qualified, contacted, booked, archived]
+          enum: [new, qualified, booking, warm, nurturing, contacted, booked, archived]
         createdAt:
           type: string
         updatedAt:
@@ -4081,6 +4081,10 @@ components:
           oneOf:
             - $ref: "#/components/schemas/MarketingAction"
             - type: "null"
+        routeAction:
+          oneOf:
+            - $ref: "#/components/schemas/MarketingAction"
+            - type: "null"
         activity:
           type: array
           items:
@@ -4096,7 +4100,7 @@ components:
           type: integer
         kind:
           type: string
-          enum: [outreach_email]
+          enum: [outreach_email, route_decision]
         fitScore:
           type: ["integer", "null"]
         fitTier:

@@ -43,12 +43,14 @@ export default function Activity() {
               {activities.map((activity, i) => (
                 <div key={activity.id} className="flex gap-4 p-4 hover:bg-muted/20 transition-colors">
                   <div className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-full shrink-0
-                    ${activity.kind.includes('action') ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'}`}>
-                    {activity.kind === 'lead_created' && <Users size={14} />}
+                    ${['email_sent', 'route_approved'].includes(activity.kind) ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'}`}>
+                    {activity.kind === 'lead_captured' && <Users size={14} />}
                     {activity.kind === 'lead_qualified' && <Sparkles size={14} />}
-                    {activity.kind === 'action_approved' && <CheckCircle2 size={14} />}
+                    {activity.kind === 'route_approved' && <Sparkles size={14} />}
+                    {activity.kind === 'email_sent' && <CheckCircle2 size={14} />}
                     {activity.kind === 'action_rejected' && <XCircle size={14} />}
-                    {!['lead_created', 'lead_qualified', 'action_approved', 'action_rejected'].includes(activity.kind) && <ActivityIcon size={14} />}
+                    {activity.kind === 'connection_saved' && <CheckCircle2 size={14} />}
+                    {!['lead_captured', 'lead_qualified', 'route_approved', 'email_sent', 'action_rejected', 'connection_saved'].includes(activity.kind) && <ActivityIcon size={14} />}
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm font-medium leading-relaxed text-foreground">

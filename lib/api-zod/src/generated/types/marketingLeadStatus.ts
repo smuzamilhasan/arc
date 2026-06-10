@@ -12,6 +12,9 @@ export type MarketingLeadStatus = typeof MarketingLeadStatus[keyof typeof Market
 export const MarketingLeadStatus = {
   new: 'new',
   qualified: 'qualified',
+  booking: 'booking',
+  warm: 'warm',
+  nurturing: 'nurturing',
   contacted: 'contacted',
   booked: 'booked',
   archived: 'archived',

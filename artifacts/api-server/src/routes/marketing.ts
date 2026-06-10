@@ -24,7 +24,12 @@ import { isAdmin, requireAdmin } from "../middlewares/requireAdmin";
 import { aiGenerationRateLimit, externalApiRateLimit } from "../middlewares/aiRateLimit";
 import { encryptSecret, isEncryptionConfigured } from "../lib/crypto";
 import { sendEmail } from "../services/email";
-import { MARKETING_TENANT } from "../services/marketing";
+import {
+  MARKETING_TENANT,
+  leadStatusForRoute,
+  routeNextStep,
+  type FitTier,
+} from "../services/marketing";
 import {
   captureLead,
   runQualification,
@@ -160,7 +165,7 @@ router.get("/marketing/dashboard", requireAdmin, async (_req, res) => {
     mediumFit,
     lowFit,
     pendingActions: pendingActions.length,
-    emailsSent: sentActions.length,
+    emailsSent: sentActions.filter((a) => a.kind === "outreach_email").length,
     bookingUrl: await getBookingUrl(),
     leadsByTier: [
       { tier: "high", count: highFit },
@@ -229,7 +234,7 @@ router.get("/marketing/leads/:id", requireAdmin, async (req, res) => {
     res.status(404).json({ error: "Not found" });
     return;
   }
-  const [action] = await db
+  const leadActions = await db
     .select()
     .from(marketingActionsTable)
     .where(
@@ -238,8 +243,12 @@ router.get("/marketing/leads/:id", requireAdmin, async (req, res) => {
         eq(marketingActionsTable.leadId, lead.id),
       ),
     )
-    .orderBy(desc(marketingActionsTable.createdAt))
-    .limit(1);
+    .orderBy(desc(marketingActionsTable.createdAt));
+  // Surface the latest of each proposal kind: the email draft (editable + sends
+  // on approve) and the route decision (advances the funnel stage on approve).
+  const action = leadActions.find((a) => a.kind === "outreach_email") ?? null;
+  const routeAction =
+    leadActions.find((a) => a.kind === "route_decision") ?? null;
   const activity = await db
     .select()
     .from(marketingActivityTable)
@@ -254,6 +263,7 @@ router.get("/marketing/leads/:id", requireAdmin, async (req, res) => {
   res.json({
     lead: serializeLead(lead),
     action: action ? serializeAction(action) : null,
+    routeAction: routeAction ? serializeAction(routeAction) : null,
     activity: activity.map(serializeActivity),
   });
 });
@@ -273,7 +283,8 @@ router.post(
       res.status(404).json({ error: "Not found" });
       return;
     }
-    // Re-read the lead + full activity so the client gets the fresh detail.
+    // Re-read the lead + both proposals + full activity so the client gets the
+    // fresh detail (qualification creates a route decision and an email draft).
     const [lead] = await db
       .select()
       .from(marketingLeadsTable)
@@ -283,6 +294,18 @@ router.post(
           eq(marketingLeadsTable.tenant, MARKETING_TENANT),
         ),
       );
+    const leadActions = await db
+      .select()
+      .from(marketingActionsTable)
+      .where(
+        and(
+          eq(marketingActionsTable.tenant, MARKETING_TENANT),
+          eq(marketingActionsTable.leadId, parsed.data.id),
+        ),
+      )
+      .orderBy(desc(marketingActionsTable.createdAt));
+    const routeAction =
+      leadActions.find((a) => a.kind === "route_decision") ?? null;
     const activity = await db
       .select()
       .from(marketingActivityTable)
@@ -296,6 +319,7 @@ router.post(
     res.json({
       lead: serializeLead(lead),
       action: serializeAction(action),
+      routeAction: routeAction ? serializeAction(routeAction) : null,
       activity: activity.map(serializeActivity),
     });
   },
@@ -398,6 +422,43 @@ router.post(
       return;
     }
 
+    const now = new Date();
+
+    // Route decision: approving advances the lead into the funnel track chosen
+    // for its fit, and surfaces the next step (booking link for high-fit). No
+    // external side effect — this is purely a stage transition.
+    if (action.kind === "route_decision") {
+      const route = (action.route ?? "low") as FitTier;
+      const newStatus = leadStatusForRoute(route);
+      const [updated] = await db
+        .update(marketingActionsTable)
+        .set({ status: "approved", updatedAt: now })
+        .where(
+          and(
+            eq(marketingActionsTable.id, action.id),
+            eq(marketingActionsTable.tenant, MARKETING_TENANT),
+          ),
+        )
+        .returning();
+      await db
+        .update(marketingLeadsTable)
+        .set({ status: newStatus, updatedAt: now })
+        .where(
+          and(
+            eq(marketingLeadsTable.id, lead.id),
+            eq(marketingLeadsTable.tenant, MARKETING_TENANT),
+          ),
+        );
+      await logMarketingActivity(
+        "route_approved",
+        `Routed ${lead.name ?? lead.email} (${route} fit). ${routeNextStep(route, action.bookingUrl)}`,
+        lead.id,
+      );
+      res.json(serializeAction(updated));
+      return;
+    }
+
+    // Outreach email: approving actually sends through the connected channel.
     // Prefer the tenant's connected Resend key (BYO, decrypted from the
     // marketing connection) so the stored connection actually drives delivery;
     // fall back to the shared connector proxy when no key is configured.
@@ -414,7 +475,6 @@ router.post(
       return;
     }
 
-    const now = new Date();
     const [updated] = await db
       .update(marketingActionsTable)
       .set({ status: "approved", updatedAt: now })
@@ -425,15 +485,19 @@ router.post(
         ),
       )
       .returning();
-    await db
-      .update(marketingLeadsTable)
-      .set({ status: "contacted", updatedAt: now })
-      .where(
-        and(
-          eq(marketingLeadsTable.id, lead.id),
-          eq(marketingLeadsTable.tenant, MARKETING_TENANT),
-        ),
-      );
+    // The route owns the funnel stage; only nudge to "contacted" when the lead
+    // has not already been routed, so an approved route is never clobbered.
+    if (lead.status === "new" || lead.status === "qualified") {
+      await db
+        .update(marketingLeadsTable)
+        .set({ status: "contacted", updatedAt: now })
+        .where(
+          and(
+            eq(marketingLeadsTable.id, lead.id),
+            eq(marketingLeadsTable.tenant, MARKETING_TENANT),
+          ),
+        );
+    }
     await logMarketingActivity(
       "email_sent",
       `Outreach email approved and sent to ${lead.name ?? lead.email}`,

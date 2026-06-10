@@ -25,6 +25,26 @@ export function tierFromScore(score: number): FitTier {
   return "low";
 }
 
+// The lead funnel stage a lead advances into once its route is approved. Each
+// tier maps to a distinct track from the funnel: high -> discovery call
+// (booking), medium -> warm nurture, low -> low-touch nurture.
+export function leadStatusForRoute(route: FitTier): string {
+  if (route === "high") return "booking";
+  if (route === "medium") return "warm";
+  return "nurturing";
+}
+
+// Human-readable next step surfaced to the operator when a route is approved.
+export function routeNextStep(route: FitTier, bookingUrl: string | null): string {
+  if (route === "high") {
+    return bookingUrl
+      ? `Discovery call track: share the booking link (${bookingUrl}).`
+      : "Discovery call track: connect Calendly to surface a booking link.";
+  }
+  if (route === "medium") return "Warm nurture track: follow up with a qualifying touch.";
+  return "Low-touch nurture track: keep warm, no call push.";
+}
+
 interface RawQualification {
   fitScore?: number | string;
   rationale?: string;

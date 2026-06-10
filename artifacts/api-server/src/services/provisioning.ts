@@ -7,11 +7,28 @@
 import type {
   BlueprintDefinition,
   BlueprintFieldType,
+  ProvisionChange,
   ProvisionPlan,
   ProvisionResult,
 } from "@workspace/db";
-import { createTypeformForm, getTypeformStatus } from "./typeform";
+import {
+  createTypeformForm,
+  getTypeformStatus,
+  listTypeformForms,
+} from "./typeform";
 import { getConnectorApiKey, getConnectorAccountRef } from "./marketingConnectors";
+
+// Case-insensitive name match used to decide whether a desired object already
+// exists in the tool (a form title, a base name, a table name). Reconcile keys
+// off the human-facing name because that is the only stable handle the operator
+// controls from the blueprint.
+function sameName(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+function pluralize(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
 
 // Thrown when a tool cannot be planned/applied because its prerequisites are not
 // met (not connected, missing workspace id, etc). The route turns this into a
@@ -51,16 +68,30 @@ const typeformAdapter: ProvisionAdapter = {
         "Typeform is not connected. Connect a Typeform account first.",
       );
     }
+    const title = def.intakeForm.title;
+    // Read the current state: if a form with this title already exists in the
+    // account, the capture form is already provisioned. The Typeform adapter
+    // only knows how to CREATE a form (it has no field-update write path), so a
+    // matching form means there is genuinely nothing to do — return an empty
+    // delta rather than creating a duplicate form.
+    const existing = await listTypeformForms();
+    if (existing.some((f) => sameName(f.title, title))) {
+      return {
+        provider: "typeform",
+        summary: `Typeform already has a form titled "${title}". Nothing to do.`,
+        changes: [],
+      };
+    }
     const fields = typeformFields(def);
     return {
       provider: "typeform",
-      summary: `Create the intake form "${def.intakeForm.title}" with ${fields.length} field${fields.length === 1 ? "" : "s"}.`,
+      summary: `Create the intake form "${title}" with ${pluralize(fields.length, "field")}.`,
       changes: [
         {
           op: "create_form",
-          summary: `New Typeform form: "${def.intakeForm.title}"`,
+          summary: `New Typeform form: "${title}"`,
           detail: {
-            title: def.intakeForm.title,
+            title,
             fields: fields.map((f) => ({
               label: f.title,
               type: f.type,
@@ -72,8 +103,11 @@ const typeformAdapter: ProvisionAdapter = {
     };
   },
   async apply(plan) {
-    const change = plan.changes[0];
-    const detail = (change?.detail ?? {}) as {
+    const change = plan.changes.find((c) => c.op === "create_form");
+    if (!change) {
+      throw new ProvisionError("Nothing to apply; Typeform is already in sync.");
+    }
+    const detail = (change.detail ?? {}) as {
       title?: string;
       fields?: Array<{ label: string; type: string; required: boolean }>;
     };
@@ -128,6 +162,54 @@ function airtableTables(def: BlueprintDefinition) {
   }));
 }
 
+// Read the bases visible to this API key, paging through the offset cursor so a
+// workspace with many bases is fully covered. Used by plan to decide create-base
+// vs. add-tables vs. no-op.
+async function listAirtableBases(
+  apiKey: string,
+): Promise<Array<{ id: string; name: string }>> {
+  const bases: Array<{ id: string; name: string }> = [];
+  let offset: string | undefined;
+  do {
+    const url = new URL("https://api.airtable.com/v0/meta/bases");
+    if (offset) url.searchParams.set("offset", offset);
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new ProvisionError(`Airtable API ${res.status}: ${detail.slice(0, 300)}`);
+    }
+    const data = (await res.json()) as {
+      bases?: Array<{ id: string; name: string }>;
+      offset?: string;
+    };
+    for (const b of data.bases ?? []) bases.push({ id: b.id, name: b.name });
+    offset = data.offset;
+  } while (offset);
+  return bases;
+}
+
+// Read the tables that already exist in one base. Used to compute which
+// blueprint tables are missing from an existing base.
+async function listAirtableTables(
+  apiKey: string,
+  baseId: string,
+): Promise<Array<{ id: string; name: string }>> {
+  const res = await fetch(
+    `https://api.airtable.com/v0/meta/bases/${encodeURIComponent(baseId)}/tables`,
+    { headers: { Authorization: `Bearer ${apiKey}` } },
+  );
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new ProvisionError(`Airtable API ${res.status}: ${detail.slice(0, 300)}`);
+  }
+  const data = (await res.json()) as {
+    tables?: Array<{ id: string; name: string }>;
+  };
+  return (data.tables ?? []).map((t) => ({ id: t.id, name: t.name }));
+}
+
 const airtableAdapter: ProvisionAdapter = {
   provider: "airtable",
   async plan(def) {
@@ -137,42 +219,128 @@ const airtableAdapter: ProvisionAdapter = {
         "Airtable is not connected. Add an Airtable API key first.",
       );
     }
-    const workspaceId = await getConnectorAccountRef("airtable");
-    if (!workspaceId) {
-      throw new ProvisionError(
-        "Airtable workspace ID is missing. Add it on the Airtable connection.",
-      );
-    }
+    const baseName = def.crm.baseName;
     const tables = airtableTables(def);
+    // Read current state: does a base with this name already exist?
+    const bases = await listAirtableBases(apiKey);
+    const existingBase = bases.find((b) => sameName(b.name, baseName));
+
+    if (!existingBase) {
+      // Nothing exists yet — creating the base requires a workspace id.
+      const workspaceId = await getConnectorAccountRef("airtable");
+      if (!workspaceId) {
+        throw new ProvisionError(
+          "Airtable workspace ID is missing. Add it on the Airtable connection.",
+        );
+      }
+      return {
+        provider: "airtable",
+        summary: `Create a new Airtable base "${baseName}" with ${pluralize(tables.length, "table")}.`,
+        changes: tables.map((t) => ({
+          op: "create_table",
+          summary: `Table "${t.name}" with ${pluralize(t.fields.length, "field")}`,
+          detail: {
+            name: t.name,
+            baseName,
+            fields: t.fields.map((f) => `${f.name} (${f.type})`),
+          },
+        })),
+      };
+    }
+
+    // The base exists — only the tables it does not already have are a genuine
+    // delta. If every table is present, the tool is already in sync.
+    const existingTables = await listAirtableTables(apiKey, existingBase.id);
+    const missing = tables.filter(
+      (t) => !existingTables.some((e) => sameName(e.name, t.name)),
+    );
+    if (missing.length === 0) {
+      return {
+        provider: "airtable",
+        summary: `Airtable base "${baseName}" already has all ${pluralize(tables.length, "table")}. Nothing to do.`,
+        changes: [],
+      };
+    }
     return {
       provider: "airtable",
-      summary: `Create a new Airtable base "${def.crm.baseName}" with ${tables.length} table${tables.length === 1 ? "" : "s"}.`,
-      changes: tables.map((t) => ({
+      summary: `Add ${pluralize(missing.length, "table")} to existing Airtable base "${baseName}".`,
+      changes: missing.map((t) => ({
         op: "create_table",
-        summary: `Table "${t.name}" with ${t.fields.length} field${t.fields.length === 1 ? "" : "s"}`,
-        detail: { name: t.name, fields: t.fields.map((f) => `${f.name} (${f.type})`) },
+        summary: `Add table "${t.name}" with ${pluralize(t.fields.length, "field")} to "${baseName}"`,
+        detail: {
+          name: t.name,
+          baseId: existingBase.id,
+          fields: t.fields.map((f) => `${f.name} (${f.type})`),
+        },
       })),
     };
   },
   async apply(plan) {
     const apiKey = await getConnectorApiKey("airtable");
-    const workspaceId = await getConnectorAccountRef("airtable");
-    if (!apiKey || !workspaceId) {
+    if (!apiKey) {
       throw new ProvisionError("Airtable connection is incomplete.");
     }
-    // Reconstruct the table payload from the planned changes so apply executes
-    // exactly what was previewed. baseName is carried on the plan summary, so we
-    // re-derive a name; the operator confirmed the table set already.
-    const tables = plan.changes
-      .filter((c) => c.op === "create_table")
-      .map((c) => {
+    const tableChanges = plan.changes.filter((c) => c.op === "create_table");
+    if (tableChanges.length === 0) {
+      throw new ProvisionError("Nothing to apply; Airtable is already in sync.");
+    }
+    // The plan tells us whether to create a brand-new base or add tables into an
+    // existing one: an existing-base change carries the baseId it targets.
+    const firstDetail = (tableChanges[0].detail ?? {}) as {
+      baseId?: string;
+      baseName?: string;
+    };
+
+    if (firstDetail.baseId) {
+      const baseId = firstDetail.baseId;
+      const applied: ProvisionChange[] = [];
+      for (const c of tableChanges) {
         const d = (c.detail ?? {}) as { name?: string; fields?: string[] };
-        return {
-          name: d.name ?? "Table",
-          fields: (d.fields ?? []).map((spec) => parseFieldSpec(spec)),
-        };
-      });
-    const baseName = plan.summary.match(/base "(.+?)"/)?.[1] ?? "Marketing CRM";
+        const name = d.name ?? "Table";
+        const fields = (d.fields ?? []).map((spec) => parseFieldSpec(spec));
+        const res = await fetch(
+          `https://api.airtable.com/v0/meta/bases/${encodeURIComponent(baseId)}/tables`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ name, fields }),
+          },
+        );
+        if (!res.ok) {
+          const detail = await res.text().catch(() => "");
+          throw new ProvisionError(
+            `Airtable API ${res.status}: ${detail.slice(0, 300)}`,
+          );
+        }
+        const created = (await res.json()) as { id: string };
+        applied.push({
+          op: "create_table",
+          summary: `Created table "${name}"`,
+          detail: { tableId: created.id },
+        });
+      }
+      return {
+        applied,
+        outputs: { baseId, url: `https://airtable.com/${baseId}` },
+      };
+    }
+
+    // No existing base — create it with all planned tables in one call.
+    const workspaceId = await getConnectorAccountRef("airtable");
+    if (!workspaceId) {
+      throw new ProvisionError("Airtable connection is incomplete.");
+    }
+    const baseName = firstDetail.baseName ?? "Marketing CRM";
+    const tables = tableChanges.map((c) => {
+      const d = (c.detail ?? {}) as { name?: string; fields?: string[] };
+      return {
+        name: d.name ?? "Table",
+        fields: (d.fields ?? []).map((spec) => parseFieldSpec(spec)),
+      };
+    });
 
     const res = await fetch("https://api.airtable.com/v0/meta/bases", {
       method: "POST",
@@ -286,6 +454,26 @@ async function resolveMakeTeamId(base: string, apiKey: string): Promise<string> 
   return String(teamId);
 }
 
+// List the incoming hooks already defined for a team, so plan can detect when
+// the qualify-stage webhook has already been provisioned.
+async function listMakeHooks(
+  base: string,
+  apiKey: string,
+  teamId: string,
+): Promise<Array<{ id: string; name: string }>> {
+  const res = await fetchWithTimeout(
+    `${base}/hooks?teamId=${encodeURIComponent(teamId)}`,
+    { headers: { Authorization: `Token ${apiKey}` } },
+  );
+  if (!res.ok) throw await provisionHttpError("Make", res);
+  const data = (await res.json().catch(() => ({}))) as {
+    hooks?: Array<{ id?: number | string; name?: string }>;
+  };
+  return (data.hooks ?? [])
+    .filter((h) => h.name != null)
+    .map((h) => ({ id: h.id != null ? String(h.id) : "", name: String(h.name) }));
+}
+
 const makeAdapter: ProvisionAdapter = {
   provider: "make",
   async plan(def) {
@@ -295,13 +483,25 @@ const makeAdapter: ProvisionAdapter = {
         "Make is not connected. Add a Make API key first.",
       );
     }
-    const base = await getConnectorAccountRef("make");
-    if (!base) {
+    const baseRef = await getConnectorAccountRef("make");
+    if (!baseRef) {
       throw new ProvisionError(
         "Make API base URL is missing. Add your zone URL on the Make connection.",
       );
     }
+    const base = normalizeMakeBase(baseRef);
     const name = makeWebhookName(def);
+    // Read current state: a webhook with this name already covers the qualify
+    // stage, so there is nothing to create.
+    const teamId = await resolveMakeTeamId(base, apiKey);
+    const hooks = await listMakeHooks(base, apiKey, teamId);
+    if (hooks.some((h) => sameName(h.name, name))) {
+      return {
+        provider: "make",
+        summary: `Make already has a webhook "${name}". Nothing to do.`,
+        changes: [],
+      };
+    }
     return {
       provider: "make",
       summary: `Create a Make webhook "${name}" to receive captured leads for qualification.`,
@@ -326,7 +526,10 @@ const makeAdapter: ProvisionAdapter = {
     }
     const base = normalizeMakeBase(baseRef);
     const change = plan.changes.find((c) => c.op === "create_webhook");
-    const detail = (change?.detail ?? {}) as { name?: string };
+    if (!change) {
+      throw new ProvisionError("Nothing to apply; Make is already in sync.");
+    }
+    const detail = (change.detail ?? {}) as { name?: string };
     const name = detail.name ?? "Marketing OS leads";
 
     const teamId = await resolveMakeTeamId(base, apiKey);
@@ -380,6 +583,40 @@ function instantlyDefaultSchedule() {
   };
 }
 
+// List existing campaigns, paging through Instantly v2's cursor, so plan can
+// detect when the convert-stage campaign has already been provisioned.
+async function listInstantlyCampaigns(
+  apiKey: string,
+): Promise<Array<{ id: string; name: string }>> {
+  const campaigns: Array<{ id: string; name: string }> = [];
+  let startingAfter: string | undefined;
+  const MAX_PAGES = 50;
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const url = new URL(`${INSTANTLY_BASE}/campaigns`);
+    url.searchParams.set("limit", "100");
+    if (startingAfter) url.searchParams.set("starting_after", startingAfter);
+    const res = await fetchWithTimeout(url.toString(), {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) throw await provisionHttpError("Instantly", res);
+    const data = (await res.json().catch(() => ({}))) as {
+      items?: Array<{ id?: number | string; name?: string }>;
+      next_starting_after?: string | null;
+    };
+    for (const c of data.items ?? []) {
+      if (c.name != null) {
+        campaigns.push({
+          id: c.id != null ? String(c.id) : "",
+          name: String(c.name),
+        });
+      }
+    }
+    if (!data.next_starting_after) break;
+    startingAfter = data.next_starting_after;
+  }
+  return campaigns;
+}
+
 const instantlyAdapter: ProvisionAdapter = {
   provider: "instantly",
   async plan(def) {
@@ -390,6 +627,16 @@ const instantlyAdapter: ProvisionAdapter = {
       );
     }
     const name = instantlyCampaignName(def);
+    // Read current state: a campaign with this name already covers the convert
+    // stage, so there is nothing to create.
+    const existing = await listInstantlyCampaigns(apiKey);
+    if (existing.some((c) => sameName(c.name, name))) {
+      return {
+        provider: "instantly",
+        summary: `Instantly already has a campaign "${name}". Nothing to do.`,
+        changes: [],
+      };
+    }
     return {
       provider: "instantly",
       summary: `Create the Instantly campaign "${name}" to run cold outreach against qualified leads.`,
@@ -411,7 +658,10 @@ const instantlyAdapter: ProvisionAdapter = {
       throw new ProvisionError("Instantly connection is incomplete.");
     }
     const change = plan.changes.find((c) => c.op === "create_campaign");
-    const detail = (change?.detail ?? {}) as { name?: string };
+    if (!change) {
+      throw new ProvisionError("Nothing to apply; Instantly is already in sync.");
+    }
+    const detail = (change.detail ?? {}) as { name?: string };
     const name = detail.name ?? "Marketing OS outreach";
 
     const res = await fetchWithTimeout(`${INSTANTLY_BASE}/campaigns`, {

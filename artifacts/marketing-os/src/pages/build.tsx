@@ -447,6 +447,8 @@ function ProvisionCard({ connector }: { connector: any }) {
     );
   };
 
+  const noChanges = plan != null && (plan.changes?.length ?? 0) === 0;
+
   const handleApply = () => {
     if (runId == null) return;
     applyMut.mutate(
@@ -511,27 +513,43 @@ function ProvisionCard({ connector }: { connector: any }) {
             <DialogDescription>{plan?.summary}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 max-h-[40vh] overflow-y-auto">
-            {(plan?.changes ?? []).map((ch: any, i: number) => (
-              <div key={i} className="rounded-md border border-border/50 bg-muted/20 p-3">
-                <div className="text-sm font-medium">{ch.summary}</div>
-                {ch.detail?.fields && (
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {(ch.detail.fields as any[])
-                      .map((f) => (typeof f === "string" ? f : `${f.label} (${f.type})`))
-                      .join(", ")}
-                  </div>
-                )}
+            {noChanges ? (
+              <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-3">
+                <CheckCircle2 size={16} className="text-primary mt-0.5 shrink-0" />
+                <div className="text-sm text-muted-foreground">
+                  Already in sync — nothing to do. {connector.label} already
+                  matches your blueprint.
+                </div>
               </div>
-            ))}
+            ) : (
+              (plan?.changes ?? []).map((ch: any, i: number) => (
+                <div key={i} className="rounded-md border border-border/50 bg-muted/20 p-3">
+                  <div className="text-sm font-medium">{ch.summary}</div>
+                  {ch.detail?.fields && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {(ch.detail.fields as any[])
+                        .map((f) => (typeof f === "string" ? f : `${f.label} (${f.type})`))
+                        .join(", ")}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setPlan(null)}>
-              Cancel
-            </Button>
-            <Button className="gap-1.5" onClick={handleApply} disabled={applyMut.isPending}>
-              {applyMut.isPending ? "Applying..." : "Confirm and apply"}
-              <ArrowRight size={14} />
-            </Button>
+            {noChanges ? (
+              <Button onClick={() => setPlan(null)}>Done</Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => setPlan(null)}>
+                  Cancel
+                </Button>
+                <Button className="gap-1.5" onClick={handleApply} disabled={applyMut.isPending}>
+                  {applyMut.isPending ? "Applying..." : "Confirm and apply"}
+                  <ArrowRight size={14} />
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

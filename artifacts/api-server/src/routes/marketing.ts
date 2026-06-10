@@ -877,6 +877,12 @@ router.post(
       res.status(400).json({ error: `Run is already ${run.status}.` });
       return;
     }
+    // A plan with no changes means the tool was already in sync when it was
+    // computed; there is nothing to write. Reject rather than apply a no-op.
+    if ((run.plan.changes?.length ?? 0) === 0) {
+      res.status(400).json({ error: "Nothing to apply; already in sync." });
+      return;
+    }
     const adapter = getProvisionAdapter(run.provider);
     if (!adapter) {
       res.status(400).json({ error: "This tool cannot be provisioned." });

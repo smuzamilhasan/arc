@@ -101,8 +101,33 @@ export function getConnector(id: string): ConnectorMeta | undefined {
   return MARKETING_CONNECTORS.find((c) => c.id === id);
 }
 
+function envValue(name: string): string | null {
+  const v = process.env[name];
+  return v && v.trim() ? v.trim() : null;
+}
+
+// Env-based fallback for BYO-key connectors whose credentials were supplied as
+// Replit secrets (e.g. handed directly to the operator/agent) instead of typed
+// into the Connections UI. Replit encrypts these secrets at rest, so this still
+// honors the "no raw creds" rule. Convention:
+//   MARKETING_<PROVIDER>_API_KEY            -> the API key
+//   MARKETING_<PROVIDER>_API_BASE_URL       -> account/zone ref (Make), or
+//   MARKETING_<PROVIDER>_ACCOUNT_REF        -> account/workspace ref (others)
+export function getConnectorEnvApiKey(provider: string): string | null {
+  return envValue(`MARKETING_${provider.toUpperCase()}_API_KEY`);
+}
+
+export function getConnectorEnvAccountRef(provider: string): string | null {
+  return (
+    envValue(`MARKETING_${provider.toUpperCase()}_API_BASE_URL`) ??
+    envValue(`MARKETING_${provider.toUpperCase()}_ACCOUNT_REF`)
+  );
+}
+
 // The decrypted BYO API key for a connector, or null when not connected.
-// Only valid for byokey connectors; managed/url connectors return null.
+// Prefers a key stored through the Connections UI (encrypted at rest), then
+// falls back to a Replit secret. Only valid for byokey connectors; managed/url
+// connectors return null.
 export async function getConnectorApiKey(
   provider: string,
 ): Promise<string | null> {
@@ -115,11 +140,12 @@ export async function getConnectorApiKey(
         eq(marketingConnectionsTable.provider, provider),
       ),
     );
-  if (!row?.apiKeyEncrypted) return null;
-  return decryptSecret(row.apiKeyEncrypted);
+  if (row?.apiKeyEncrypted) return decryptSecret(row.apiKeyEncrypted);
+  return getConnectorEnvApiKey(provider);
 }
 
-// The stored account/workspace reference for a connector, if any.
+// The stored account/workspace reference for a connector, if any. Falls back to
+// the Replit secret when no Connections-UI value is present.
 export async function getConnectorAccountRef(
   provider: string,
 ): Promise<string | null> {
@@ -132,5 +158,5 @@ export async function getConnectorAccountRef(
         eq(marketingConnectionsTable.provider, provider),
       ),
     );
-  return row?.accountRef ?? null;
+  return row?.accountRef ?? getConnectorEnvAccountRef(provider);
 }

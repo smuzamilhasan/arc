@@ -32,4 +32,5 @@
 - [External connector ingestion](marketing-os-funnel.md) — one-way pull (Typeform): paginate every sync + advance cursor only after all pages; dedup by token + partial unique index backstop (catch 23505); managed proxy, no raw token stored.
 - [Marketing OS control plane](marketing-os-control-plane.md) — blueprint reconciled INTO user tools; plan never stores secrets, apply must atomically claim (planned->applying) or double-writes externally.
 - [Educational insights](educational-insights.md) — strategist's encouragement/teaching output is a SEPARATE class from AssistantAction proposals; never an action kind; 5 pillars; own table/scheduler/SSE type, surfaces in Learn hub + contextual cards + chat.
+- [Marketing connector env fallback](marketing-connector-env-fallback.md) — BYO-key connectors also accept a Replit secret (MARKETING_<P>_API_KEY/_API_BASE_URL); BOTH /marketing/connectors (Build gate) and /connections must reflect it.
 - [Hover-revealed controls eat taps on touch](hover-reveal-controls-touch.md) — opacity-0 still captures clicks; pair opacity toggles with pointer-events toggles or hidden hover controls hijack the tap target on mobile.

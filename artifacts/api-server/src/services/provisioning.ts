@@ -421,7 +421,10 @@ async function provisionHttpError(
 // full API base URL as the account ref. Hook creation needs a teamId, which we
 // resolve from the account at apply time so the connection UI stays single-field.
 function normalizeMakeBase(base: string): string {
-  return base.trim().replace(/\/+$/, "");
+  // Accept either a full API base ("https://us2.make.com/api/v2") or just the
+  // zone host ("https://us2.make.com"); the Make REST API lives under /api/v2.
+  const trimmed = base.trim().replace(/\/+$/, "");
+  return /\/api\/v\d+$/.test(trimmed) ? trimmed : `${trimmed}/api/v2`;
 }
 
 function makeWebhookName(def: BlueprintDefinition): string {

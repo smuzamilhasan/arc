@@ -59,6 +59,8 @@ import {
 import {
   MARKETING_CONNECTORS,
   getConnector,
+  getConnectorEnvApiKey,
+  getConnectorEnvAccountRef,
 } from "../services/marketingConnectors";
 import { getOrCreateBlueprint, updateBlueprint } from "../services/blueprint";
 import {
@@ -135,15 +137,15 @@ function serializeActivity(a: ActivityRow) {
 function serializeConnection(c: ConnectionRow) {
   const meta = getConnector(c.provider);
   // Connection is "connected" per its auth model: url providers need a booking
-  // URL, byokey providers need a stored encrypted key.
+  // URL, byokey providers need a stored encrypted key OR a Replit secret.
   const connected =
     meta?.authType === "url"
       ? Boolean(c.bookingUrl)
-      : Boolean(c.apiKeyEncrypted);
+      : Boolean(c.apiKeyEncrypted) || Boolean(getConnectorEnvApiKey(c.provider));
   return {
     provider: c.provider,
     connected,
-    accountRef: c.accountRef,
+    accountRef: c.accountRef ?? getConnectorEnvAccountRef(c.provider),
     bookingUrl: c.bookingUrl,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
@@ -602,7 +604,25 @@ router.get("/marketing/connections", requireAdmin, async (_req, res) => {
     .select()
     .from(marketingConnectionsTable)
     .where(eq(marketingConnectionsTable.tenant, MARKETING_TENANT));
-  res.json(rows.map(serializeConnection));
+  const seen = new Set(rows.map((r) => r.provider));
+  const out = rows.map(serializeConnection);
+  // Surface byokey connectors that are satisfied purely by a Replit secret
+  // (no Connections-UI row), so the UI shows them as connected.
+  for (const meta of MARKETING_CONNECTORS) {
+    if (seen.has(meta.id)) continue;
+    if (meta.authType === "byokey" && getConnectorEnvApiKey(meta.id)) {
+      const now = new Date().toISOString();
+      out.push({
+        provider: meta.id,
+        connected: true,
+        accountRef: getConnectorEnvAccountRef(meta.id),
+        bookingUrl: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }
+  res.json(out);
 });
 
 router.post("/marketing/connections", requireAdmin, async (req, res) => {
@@ -740,8 +760,10 @@ router.get("/marketing/connectors", requireAdmin, async (_req, res) => {
     } else if (meta.authType === "url") {
       connected = Boolean(row?.bookingUrl);
     } else {
-      connected = Boolean(row?.apiKeyEncrypted);
-      accountRef = row?.accountRef ?? null;
+      // byokey: a stored encrypted key OR a Replit secret counts as connected.
+      connected =
+        Boolean(row?.apiKeyEncrypted) || Boolean(getConnectorEnvApiKey(meta.id));
+      accountRef = row?.accountRef ?? getConnectorEnvAccountRef(meta.id);
     }
     return {
       id: meta.id,

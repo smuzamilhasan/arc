@@ -1,0 +1,8 @@
+# The service sets NODE_ENV=production, which makes Nixpacks' default install
+# (`pnpm i --frozen-lockfile`) prune devDependencies. The build needs them
+# (vite for the SPAs, esbuild for the API bundle), so override the install
+# phase to install everything with --prod=false. Doing it here — as the single
+# install phase — avoids the prod->dev switch that triggers pnpm's interactive
+# modules-purge prompt in the non-interactive builder.
+[phases.install]
+cmds = ["pnpm install --frozen-lockfile --prod=false"]

@@ -59,3 +59,7 @@ replit.nix
 *.env
 .env.local
 .env.*.local
+
+# Clerk user exports (PII) — never commit
+clerk-users-export*.json
+arc_backup*

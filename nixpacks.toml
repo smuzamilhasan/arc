@@ -1,3 +1,9 @@
+# Pin the Node version. Without this Nixpacks defaults to Node 18, but Vite 7
+# (the SPA bundler) requires Node >= 20.19 / 22.12. 22 is current LTS and is
+# available in this Nixpacks image.
+[variables]
+NIXPACKS_NODE_VERSION = "22"
+
 # The service sets NODE_ENV=production, which makes Nixpacks' default install
 # (`pnpm i --frozen-lockfile`) prune devDependencies. The build needs them
 # (vite for the SPAs, esbuild for the API bundle), so override the install

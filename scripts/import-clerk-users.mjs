@@ -20,9 +20,10 @@
 
 import fs from "node:fs";
 
+const DRY_RUN = process.env.DRY_RUN === "1";
 const key = process.env.CLERK_SECRET_KEY;
-if (!key) { console.error("CLERK_SECRET_KEY not set"); process.exit(1); }
-console.log("Target Clerk instance:", key.slice(0, 8) + "…");
+if (!key && !DRY_RUN) { console.error("CLERK_SECRET_KEY not set"); process.exit(1); }
+console.log(DRY_RUN ? "DRY RUN (no users created)" : "Target Clerk instance: " + key.slice(0, 8) + "…");
 
 const file = process.env.CLERK_EXPORT_FILE || "clerk-users-prod-export.json";
 if (!fs.existsSync(file)) {
@@ -30,7 +31,11 @@ if (!fs.existsSync(file)) {
   process.exit(1);
 }
 const exported = JSON.parse(fs.readFileSync(file, "utf8"));
-const users = Array.isArray(exported) ? exported : exported.data || [];
+const rawUsers = Array.isArray(exported) ? exported : exported.data || [];
+// Exports come in two shapes: the standard Clerk API object (snake_case), or a
+// camelCase SDK object that nests the standard object under `_raw`. Normalize
+// to the snake_case standard form.
+const users = rawUsers.map((u) => u && u._raw ? u._raw : u);
 console.log(`Loaded ${users.length} users from ${file}`);
 
 const API = "https://api.clerk.com/v1";
@@ -60,6 +65,12 @@ for (const [i, u] of users.entries()) {
     skip_password_requirement: true,
     skip_password_checks: true,
   };
+
+  if (DRY_RUN) {
+    idMap[u.id] = "(dry-run)";
+    created++;
+    continue;
+  }
 
   let res = await fetch(`${API}/users`, { method: "POST", headers, body: JSON.stringify(body) });
 

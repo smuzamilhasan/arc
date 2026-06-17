@@ -48,6 +48,14 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
-# Replit
+# Replit (excluded from Railway deployments)
 .cache/
 .local/
+.replit
+replit.nix
+
+# Environment variables — never commit real secrets
+.env
+*.env
+.env.local
+.env.*.local

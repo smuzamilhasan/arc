@@ -2,18 +2,12 @@
 // public app origin the invite link should point at.
 import type { InvitationKind } from "@workspace/db";
 
-// Derive the public origin from the Replit-provided environment rather than
-// hard-coding it. REPLIT_DOMAINS is a comma-separated list of production
-// domains; REPLIT_DEV_DOMAIN is the development preview host.
+// Reads the public app origin from APP_ORIGIN (required in production).
+// Falls back to localhost only during local development.
 export function appOrigin(): string {
   const explicit = process.env.APP_ORIGIN?.trim();
   if (explicit) return explicit.replace(/\/$/, "");
-  const domains = (process.env.REPLIT_DOMAINS ?? "")
-    .split(",")
-    .map((d) => d.trim())
-    .filter(Boolean);
-  const host = domains[0] ?? process.env.REPLIT_DEV_DOMAIN?.trim();
-  return host ? `https://${host}` : "http://localhost:5000";
+  return "http://localhost:5000";
 }
 
 export function inviteUrl(token: string): string {

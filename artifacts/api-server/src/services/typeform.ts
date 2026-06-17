@@ -1,11 +1,10 @@
 // Typeform lead connector (one-way: pull form submissions in as leads).
-// Uses the Replit managed connector proxy (integration: typeform) so no API key
-// is stored — the SDK injects and refreshes the OAuth token automatically.
+// Uses the Typeform REST API directly via TYPEFORM_API_TOKEN (a Personal Access
+// Token issued from admin.typeform.com → Settings → Personal tokens).
 // Every read/write is scoped to MARKETING_TENANT, consistent with the rest of
 // Marketing OS. Submissions are deduped by their Typeform response token so a
 // re-sync never creates the same lead twice.
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { ReplitConnectors } from "@replit/connectors-sdk";
 import {
   db,
   marketingFormSourcesTable,
@@ -19,7 +18,17 @@ import { appOrigin } from "./inviteEmail";
 import { MARKETING_TENANT } from "./marketing";
 import { captureLead, qualifyInBackground, logMarketingActivity } from "./marketingData";
 
-const connectors = new ReplitConnectors();
+const TYPEFORM_BASE_URL = "https://api.typeform.com";
+
+// Returns the Typeform Personal Access Token from env, or throws if unset.
+function getTypeformToken(): string {
+  const token = process.env.TYPEFORM_API_TOKEN?.trim();
+  if (!token)
+    throw new Error(
+      "TYPEFORM_API_TOKEN is not set — generate a Personal Access Token at admin.typeform.com → Settings → Personal tokens",
+    );
+  return token;
+}
 
 export interface TypeformFormSummary {
   id: string;
@@ -81,7 +90,10 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 async function tf<T>(path: string): Promise<T> {
-  const res = await connectors.proxy("typeform", path, { method: "GET" });
+  const res = await fetch(`${TYPEFORM_BASE_URL}${path}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${getTypeformToken()}` },
+  });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(`Typeform API ${res.status} for ${path}: ${detail.slice(0, 300)}`);
@@ -89,13 +101,16 @@ async function tf<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-// POST a JSON body to the Typeform API through the managed connector proxy.
+// POST a JSON body to the Typeform API.
 // Used by the provisioning engine to CREATE config (e.g. an intake form) inside
 // the connected account — the only write path Marketing OS has into Typeform.
 async function tfPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await connectors.proxy("typeform", path, {
+  const res = await fetch(`${TYPEFORM_BASE_URL}${path}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      Authorization: `Bearer ${getTypeformToken()}`,
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -126,14 +141,21 @@ export async function createTypeformForm(
   };
 }
 
-// A write (PUT/DELETE) through the connector proxy. A 404 is tolerated so
+// A write (PUT/DELETE) to the Typeform API. A 404 is tolerated so
 // removing a webhook that no longer exists is idempotent.
 async function tfWrite(
   path: string,
   method: "PUT" | "DELETE",
   body?: unknown,
 ): Promise<void> {
-  const res = await connectors.proxy("typeform", path, { method, body });
+  const res = await fetch(`${TYPEFORM_BASE_URL}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${getTypeformToken()}`,
+      ...(body != null ? { "content-type": "application/json" } : {}),
+    },
+    ...(body != null ? { body: JSON.stringify(body) } : {}),
+  });
   if (!res.ok && res.status !== 404) {
     const detail = await res.text().catch(() => "");
     throw new Error(`Typeform API ${res.status} for ${path}: ${detail.slice(0, 300)}`);
@@ -142,6 +164,7 @@ async function tfWrite(
 
 // True when a Typeform connection is authorized and reachable.
 export async function getTypeformStatus(): Promise<{ connected: boolean }> {
+  if (!process.env.TYPEFORM_API_TOKEN?.trim()) return { connected: false };
   try {
     await tf("/me");
     return { connected: true };

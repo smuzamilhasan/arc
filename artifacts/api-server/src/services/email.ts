@@ -1,10 +1,7 @@
-// Reusable transactional email helper. Wraps Resend through the Replit
-// connector proxy (integration: resend) so no API key is hard-coded — the SDK
-// handles identity, token refresh, and auth headers automatically.
-import { ReplitConnectors } from "@replit/connectors-sdk";
+// Reusable transactional email helper. Sends via the Resend REST API using
+// the RESEND_API_KEY environment variable. Per-call apiKey overrides the
+// default for callers that supply their own BYO key.
 import { logger } from "../lib/logger";
-
-const connectors = new ReplitConnectors();
 
 // Resend's shared onboarding/test domain. It works without verifying a custom
 // domain, but can only deliver to the Resend account owner's own address until
@@ -25,8 +22,7 @@ export interface SendEmailInput {
   html: string;
   text?: string;
   from?: string;
-  // When provided, the email is sent directly via the Resend API using this
-  // (caller-decrypted) BYO key instead of the shared Replit connector proxy.
+  // When provided, overrides RESEND_API_KEY for callers supplying a per-client BYO key.
   apiKey?: string;
 }
 
@@ -48,21 +44,23 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
     html: input.html,
     ...(input.text ? { text: input.text } : {}),
   });
+  const apiKey = input.apiKey ?? process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) {
+    logger.error(
+      { to: input.to },
+      "RESEND_API_KEY is not set; cannot send email — add it to your environment variables",
+    );
+    return false;
+  }
   try {
-    const response = input.apiKey
-      ? await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${input.apiKey}`,
-          },
-          body: payload,
-        })
-      : await connectors.proxy("resend", "/emails", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: payload,
-        });
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: payload,
+    });
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
       logger.error(

@@ -1,12 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// The app is served through the shared Replit proxy at localhost:80
-// (web at "/", api-server at "/api"). Override with E2E_BASE_URL if needed.
+// The app is served at localhost:80 (web at "/", api-server at "/api").
+// Override with E2E_BASE_URL if needed.
 const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:80";
 
-// On Replit the bundled Playwright browser can't resolve its system libs, so
-// prefer the Replit-provided chromium when present.
-const chromiumExecutable = process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+// Allow overriding the Chromium executable via the standard Playwright env var.
+// On CI, run `npx playwright install chromium` to install the bundled browser.
+const chromiumExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 
 export default defineConfig({
   testDir: "./e2e",

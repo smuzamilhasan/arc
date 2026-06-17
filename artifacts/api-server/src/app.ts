@@ -1,3 +1,4 @@
+import path from "node:path";
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
@@ -61,5 +62,44 @@ app.use(
 );
 
 app.use("/api", router);
+
+// --- Static frontend SPAs --------------------------------------------------
+// The four SPAs are built (see railway.json buildCommand) into their own dist
+// folders and served by this single server, replacing Replit's reverse proxy.
+// Paths are resolved from the working directory (the repo root, /app on
+// Railway). Sub-path apps are registered before the root app so they win, and
+// each app gets an SPA fallback so client-side (wouter) deep links resolve to
+// its index.html.
+const repoRoot = process.cwd();
+const spaDir = (name: string, out: string): string =>
+  path.join(repoRoot, "artifacts", name, out);
+
+function mountSpa(basePath: string, dir: string): void {
+  const indexHtml = path.join(dir, "index.html");
+  app.use(basePath, express.static(dir));
+  app.use(basePath, (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    res.sendFile(indexHtml, (err) => {
+      if (err) next();
+    });
+  });
+}
+
+mountSpa("/marketing-os", spaDir("marketing-os", "dist/public"));
+mountSpa("/pitch-deck", spaDir("pitch-deck", "dist/public"));
+mountSpa("/__mockup", spaDir("mockup-sandbox", "dist"));
+
+// Root app (personal-brand) is registered last so it doesn't shadow the
+// sub-path apps. Its fallback skips /api so unmatched API routes still 404.
+const rootDir = spaDir("personal-brand", "dist/public");
+const rootIndex = path.join(rootDir, "index.html");
+app.use(express.static(rootDir));
+app.use((req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  if (req.path === "/api" || req.path.startsWith("/api/")) return next();
+  res.sendFile(rootIndex, (err) => {
+    if (err) next();
+  });
+});
 
 export default app;

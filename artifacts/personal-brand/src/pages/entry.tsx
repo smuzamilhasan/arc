@@ -78,7 +78,8 @@ export default function Entry() {
     // the accept flow before any default routing.
     const pendingInvite = consumePendingInvite();
     if (pendingInvite) {
-      setLocation(`/invite/${pendingInvite}`);
+      // "~" escapes the /app router base — /invite/:token is a root route.
+      setLocation(`~/invite/${pendingInvite}`);
       return;
     }
 

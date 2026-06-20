@@ -25,3 +25,4 @@ export * from "./marketingActivity";
 export * from "./marketingFormSources";
 export * from "./marketingBlueprints";
 export * from "./marketingProvisionRuns";
+export * from "./waitlist";

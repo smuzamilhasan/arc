@@ -2,7 +2,7 @@ import path from "node:path";
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
-import { clerkMiddleware } from "@clerk/express";
+import { clerkMiddleware, getAuth } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
 import {
   CLERK_PROXY_PATH,
@@ -88,6 +88,25 @@ function mountSpa(basePath: string, dir: string): void {
 mountSpa("/marketing-os", spaDir("marketing-os", "dist/public"));
 mountSpa("/pitch-deck", spaDir("pitch-deck", "dist/public"));
 mountSpa("/__mockup", spaDir("mockup-sandbox", "dist"));
+
+// Server-side auth gate for the platform. The personal-brand SPA serves the
+// public marketing landing at "/" and the product under "/app/*"; an
+// unauthenticated top-level navigation to "/app/*" is bounced to /login here,
+// before the SPA shell is served — so the gate is enforced server-side, not
+// just hidden in the client (which also runs RequireAuth). The Clerk session is
+// a first-party cookie on the apex (prod instance clerk.buildmyarc.com), so
+// getAuth(req) resolves on a page load. Only guards GET/HEAD page navigations;
+// /api is gated separately and SPA assets live at /assets, not /app.
+app.use((req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  if (req.path !== "/app" && !req.path.startsWith("/app/")) return next();
+  const { userId } = getAuth(req);
+  if (!userId) {
+    res.redirect(302, "/login");
+    return;
+  }
+  next();
+});
 
 // Root app (personal-brand) is registered last so it doesn't shadow the
 // sub-path apps. Its fallback skips /api so unmatched API routes still 404.

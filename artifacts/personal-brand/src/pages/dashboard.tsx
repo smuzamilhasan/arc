@@ -131,7 +131,7 @@ export default function Dashboard() {
           </p>
           <div className="mt-6 flex items-center justify-center gap-3">
             {isAuthError ? (
-              <Link href="/sign-in">
+              <Link href="~/login">
                 <Button>Sign in</Button>
               </Link>
             ) : (

@@ -52,7 +52,7 @@ const EDU_CARDS: EduCard[] = [
     body: "Building and posting have never been easier, and the feeds are full of interchangeable, AI-generated content. Volume no longer wins attention. A clear, human point of view does. That is the gap arc is built to close.",
     image: noiseImg,
     imageAlt:
-      "A grid of identical speech bubbles with a single distinct one outlined in persimmon, standing out from the sameness.",
+      "A grid of identical speech bubbles with a single distinct one outlined in jade, standing out from the sameness.",
   },
   {
     eyebrow: "What you'll do here",
@@ -68,7 +68,7 @@ const EDU_CARDS: EduCard[] = [
     body: "Whatever you create is far easier to share and sell once you hold influence in your niche. arc turns your narrative into a holistic plan, across the web and the real world, to build the authority, distribution, and scale your career needs to grow.",
     image: influenceImg,
     imageAlt:
-      "Concentric ripples radiating from a single persimmon node out to a network of online and real-world connections.",
+      "Concentric ripples radiating from a single jade node out to a network of online and real-world connections.",
   },
 ];
 

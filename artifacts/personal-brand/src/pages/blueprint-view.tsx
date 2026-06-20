@@ -201,9 +201,9 @@ export default function BlueprintView() {
       ) : (
         <div className="space-y-10">
           {portrait.stale && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-5 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/5 px-5 py-4">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-foreground">
                     Your Blueprint has changed since this was generated

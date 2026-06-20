@@ -86,7 +86,7 @@ export default function Invite() {
           </div>
         ) : data.status !== "pending" ? (
           <div className="text-center">
-            <AlertCircle className="mx-auto mb-3 h-8 w-8 text-amber-500" />
+            <AlertCircle className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
             <h1 className="font-serif text-xl">Invitation no longer active</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               This invitation has already been {data.status}.

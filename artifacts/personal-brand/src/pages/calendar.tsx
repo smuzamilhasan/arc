@@ -58,28 +58,28 @@ const PLATFORM_STYLES: Record<
 > = {
   linkedin: {
     label: "LinkedIn",
-    dot: "bg-sky-500",
-    card: "border-sky-500/30 bg-sky-500/10 text-sky-700 hover:bg-sky-500/20",
+    dot: "bg-sky-400",
+    card: "border-sky-500/30 bg-sky-500/15 text-sky-300 hover:bg-sky-500/25",
   },
   twitter: {
     label: "X (Twitter)",
-    dot: "bg-slate-700",
-    card: "border-slate-500/30 bg-slate-500/10 text-slate-700 hover:bg-slate-500/20",
+    dot: "bg-slate-400",
+    card: "border-slate-500/30 bg-slate-500/15 text-slate-300 hover:bg-slate-500/25",
   },
   instagram: {
     label: "Instagram",
-    dot: "bg-pink-500",
-    card: "border-pink-500/30 bg-pink-500/10 text-pink-700 hover:bg-pink-500/20",
+    dot: "bg-violet-400",
+    card: "border-violet-500/30 bg-violet-500/15 text-violet-300 hover:bg-violet-500/25",
   },
   blog: {
     label: "Blog",
-    dot: "bg-emerald-500",
-    card: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20",
+    dot: "bg-teal-400",
+    card: "border-teal-500/30 bg-teal-500/15 text-teal-300 hover:bg-teal-500/25",
   },
   other: {
     label: "Other",
-    dot: "bg-amber-500",
-    card: "border-amber-500/30 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20",
+    dot: "bg-indigo-400",
+    card: "border-indigo-500/30 bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/25",
   },
 };
 

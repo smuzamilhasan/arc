@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..600&display=swap');
 @layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -70,77 +70,87 @@
 }
 
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  --button-outline: rgba(255,255,255, .10);
+  --badge-outline: rgba(255,255,255, .05);
 
-  --opaque-button-border-intensity: -8;
+  --opaque-button-border-intensity: 9;
 
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
 
-  /* A calm, premium "bone" or "sand" background */
-  --background: 42 20% 95%;
-  /* Deep, sharp "ink" or "obsidian" for text */
-  --foreground: 220 30% 12%;
+  /* Signal in the Deep Field — dark cinematic canvas, one jade accent (Aurora
+     #2BE0A0), Bone text, NO warm tones. Values are HSL triplets. */
 
-  --border: 40 10% 85%;
+  /* Deep Field — cool near-black stage (ink #090C0E) */
+  --background: 204 22% 5%;
+  /* Bone — primary text (#ECEAE2), the only warm note */
+  --foreground: 48 21% 91%;
 
-  --card: 42 25% 98%;
-  --card-foreground: 220 30% 12%;
-  --card-border: 40 10% 85%;
+  --border: 200 18% 13%;
 
-  --sidebar: 42 20% 95%;
-  --sidebar-foreground: 220 30% 12%;
-  --sidebar-border: 40 10% 85%;
-  --sidebar-primary: 20 80% 40%;
-  --sidebar-primary-foreground: 42 20% 95%;
-  --sidebar-accent: 40 15% 90%;
-  --sidebar-accent-foreground: 220 30% 12%;
-  --sidebar-ring: 20 80% 40%;
+  /* Substrate — raised surfaces / cards (#11171A) */
+  --card: 200 21% 8%;
+  --card-foreground: 48 21% 91%;
+  --card-border: 200 18% 13%;
 
-  --popover: 42 25% 98%;
-  --popover-foreground: 220 30% 12%;
-  --popover-border: 40 10% 85%;
+  --sidebar: 204 22% 5%;
+  --sidebar-foreground: 48 21% 91%;
+  --sidebar-border: 200 18% 13%;
+  --sidebar-primary: 159 74% 52%;
+  --sidebar-primary-foreground: 204 22% 5%;
+  --sidebar-accent: 200 18% 13%;
+  --sidebar-accent-foreground: 48 21% 91%;
+  --sidebar-ring: 159 74% 52%;
 
-  /* The "arc" accent - a bold deliberate persimmon/terracotta */
-  --primary: 20 80% 45%;
-  --primary-foreground: 42 20% 95%;
+  --popover: 200 21% 8%;
+  --popover-foreground: 48 21% 91%;
+  --popover-border: 200 18% 13%;
 
-  --secondary: 40 15% 90%;
-  --secondary-foreground: 220 30% 12%;
+  /* The one accent — Aurora jade (#2BE0A0). Dark ink text sits on jade fills. */
+  --primary: 159 74% 52%;
+  --primary-foreground: 204 22% 5%;
 
-  --muted: 40 10% 90%;
-  --muted-foreground: 220 15% 45%;
+  /* Slate Veil — elevation / fills (#1C2428) */
+  --secondary: 200 18% 13%;
+  --secondary-foreground: 48 21% 91%;
 
-  --accent: 20 80% 96%;
-  --accent-foreground: 20 80% 40%;
+  --muted: 200 18% 13%;
+  /* Ash — secondary text / captions (#878F96) */
+  --muted-foreground: 208 7% 56%;
 
-  --destructive: 0 80% 50%;
-  --destructive-foreground: 0 0% 98%;
+  /* Neutral elevated hover surface (kept neutral so jade stays the lone signal) */
+  --accent: 200 18% 15%;
+  --accent-foreground: 48 21% 91%;
 
-  --input: 40 10% 85%;
-  --ring: 20 80% 45%;
-  
-  --chart-1: 20 80% 45%;
-  --chart-2: 40 60% 40%;
-  --chart-3: 180 30% 30%;
-  --chart-4: 280 20% 40%;
-  --chart-5: 340 40% 40%;
+  /* Danger — kept cool, never competing with Aurora (#F0506A) */
+  --destructive: 350 84% 63%;
+  --destructive-foreground: 48 20% 96%;
 
-  --app-font-sans: 'Outfit', sans-serif;
-  --app-font-serif: 'Instrument Serif', serif;
-  --app-font-mono: 'Menlo', monospace;
+  --input: 200 18% 13%;
+  --ring: 159 74% 52%;
+
+  /* Cool data-viz ramp — jade → teal → slate → pewter → deep jade. No warm. */
+  --chart-1: 159 74% 52%;
+  --chart-2: 185 55% 45%;
+  --chart-3: 210 25% 55%;
+  --chart-4: 207 10% 70%;
+  --chart-5: 162 76% 35%;
+
+  --app-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --app-font-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --app-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   
   --radius: 0.5rem;
   
-  --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.02);
-  --shadow-xs: 0px 3px 0px 0px rgba(0,0,0,0.04);
-  --shadow-sm: 0px 2px 4px rgba(0,0,0,0.05);
-  --shadow: 0px 4px 10px rgba(0,0,0,0.05);
-  --shadow-md: 0px 8px 20px rgba(0,0,0,0.06);
-  --shadow-lg: 0px 12px 30px rgba(0,0,0,0.08);
-  --shadow-xl: 0px 20px 40px rgba(0,0,0,0.1);
-  --shadow-2xl: 0px 30px 60px rgba(0,0,0,0.12);
+  /* Deep, cool shadows for the dark canvas. */
+  --shadow-2xs: 0px 1px 2px rgba(0,0,0,0.30);
+  --shadow-xs: 0px 2px 4px rgba(0,0,0,0.35);
+  --shadow-sm: 0px 1px 2px rgba(0,0,0,0.40);
+  --shadow: 0px 6px 18px rgba(0,0,0,0.35);
+  --shadow-md: 0px 12px 40px rgba(0,0,0,0.35);
+  --shadow-lg: 0px 24px 80px rgba(0,0,0,0.45);
+  --shadow-xl: 0px 32px 90px rgba(0,0,0,0.50);
+  --shadow-2xl: 0px 40px 110px rgba(0,0,0,0.55);
 
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -149,6 +159,8 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
+/* Dark is the canonical theme (defined in :root). This block mirrors it so any
+   stray `.dark` toggle or `dark:` utility resolves to the same Deep Field brand. */
 .dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
@@ -156,52 +168,51 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* Extremely dark sophisticated ink background */
-  --background: 220 30% 8%;
-  --foreground: 42 20% 95%;
+  --background: 204 22% 5%;
+  --foreground: 48 21% 91%;
 
-  --border: 220 20% 16%;
+  --border: 200 18% 13%;
 
-  --card: 220 25% 11%;
-  --card-foreground: 42 20% 95%;
-  --card-border: 220 20% 16%;
+  --card: 200 21% 8%;
+  --card-foreground: 48 21% 91%;
+  --card-border: 200 18% 13%;
 
-  --sidebar: 220 30% 8%;
-  --sidebar-foreground: 42 20% 95%;
-  --sidebar-border: 220 20% 16%;
-  --sidebar-primary: 20 80% 55%;
-  --sidebar-primary-foreground: 220 30% 8%;
-  --sidebar-accent: 220 20% 14%;
-  --sidebar-accent-foreground: 42 20% 95%;
-  --sidebar-ring: 20 80% 55%;
+  --sidebar: 204 22% 5%;
+  --sidebar-foreground: 48 21% 91%;
+  --sidebar-border: 200 18% 13%;
+  --sidebar-primary: 159 74% 52%;
+  --sidebar-primary-foreground: 204 22% 5%;
+  --sidebar-accent: 200 18% 13%;
+  --sidebar-accent-foreground: 48 21% 91%;
+  --sidebar-ring: 159 74% 52%;
 
-  --popover: 220 25% 11%;
-  --popover-foreground: 42 20% 95%;
-  --popover-border: 220 20% 16%;
+  --popover: 200 21% 8%;
+  --popover-foreground: 48 21% 91%;
+  --popover-border: 200 18% 13%;
 
-  --primary: 20 80% 55%;
-  --primary-foreground: 220 30% 8%;
+  --primary: 159 74% 52%;
+  --primary-foreground: 204 22% 5%;
 
-  --secondary: 220 20% 16%;
-  --secondary-foreground: 42 20% 95%;
+  --secondary: 200 18% 13%;
+  --secondary-foreground: 48 21% 91%;
 
-  --muted: 220 20% 16%;
-  --muted-foreground: 220 15% 65%;
+  --muted: 200 18% 13%;
+  --muted-foreground: 208 7% 56%;
 
-  --accent: 220 20% 16%;
-  --accent-foreground: 42 20% 95%;
+  --accent: 200 18% 15%;
+  --accent-foreground: 48 21% 91%;
 
-  --destructive: 0 70% 50%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 350 84% 63%;
+  --destructive-foreground: 48 20% 96%;
 
-  --input: 220 20% 16%;
-  --ring: 20 80% 55%;
-  
-  --chart-1: 20 80% 55%;
-  --chart-2: 40 60% 60%;
-  --chart-3: 180 30% 50%;
-  --chart-4: 280 20% 60%;
-  --chart-5: 340 40% 60%;
+  --input: 200 18% 13%;
+  --ring: 159 74% 52%;
+
+  --chart-1: 159 74% 52%;
+  --chart-2: 185 55% 45%;
+  --chart-3: 210 25% 55%;
+  --chart-4: 207 10% 70%;
+  --chart-5: 162 76% 35%;
 }
 
 @layer base {
@@ -212,6 +223,8 @@
     @apply font-sans antialiased bg-background text-foreground selection:bg-primary/20 selection:text-primary;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif tracking-tight text-foreground font-normal;
+    @apply font-serif tracking-tight text-foreground font-medium;
+    font-optical-sizing: auto;
+    letter-spacing: -0.015em;
   }
 }

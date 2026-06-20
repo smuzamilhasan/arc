@@ -37,7 +37,7 @@ function StatusBadge({ status }: { status: ManagerTask["status"] }) {
   const map = {
     completed: {
       icon: CheckCircle2,
-      cls: "text-emerald-600",
+      cls: "text-teal-300",
       label: "Completed",
     },
     failed: { icon: XCircle, cls: "text-destructive", label: "Failed" },

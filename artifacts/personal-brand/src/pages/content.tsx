@@ -505,8 +505,8 @@ function ContentLibrary() {
 
   const getStatusColor = (status: string) => {
     switch(status) {
-      case 'published': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-      case 'scheduled': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+      case 'published': return 'bg-teal-500/15 text-teal-300 border-teal-500/30';
+      case 'scheduled': return 'bg-sky-500/15 text-sky-300 border-sky-500/30';
       default: return 'bg-muted text-muted-foreground border-border/50';
     }
   };
@@ -1028,9 +1028,9 @@ function ScheduleCalendar({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "published":
-        return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+        return "bg-teal-500/15 text-teal-300 border-teal-500/30";
       case "scheduled":
-        return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+        return "bg-sky-500/15 text-sky-300 border-sky-500/30";
       default:
         return "bg-muted text-muted-foreground border-border/50";
     }

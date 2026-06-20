@@ -439,11 +439,11 @@ export default function Agency() {
                   </p>
                   <div className="mt-1 flex items-center gap-2">
                     {c.claimed ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                      <span className="inline-flex items-center gap-1 text-xs text-teal-300">
                         <CheckCircle2 className="h-3 w-3" /> Claimed
                       </span>
                     ) : (
-                      <span className="text-xs text-amber-600">Unclaimed</span>
+                      <span className="text-xs text-muted-foreground">Unclaimed</span>
                     )}
                     {c.onboardingComplete ? (
                       <span className="text-xs text-muted-foreground">

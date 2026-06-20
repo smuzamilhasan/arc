@@ -1,15 +1,6 @@
-<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    .tile { fill: hsl(20 80% 45%); }
-    .arc { stroke: hsl(42 25% 98%); }
-    @media (prefers-color-scheme: dark) {
-      .tile { fill: hsl(20 80% 55%); }
-      .arc { stroke: hsl(220 30% 8%); }
-    }
-  </style>
-  <rect class="tile" width="180" height="180" rx="40"/>
-  <g class="arc" stroke-width="20" stroke-linecap="round" fill="none">
-    <path d="M38 105 A52 52 0 0 1 142 105"/>
-    <path d="M32 127 H148"/>
-  </g>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs><filter id="g" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <rect width="512" height="512" rx="112" fill="#090C0E"/>
+  <rect x="3" y="3" width="506" height="506" rx="110" fill="none" stroke="#1C2428" stroke-width="2"/>
+    <g transform="translate(18,33) scale(3.66)"><path d="M24 84 A50 50 0 0 1 92 52" fill="none" stroke="#ECEAE2" stroke-width="8.5" stroke-linecap="round"/><circle cx="92" cy="52" r="14" fill="#2BE0A0" opacity="0.26" filter="url(#g)"/><circle cx="92" cy="52" r="7.5" fill="#2BE0A0"/></g>
 </svg>

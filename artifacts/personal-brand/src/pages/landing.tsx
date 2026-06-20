@@ -64,7 +64,7 @@ const beliefs = [
     ],
     image: noiseImg,
     imageAlt:
-      "A grid of identical speech bubbles with a single distinct one outlined in persimmon, standing out from the sameness.",
+      "A grid of identical speech bubbles with a single distinct one outlined in jade, standing out from the sameness.",
     flip: false,
   },
   {
@@ -92,7 +92,7 @@ const beliefs = [
     ],
     image: influenceImg,
     imageAlt:
-      "Concentric ripples radiating from a single persimmon node out to a network of online and real-world connections.",
+      "Concentric ripples radiating from a single jade node out to a network of online and real-world connections.",
     flip: false,
   },
 ];
@@ -187,7 +187,7 @@ export default function Landing() {
           <div className="max-w-6xl mx-auto px-6 md:px-10 pt-16 md:pt-24 pb-16 md:pb-24">
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               <div className="animate-in fade-in duration-700 slide-in-from-bottom-4 text-center lg:text-left">
-                <span className="inline-block text-xs font-medium text-primary tracking-[0.2em] uppercase">
+                <span className="inline-block font-mono text-xs font-medium text-primary tracking-[0.18em] uppercase">
                   Personal brand strategy for the age of AI
                 </span>
                 <h1 className="font-serif text-5xl md:text-6xl xl:text-7xl tracking-tight text-foreground mt-6 leading-[1.04]">
@@ -238,7 +238,7 @@ export default function Landing() {
                 />
                 <img
                   src={heroSignal}
-                  alt="A tangle of chaotic lines on the left resolving into a single confident persimmon arc that rises and clears the noise."
+                  alt="A tangle of chaotic lines on the left resolving into a single confident jade arc that rises and clears the noise."
                   className="w-full h-auto rounded-2xl border border-border/60 bg-card shadow-lg"
                   loading="eager"
                 />
@@ -256,7 +256,7 @@ export default function Landing() {
                 className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center"
               >
                 <div className={b.flip ? "lg:order-2" : ""}>
-                  <p className="text-xs uppercase tracking-[0.2em] text-primary font-medium mb-3">
+                  <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary font-medium mb-3">
                     {b.eyebrow}
                   </p>
                   <h2 className="font-serif text-3xl md:text-4xl xl:text-5xl text-foreground leading-tight">
@@ -297,7 +297,7 @@ export default function Landing() {
         <section className="border-t border-border/50">
           <div className="max-w-6xl mx-auto px-6 md:px-10 py-20 md:py-28">
             <div className="max-w-2xl">
-              <p className="text-xs uppercase tracking-[0.2em] text-primary font-medium mb-3">
+              <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary font-medium mb-3">
                 How it works
               </p>
               <h2 className="font-serif text-4xl md:text-5xl text-foreground leading-tight">
@@ -339,7 +339,7 @@ export default function Landing() {
         <section className="border-t border-border/50 bg-card/30">
           <div className="max-w-6xl mx-auto px-6 md:px-10 py-20 md:py-28">
             <div className="max-w-2xl">
-              <p className="text-xs uppercase tracking-[0.2em] text-primary font-medium mb-3">
+              <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary font-medium mb-3">
                 What's inside
               </p>
               <h2 className="font-serif text-4xl md:text-5xl text-foreground leading-tight">
@@ -360,7 +360,7 @@ export default function Landing() {
                   <div className="rounded-full bg-primary/10 p-2.5 w-fit mb-5">
                     <f.icon className="w-5 h-5 text-primary stroke-[1.5]" />
                   </div>
-                  <p className="text-[10px] uppercase tracking-widest text-primary font-medium mb-2">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-primary font-medium mb-2">
                     {f.label}
                   </p>
                   <h3 className="font-serif text-2xl text-foreground leading-tight">

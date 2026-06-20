@@ -199,7 +199,7 @@ export default function MarketingLanding() {
           <div className="hero-aura" aria-hidden="true" />
           <div className="wrap hero-grid">
             <div className="hero-copy">
-              <span className="eyebrow">An arc. product · Early access</span>
+              <span className="eyebrow">An arc. product — early access</span>
               <h1>
                 Your expertise,
                 <br />

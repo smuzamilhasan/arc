@@ -164,6 +164,64 @@ export default function MarketingLanding() {
     return () => io.disconnect();
   }, []);
 
+  // Smooth, eased in-page navigation: anchor clicks accelerate then decelerate
+  // toward the target (cubic ease-in-out) instead of jumping. Duration scales
+  // with distance; the fixed nav offset is accounted for; reduced-motion jumps.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const NAV_OFFSET = 72;
+    const easeInOut = (t: number) =>
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    const animateTo = (targetY: number) => {
+      const startY = window.scrollY;
+      const dist = targetY - startY;
+      if (reduce || Math.abs(dist) < 4) {
+        window.scrollTo(0, targetY);
+        return;
+      }
+      const duration = Math.min(1100, Math.max(450, Math.abs(dist) * 0.6));
+      const prev = document.documentElement.style.scrollBehavior;
+      document.documentElement.style.scrollBehavior = "auto";
+      let start: number | undefined;
+      const step = (ts: number) => {
+        if (start === undefined) start = ts;
+        const p = Math.min((ts - start) / duration, 1);
+        window.scrollTo(0, startY + dist * easeInOut(p));
+        if (p < 1) requestAnimationFrame(step);
+        else document.documentElement.style.scrollBehavior = prev;
+      };
+      requestAnimationFrame(step);
+    };
+
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest(
+        'a[href^="#"]',
+      ) as HTMLAnchorElement | null;
+      if (!a) return;
+      const href = a.getAttribute("href") || "";
+      e.preventDefault();
+      if (href === "#" || href === "#top") {
+        animateTo(0);
+        history.replaceState(null, "", location.pathname + location.search);
+        return;
+      }
+      const el = document.getElementById(href.slice(1));
+      if (!el) return;
+      const targetY = Math.max(
+        0,
+        el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET,
+      );
+      animateTo(targetY);
+      history.replaceState(null, "", href);
+    };
+
+    root.addEventListener("click", onClick);
+    return () => root.removeEventListener("click", onClick);
+  }, []);
+
   const onSubmitted = () => setSubmitted(true);
 
   return (

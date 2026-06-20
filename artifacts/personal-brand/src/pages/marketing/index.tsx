@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./marketing.css";
+import founderImg from "@/assets/images/founder-keynote.jpg";
 
 // Public "Get early access" intake - posts { email } to our own API (stored in
 // the Postgres `waitlist` table). Same-origin, so a relative path is enough.
@@ -345,7 +346,7 @@ export default function MarketingLanding() {
                   </svg>
                   <div
                     style={{
-                      fontFamily: "var(--mono)",
+                      fontFamily: "var(--body)",
                       fontSize: ".7rem",
                       letterSpacing: ".03em",
                       textTransform: "none",
@@ -373,7 +374,7 @@ export default function MarketingLanding() {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    fontFamily: "var(--mono)",
+                    fontFamily: "var(--body)",
                     fontSize: ".66rem",
                     letterSpacing: ".03em",
                     textTransform: "none",
@@ -396,8 +397,8 @@ export default function MarketingLanding() {
                   <path d="M30 70 C140 70 230 120 405 175" stroke="#878F96" strokeWidth={2.5} strokeDasharray="5 5" strokeLinecap="round" />
                   <path d="M30 150 C150 150 250 120 405 35" stroke="#2BE0A0" strokeWidth={3} strokeLinecap="round" />
                   <circle cx="405" cy="35" r="6" fill="#2BE0A0" />
-                  <text x="405" y="193" textAnchor="end" fill="#878F96" fontFamily="JetBrains Mono" fontSize="11">commoditized software</text>
-                  <text x="398" y="28" textAnchor="end" fill="#2BE0A0" fontFamily="JetBrains Mono" fontSize="11">your narrative</text>
+                  <text x="405" y="193" textAnchor="end" fill="#878F96" fontFamily="Inter" fontSize="11">commoditized software</text>
+                  <text x="398" y="28" textAnchor="end" fill="#2BE0A0" fontFamily="Inter" fontSize="11">your narrative</text>
                 </svg>
               </div>
             </div>
@@ -771,15 +772,13 @@ export default function MarketingLanding() {
         {/* ============ FOUNDER ============ */}
         <section id="founder">
           <div className="wrap founder">
-            <div className="portrait reveal" aria-label="Portrait of Muzamil Hasan (placeholder - swap in founder photo).">
-              <div className="ph">
-                <svg className="glyph" viewBox="0 0 120 120" fill="none">
-                  <path d="M24 84 A50 50 0 0 1 92 52" stroke="#ECEAE2" strokeWidth={8} strokeLinecap="round" />
-                  <circle cx="92" cy="52" r="8" fill="#2BE0A0" />
-                </svg>
-                Portrait of Muzamil Hasan
-                <br />- swap in image -
-              </div>
+            <div className="portrait reveal">
+              <img
+                className="portrait-img"
+                src={founderImg}
+                alt="Muzamil Hasan on stage"
+                loading="lazy"
+              />
             </div>
             <div className="reveal">
               <span className="eyebrow">Built by Muzamil Hasan</span>

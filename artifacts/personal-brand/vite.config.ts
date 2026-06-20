@@ -44,8 +44,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(import.meta.dirname, "index.html"),
-        "sign-in": path.resolve(import.meta.dirname, "sign-in.html"),
-        "sign-up": path.resolve(import.meta.dirname, "sign-up.html"),
       },
     },
   },

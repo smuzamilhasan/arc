@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import {
   ClerkProvider,
   SignIn,
-  SignUp,
   Show,
   useClerk,
   useAuth,
@@ -21,14 +20,12 @@ import { queryClient } from "@/lib/queryClient";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import {
   ActiveClientProvider,
-  peekSignupIntent,
   setPendingInvite,
 } from "@/lib/active-client";
-import { Building2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
-import Landing from "@/pages/landing";
+import MarketingLanding from "@/pages/marketing";
 import Entry from "@/pages/entry";
 import Onboard from "@/pages/onboard";
 import Dashboard from "@/pages/dashboard";
@@ -122,54 +119,17 @@ const clerkAppearance = {
   },
 };
 
+// Invited founding members only — no public sign-up. The <SignIn> has no
+// sign-up link; the production Clerk instance is restriction-gated (allowlist).
 function SignInPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
       <SignIn
         routing="path"
-        path={`${basePath}/sign-in`}
-        signUpUrl={`${basePath}/sign-up`}
-        forceRedirectUrl={`${basePath}/`}
+        path={`${basePath}/login`}
+        forceRedirectUrl={`${basePath}/app`}
       />
     </div>
-  );
-}
-
-function SignUpPage() {
-  const isAgency = peekSignupIntent() === "agency";
-  return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-background px-4 py-12">
-      {isAgency ? (
-        <div className="flex max-w-md flex-col items-center gap-2 text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium uppercase tracking-widest text-primary">
-            <Building2 className="h-3.5 w-3.5" /> Agency account
-          </span>
-          <p className="text-sm text-muted-foreground">
-            Create your account first. Right after, you will name your agency and
-            start inviting clients and teammates.
-          </p>
-        </div>
-      ) : null}
-      <SignUp
-        routing="path"
-        path={`${basePath}/sign-up`}
-        signInUrl={`${basePath}/sign-in`}
-        forceRedirectUrl={`${basePath}/`}
-      />
-    </div>
-  );
-}
-
-function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Entry />
-      </Show>
-      <Show when="signed-out">
-        <Landing />
-      </Show>
-    </>
   );
 }
 
@@ -178,15 +138,16 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     <>
       <Show when="signed-in">{children}</Show>
       <Show when="signed-out">
-        <Redirect to="/sign-in" />
+        {/* "~" escapes the /app router base so we land on the root /login. */}
+        <Redirect to="~/login" />
       </Show>
     </>
   );
 }
 
 // Invitees are almost always signed-out new users. A bare RequireAuth would
-// bounce them to sign-in and drop the token, so persist the invite first and
-// resume it in Entry after auth. New invitees default to sign-up.
+// bounce them to /login and drop the token, so persist the invite first and
+// resume it in Entry after auth. Invited members sign in via the magic link.
 function InviteGate({ token }: { token: string }) {
   return (
     <>
@@ -202,7 +163,7 @@ function InviteGate({ token }: { token: string }) {
 
 function StashInviteAndRedirect({ token }: { token: string }) {
   setPendingInvite(token);
-  return <Redirect to="/sign-up" />;
+  return <Redirect to="/login" />;
 }
 
 // Attach the Clerk session token as a Bearer header on every API request.
@@ -245,6 +206,54 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+// The walled-off platform. Rendered under the /app router base, so every
+// existing page keeps its own path (/dashboard, /blueprint, …) and resolves
+// under /app/* automatically. Auth is enforced here (client) and by the
+// server-side /app/* gate in the API (app.ts) — defense in depth.
+function AppRoutes() {
+  return (
+    <RequireAuth>
+      <Switch>
+        <Route path="/" component={Entry} />
+        <Route path="/onboard">
+          <Onboard />
+        </Route>
+        <Route path="/*">
+          <Layout>
+            <Switch>
+              <Route path="/dashboard" component={Dashboard} />
+              <Route path="/agency" component={AgencyPage} />
+              <Route path="/blueprint" component={Blueprint} />
+              <Route path="/blueprint/view" component={BlueprintView} />
+              <Route path="/blueprint/:pillar" component={PillarPage} />
+              <Route path="/foundation" component={Foundation} />
+              <Route path="/audit" component={Audit} />
+              <Route path="/dossier" component={Dossier} />
+              <Route path="/narrative" component={Narrative} />
+              <Route path="/platforms" component={Platforms} />
+              <Route path="/industry-overview" component={IndustryOverview} />
+              <Route path="/calendar" component={Calendar} />
+              <Route path="/content/strategy" component={ContentStrategyPage} />
+              <Route path="/content" component={Content} />
+              <Route path="/ideas" component={Ideas} />
+              <Route path="/manager" component={Manager} />
+              <Route path="/planner" component={Planner} />
+              <Route path="/learn" component={Learn} />
+              <Route path="/connections">
+                <Redirect to="/account" />
+              </Route>
+              <Route path="/assistant" component={Assistant} />
+              <Route path="/account" component={Account} />
+              <Route path="/admin" component={Admin} />
+              <Route component={NotFound} />
+            </Switch>
+          </Layout>
+        </Route>
+      </Switch>
+    </RequireAuth>
+  );
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
@@ -253,19 +262,12 @@ function ClerkProviderWithRoutes() {
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
-      signInUrl={`${basePath}/sign-in`}
-      signUpUrl={`${basePath}/sign-up`}
+      signInUrl={`${basePath}/login`}
       localization={{
         signIn: {
           start: {
             title: "Welcome back",
             subtitle: "Sign in to continue shaping your arc",
-          },
-        },
-        signUp: {
-          start: {
-            title: "Create your account",
-            subtitle: "Start building your personal brand",
           },
         },
       }}
@@ -278,50 +280,19 @@ function ClerkProviderWithRoutes() {
         <ActiveClientProvider>
         <TooltipProvider>
           <Switch>
-            <Route path="/" component={HomeRedirect} />
-            <Route path="/sign-in/*?" component={SignInPage} />
-            <Route path="/sign-up/*?" component={SignUpPage} />
+            {/* Public marketing landing — the front of the product. */}
+            <Route path="/" component={MarketingLanding} />
+            <Route path="/login/*?" component={SignInPage} />
             <Route path="/invite/:token">
               {(params) => <InviteGate token={params.token} />}
             </Route>
-            <Route path="/onboard">
-              <RequireAuth>
-                <Onboard />
-              </RequireAuth>
+            {/* The platform, walled off under /app/* (nested router rebases all
+                of its internal links/redirects, so the pages keep their paths). */}
+            <Route path="/app" nest>
+              <AppRoutes />
             </Route>
-            <Route path="/*">
-              <RequireAuth>
-                <Layout>
-                  <Switch>
-                    <Route path="/dashboard" component={Dashboard} />
-                    <Route path="/agency" component={AgencyPage} />
-                    <Route path="/blueprint" component={Blueprint} />
-                    <Route path="/blueprint/view" component={BlueprintView} />
-                    <Route path="/blueprint/:pillar" component={PillarPage} />
-                    <Route path="/foundation" component={Foundation} />
-                    <Route path="/audit" component={Audit} />
-                    <Route path="/dossier" component={Dossier} />
-                    <Route path="/narrative" component={Narrative} />
-                    <Route path="/platforms" component={Platforms} />
-                    <Route path="/industry-overview" component={IndustryOverview} />
-                    <Route path="/calendar" component={Calendar} />
-                    <Route path="/content/strategy" component={ContentStrategyPage} />
-                    <Route path="/content" component={Content} />
-                    <Route path="/ideas" component={Ideas} />
-                    <Route path="/manager" component={Manager} />
-                    <Route path="/planner" component={Planner} />
-                    <Route path="/learn" component={Learn} />
-                    <Route path="/connections">
-                      <Redirect to="/account" />
-                    </Route>
-                    <Route path="/assistant" component={Assistant} />
-                    <Route path="/account" component={Account} />
-                    <Route path="/admin" component={Admin} />
-                    <Route component={NotFound} />
-                  </Switch>
-                </Layout>
-              </RequireAuth>
-            </Route>
+            {/* Unknown public path → the landing. */}
+            <Route component={MarketingLanding} />
           </Switch>
           <Toaster />
         </TooltipProvider>

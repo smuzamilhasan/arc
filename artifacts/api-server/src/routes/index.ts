@@ -20,6 +20,7 @@ import plannerChatRouter from "./plannerChat";
 import managerRouter from "./manager";
 import marketingRouter from "./marketing";
 import marketingPublicRouter from "./marketingPublic";
+import waitlistRouter from "./waitlist";
 import { requireAuth } from "../middlewares/requireAuth";
 import { attachActiveClient } from "../middlewares/activeClient";
 import agencyRouter from "./agency";
@@ -31,6 +32,9 @@ router.use(healthRouter);
 // Public Marketing OS intake (shared-secret webhook + IP rate-limited form)
 // must be mounted BEFORE requireAuth so external sources can post leads.
 router.use(marketingPublicRouter);
+
+// Public "Get early access" waitlist intake from the marketing landing.
+router.use(waitlistRouter);
 
 router.use(requireAuth);
 router.use(agencyRouter);

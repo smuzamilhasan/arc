@@ -289,8 +289,8 @@ export default function MarketingLanding() {
                     style={{
                       fontFamily: "var(--mono)",
                       fontSize: ".7rem",
-                      letterSpacing: ".14em",
-                      textTransform: "uppercase",
+                      letterSpacing: ".03em",
+                      textTransform: "none",
                       color: "var(--pewter)",
                     }}
                   >
@@ -317,8 +317,8 @@ export default function MarketingLanding() {
                     justifyContent: "space-between",
                     fontFamily: "var(--mono)",
                     fontSize: ".66rem",
-                    letterSpacing: ".12em",
-                    textTransform: "uppercase",
+                    letterSpacing: ".03em",
+                    textTransform: "none",
                     color: "var(--muted)",
                     marginBottom: ".6rem",
                   }}

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./marketing.css";
-import founderImg from "@/assets/images/founder-keynote.jpg";
+import founderImg from "@/assets/images/founder.jpg";
+import signalImg from "@/assets/images/signal.jpg";
 
 // Public "Get early access" intake - posts { email } to our own API (stored in
 // the Postgres `waitlist` table). Same-origin, so a relative path is enough.
@@ -130,12 +131,6 @@ export default function MarketingLanding() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
-  // Decorative "noise" bars behind the signal - stable across renders.
-  const bars = useMemo(
-    () => Array.from({ length: 80 }, () => 8 + Math.random() * 120),
-    [],
-  );
 
   // Nav background on scroll.
   useEffect(() => {
@@ -333,29 +328,13 @@ export default function MarketingLanding() {
               </p>
             </div>
             <div className="visual reveal">
-              <div className="noise" aria-hidden="true">
-                <div className="bars">
-                  {bars.map((h, i) => (
-                    <i key={i} style={{ height: `${h}px` }} />
-                  ))}
-                </div>
-                <div className="signal">
-                  <svg className="ln" viewBox="0 0 120 120" fill="none">
-                    <path d="M18 92 A56 56 0 0 1 96 44" stroke="#2BE0A0" strokeWidth={6} strokeLinecap="round" />
-                    <circle cx="96" cy="44" r="9" fill="#2BE0A0" />
-                  </svg>
-                  <div
-                    style={{
-                      fontFamily: "var(--body)",
-                      fontSize: ".7rem",
-                      letterSpacing: ".03em",
-                      textTransform: "none",
-                      color: "var(--pewter)",
-                    }}
-                  >
-                    one clear signal
-                  </div>
-                </div>
+              <div className="noise">
+                <img
+                  className="noise-img"
+                  src={signalImg}
+                  alt="One clear jade signal rising above a field of identical grey noise."
+                  loading="lazy"
+                />
               </div>
             </div>
           </div>
@@ -539,10 +518,18 @@ export default function MarketingLanding() {
                     <span className="on" /> LinkedIn
                   </span>
                   <span className="net">
-                    <span className="on" /> X
+                    <span
+                      className="on"
+                      style={{ background: "var(--accent-soft)", boxShadow: "0 0 8px var(--accent-soft)" }}
+                    />{" "}
+                    X
                   </span>
                   <span className="net">
-                    <span className="on" /> Newsletter
+                    <span
+                      className="on"
+                      style={{ background: "var(--accent-deep)", boxShadow: "0 0 8px var(--accent-deep)" }}
+                    />{" "}
+                    Newsletter
                   </span>
                   <span className="net off">
                     <span className="on" /> YouTube

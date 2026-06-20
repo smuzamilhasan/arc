@@ -840,7 +840,7 @@ export default function MarketingLanding() {
             </div>
             <div className="foot-cols">
               <div className="foot-col">
-                <h4>Product</h4>
+                <h4>product</h4>
                 <a href="#how">How it works</a>
                 <a href="#features">Features</a>
                 <a href="#waitlist">Early access</a>
@@ -854,11 +854,11 @@ export default function MarketingLanding() {
                 <a href="#">Podcasts</a>
               </div>
               <div className="foot-col">
-                <h4>Connect</h4>
-                <a href="#">LinkedIn</a>
-                <a href="#">X / Twitter</a>
-                <a href="#">YouTube</a>
-                <a href="#">Newsletter</a>
+                <h4>connect</h4>
+                <a href="https://www.linkedin.com/in/muzamilhasan/" target="_blank" rel="noopener">LinkedIn</a>
+                <a href="https://x.com/hoflolz" target="_blank" rel="noopener">X / Twitter</a>
+                <a href="https://www.youtube.com/@TBTGO" target="_blank" rel="noopener">YouTube</a>
+                <a href="https://muzamilhasan.com/newsletter" target="_blank" rel="noopener">Newsletter</a>
               </div>
             </div>
           </div>

@@ -21,6 +21,7 @@ import managerRouter from "./manager";
 import marketingRouter from "./marketing";
 import marketingPublicRouter from "./marketingPublic";
 import waitlistRouter from "./waitlist";
+import v2Router from "./v2";
 import { requireAuth } from "../middlewares/requireAuth";
 import { attachActiveClient } from "../middlewares/activeClient";
 import agencyRouter from "./agency";
@@ -58,5 +59,9 @@ router.use(plannerRouter);
 router.use(plannerChatRouter);
 router.use(managerRouter);
 router.use(marketingRouter);
+
+// v2 routes (foundation: voice-extractor trigger). Behind requireAuth +
+// activeClient by virtue of mount order above.
+router.use(v2Router);
 
 export default router;

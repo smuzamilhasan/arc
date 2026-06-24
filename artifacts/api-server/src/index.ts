@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startProactiveScheduler } from "./services/proactiveScheduler";
 import { startTypeformPoller } from "./services/typeform";
+import { startVoiceExtractionWorker } from "./services/voiceExtractionService";
 
 const rawPort = process.env["PORT"];
 
@@ -26,4 +27,8 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
   startProactiveScheduler();
   startTypeformPoller();
+  // v2: subscribe the VoiceExtractor to ingestNotifier so a successful
+  // Apify ingest auto-fires extraction. Idempotent — safe to call once at boot.
+  // No-op until samples land in voice_samples; no cost until then.
+  startVoiceExtractionWorker();
 });

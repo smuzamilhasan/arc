@@ -10,4 +10,5 @@ export * from "./storyBank";
 export * from "./referenceLibrary";
 export * from "./antiExamples";
 export * from "./ingestRuns";
+export * from "./onboardingSessions";
 export * from "./accessors";

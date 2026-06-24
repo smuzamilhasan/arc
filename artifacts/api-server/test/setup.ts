@@ -21,3 +21,11 @@ for (const [key, value] of Object.entries(aiEnvFallbacks)) {
 if (!process.env.LOG_LEVEL) {
   process.env.LOG_LEVEL = "silent";
 }
+
+// @workspace/db throws at import time without DATABASE_URL. Tests that don't
+// touch the database (pure agent-framework tests, math tests) only need the
+// import to succeed. A placeholder URL is enough — pg never actually connects
+// until a query runs.
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "postgres://test:test@localhost:5432/test";
+}

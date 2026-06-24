@@ -46,6 +46,7 @@ import Learn from "@/pages/learn";
 import Assistant from "@/pages/assistant";
 import Planner from "@/pages/planner";
 import Account from "@/pages/account";
+import CalibratePage from "@/pages/calibrate";
 import Admin from "@/pages/admin";
 import AgencyPage from "@/pages/agency";
 import Invite from "@/pages/invite";
@@ -243,6 +244,7 @@ function AppRoutes() {
                 <Redirect to="/account" />
               </Route>
               <Route path="/assistant" component={Assistant} />
+              <Route path="/calibrate" component={CalibratePage} />
               <Route path="/account" component={Account} />
               <Route path="/admin" component={Admin} />
               <Route component={NotFound} />

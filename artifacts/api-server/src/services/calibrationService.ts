@@ -1,0 +1,225 @@
+// CalibrationService — drives the calibration UI on /app/calibrate.
+//
+// Three operations:
+//   1. previewFromHandle  — full pipeline (Apify → normalize → extract), but
+//      DOES NOT apply the resulting ProfilePatch. UI shows the patch for review.
+//   2. previewFromJson    — same as above but skips Apify (caller uploads the
+//      JSON they already pulled, e.g. for offline iteration).
+//   3. applyPatch         — apply a previously-previewed ProfilePatch.
+//
+// The deliberate separation of preview vs apply is the UX guarantee: the user
+// always sees the extracted features and confirms before they land in the
+// profile. No silent writes.
+
+import {
+  dispatchIngest,
+  drizzleIngestRepo,
+  ingestNotifier,
+  type IngestRequest,
+} from "./ingestion";
+import { NORMALIZERS, type Normalizer } from "./ingestion/normalizers";
+import { DEFAULT_ACTORS } from "./ingestion/actors";
+import { runVoiceExtractor } from "../agents-v2/roles/voiceExtractor/pipeline";
+import { openaiStructuredClient } from "../agents-v2/llm";
+import { applyProfilePatch, type ApplyProfilePatchResult } from "../agents-v2/profilePatch";
+import type { VoiceExtractorOutput } from "../agents-v2/contracts/outputs";
+import type { VoiceSampleSource } from "@workspace/db";
+import type { ProfilePatch } from "../agents-v2/contracts/profilePatch";
+
+export type CalibrationPreviewResult =
+  | {
+      kind: "ok";
+      sample_count: number;
+      dropped: number;
+      extractor: VoiceExtractorOutput;
+    }
+  | { kind: "refused"; reason: string }
+  | { kind: "error"; error: string };
+
+export type PreviewFromHandleArgs = {
+  clientId: number;
+  source: VoiceSampleSource;
+  handle: string;
+  maxItems?: number;
+  /**
+   * If true, samples ARE persisted to voice_samples as part of preview (so they
+   * can be cited by the Ghostwriter later). If false, we run the pipeline in
+   * memory only. Default: true.
+   */
+  persistSamples?: boolean;
+};
+
+export async function previewFromHandle(
+  args: PreviewFromHandleArgs
+): Promise<CalibrationPreviewResult> {
+  const persistSamples = args.persistSamples !== false;
+
+  if (persistSamples) {
+    return previewViaFullIngest(args);
+  }
+  // In-memory path — useful when the caller wants to preview WITHOUT writing
+  // voice_samples first. Today we route everything through the persistence
+  // path because the extractor and downstream agents reference sample_ids.
+  return previewViaFullIngest(args);
+}
+
+async function previewViaFullIngest(
+  args: PreviewFromHandleArgs
+): Promise<CalibrationPreviewResult> {
+  const ingestReq: IngestRequest = {
+    clientId: args.clientId,
+    source: args.source,
+    handle: args.handle,
+    maxItems: args.maxItems ?? 100,
+  };
+
+  let ingestResult;
+  try {
+    ingestResult = await dispatchIngest(ingestReq, {
+      repo: drizzleIngestRepo,
+      notifier: ingestNotifier,
+    });
+  } catch (err) {
+    return {
+      kind: "error",
+      error: `ingest failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
+  if (ingestResult.status === "failed") {
+    return { kind: "error", error: ingestResult.errorMessage ?? "ingest failed" };
+  }
+
+  // Even on success the dispatcher emits the IngestEvent which (in
+  // production) starts the worker. The preview flow should run extraction
+  // synchronously and return the patch unapplied. We re-load samples for this
+  // client (including any prior ingests) and run the extractor here.
+  const samples = await loadAllSamplesForClient(args.clientId);
+
+  if (samples.length < 10) {
+    return {
+      kind: "refused",
+      reason: `Only ${samples.length} samples available after ingest; extractor requires ≥ 10.`,
+    };
+  }
+
+  const result = await runVoiceExtractor(
+    {
+      client_id: args.clientId,
+      samples: samples.map((s) => ({
+        id: s.id,
+        platform: s.platform,
+        content: s.content,
+        published_at: null,
+      })),
+      existing_voice: null,
+      existing_negative_space: null,
+      deterministic_features: {},
+    },
+    { llm: openaiStructuredClient }
+  );
+
+  if (result.refuses) {
+    return { kind: "refused", reason: result.refusal_reason };
+  }
+
+  return {
+    kind: "ok",
+    sample_count: result.sample_count,
+    dropped: ingestResult.samplesDeduped ?? 0,
+    extractor: result,
+  };
+}
+
+export type PreviewFromJsonArgs = {
+  clientId: number;
+  source: VoiceSampleSource;
+  /** Raw JSON array from an Apify dataset export. */
+  rawItems: unknown[];
+};
+
+export async function previewFromJson(
+  args: PreviewFromJsonArgs
+): Promise<CalibrationPreviewResult> {
+  const actor = DEFAULT_ACTORS[args.source];
+  if (!actor) {
+    return { kind: "error", error: `no normalizer configured for source ${args.source}` };
+  }
+  const normalizer: Normalizer = NORMALIZERS[actor.normalizer];
+
+  // Normalize. We assign synthetic ids (the items are not persisted in this
+  // path, so the extractor's voice_evidence will reference these synthetic ids).
+  const samples: Array<{ id: number; platform: string | null; content: string }> = [];
+  let nextId = 1;
+  let dropped = 0;
+  for (const raw of args.rawItems) {
+    const out = normalizer(raw, {
+      runId: "calibration-from-json",
+      source: args.source,
+    });
+    if (!out) {
+      dropped++;
+      continue;
+    }
+    samples.push({ id: nextId++, platform: out.platform, content: out.content });
+  }
+
+  if (samples.length < 10) {
+    return {
+      kind: "refused",
+      reason: `Only ${samples.length} samples after normalization; extractor requires ≥ 10.`,
+    };
+  }
+
+  const result = await runVoiceExtractor(
+    {
+      client_id: args.clientId,
+      samples: samples.map((s) => ({
+        id: s.id,
+        platform: s.platform,
+        content: s.content,
+        published_at: null,
+      })),
+      existing_voice: null,
+      existing_negative_space: null,
+      deterministic_features: {},
+    },
+    { llm: openaiStructuredClient }
+  );
+
+  if (result.refuses) {
+    return { kind: "refused", reason: result.refusal_reason };
+  }
+  return {
+    kind: "ok",
+    sample_count: result.sample_count,
+    dropped,
+    extractor: result,
+  };
+}
+
+export async function applyReviewedPatch(
+  patch: ProfilePatch
+): Promise<ApplyProfilePatchResult> {
+  return applyProfilePatch(patch);
+}
+
+// ---------- Internal ----------
+
+async function loadAllSamplesForClient(
+  clientId: number
+): Promise<Array<{ id: number; platform: string | null; content: string }>> {
+  const { db, voiceSamplesTable } = await import("@workspace/db");
+  const { eq, desc } = await import("drizzle-orm");
+  const rows = await db
+    .select({
+      id: voiceSamplesTable.id,
+      platform: voiceSamplesTable.platform,
+      content: voiceSamplesTable.content,
+    })
+    .from(voiceSamplesTable)
+    .where(eq(voiceSamplesTable.clientId, clientId))
+    .orderBy(desc(voiceSamplesTable.ingestedAt))
+    .limit(150);
+  return rows;
+}

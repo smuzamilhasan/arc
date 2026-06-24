@@ -40,7 +40,9 @@ export type ActorNormalizerKey =
 export const DEFAULT_ACTORS: Record<VoiceSampleSource, ActorConfig | null> = {
   linkedin: {
     source: "linkedin",
-    actorId: "apimaestro/linkedin-profile-posts",
+    // Confirmed by operator (Muzamil) — actively maintained, accessible via
+    // Apify Store. Swap if a better-rated actor appears later.
+    actorId: "harvestapi/linkedin-profile-posts",
     label: "LinkedIn profile posts",
     costCeilingUsd: 1.0,
     buildInput: (handle, maxItems) => ({

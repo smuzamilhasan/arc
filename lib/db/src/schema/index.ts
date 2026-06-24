@@ -26,3 +26,7 @@ export * from "./marketingFormSources";
 export * from "./marketingBlueprints";
 export * from "./marketingProvisionRuns";
 export * from "./waitlist";
+
+// v2 — additive layers, voice samples, story bank, references, anti-examples.
+// v1 services do not read these. See docs/v2/.
+export * from "./v2";

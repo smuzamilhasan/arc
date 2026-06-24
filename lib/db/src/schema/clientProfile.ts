@@ -1,6 +1,13 @@
-import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import type {
+  PositioningV2,
+  IcpV2,
+  VoiceV2,
+  WorldviewV2,
+  NegativeSpaceV2,
+} from "./v2/profileLayers";
 
 export const clientProfileTable = pgTable("client_profile", {
   id: serial("id").primaryKey(),
@@ -79,6 +86,15 @@ export const clientProfileTable = pgTable("client_profile", {
   foundationConsolidatedAck: boolean("foundation_consolidated_ack")
     .notNull()
     .default(false),
+
+  // ---- v2 structured layers (additive; v1 services do not read these) ----
+  // Each layer is JSONB validated by Zod via lib/db/src/schema/v2/accessors.ts.
+  // See docs/v2/prds/profile-schema-v2.md.
+  positioningV2: jsonb("positioning_v2").$type<PositioningV2>(),
+  icpV2: jsonb("icp_v2").$type<IcpV2>(),
+  voiceV2: jsonb("voice_v2").$type<VoiceV2>(),
+  worldviewV2: jsonb("worldview_v2").$type<WorldviewV2>(),
+  negativeSpaceV2: jsonb("negative_space_v2").$type<NegativeSpaceV2>(),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

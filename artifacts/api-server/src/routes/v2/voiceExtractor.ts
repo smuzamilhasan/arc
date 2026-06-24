@@ -12,7 +12,7 @@ import { extractForClient } from "../../services/voiceExtractionService";
 
 const router: Router = Router();
 
-router.post("/api/v2/voice-extractor/run", async (req: Request, res: Response) => {
+router.post("/v2/voice-extractor/run", async (req: Request, res: Response) => {
   const activeClientId = (req as Request & { activeClientId?: number }).activeClientId;
   const bodyClientId = typeof req.body?.clientId === "number" ? req.body.clientId : undefined;
 

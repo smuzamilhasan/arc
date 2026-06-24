@@ -15,7 +15,7 @@ import {
 
 const router: Router = Router();
 
-router.post("/api/v2/onboarder/start", async (req: Request, res: Response) => {
+router.post("/v2/onboarder/start", async (req: Request, res: Response) => {
   const clientId = (req as Request & { activeClientId?: number }).activeClientId;
   if (!clientId) return res.status(400).json({ error: "No active client" });
 
@@ -29,7 +29,7 @@ router.post("/api/v2/onboarder/start", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/api/v2/onboarder/answer", async (req: Request, res: Response) => {
+router.post("/v2/onboarder/answer", async (req: Request, res: Response) => {
   const clientId = (req as Request & { activeClientId?: number }).activeClientId;
   if (!clientId) return res.status(400).json({ error: "No active client" });
 
@@ -49,7 +49,7 @@ router.post("/api/v2/onboarder/answer", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/api/v2/onboarder/status", async (req: Request, res: Response) => {
+router.get("/v2/onboarder/status", async (req: Request, res: Response) => {
   const clientId = (req as Request & { activeClientId?: number }).activeClientId;
   if (!clientId) return res.status(400).json({ error: "No active client" });
 

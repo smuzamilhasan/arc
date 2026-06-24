@@ -67,10 +67,16 @@ const DEFAULT_OPTIONS: Required<Omit<ApifyRunOptions, "traceId" | "maxCostUsd">>
 const APIFY_BASE = "https://api.apify.com/v2";
 
 function getToken(): string {
-  const token = process.env.APIFY_TOKEN;
+  // Accept several common env var names so the operator's choice of naming
+  // (APIFY_TOKEN, APIFY_API_TOKEN, APIFY_API) doesn't require a code change.
+  const token =
+    process.env.APIFY_TOKEN ??
+    process.env.APIFY_API_TOKEN ??
+    process.env.APIFY_API ??
+    process.env.Apify_API;
   if (!token) {
     throw new ApifyConfigError(
-      "APIFY_TOKEN is not set. Set it in Railway env (and locally in .env) before running ingest."
+      "Apify token not set. Set APIFY_TOKEN (preferred) or APIFY_API in Railway env (and locally in .env) before running ingest."
     );
   }
   return token;

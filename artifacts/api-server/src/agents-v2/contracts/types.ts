@@ -17,6 +17,10 @@ export const AGENT_ROLES = [
   "narrative",
   "planner",
   "ghostwriter",
+  // v1 baseline — wraps the existing services/ghostwriter.ts so the eval
+  // harness can score v1 + v2 against the same rubric. Used only for
+  // baseline measurement; not a path the product UI ever calls.
+  "ghostwriter_v1",
   "investigator",
   "manager",
   "evaluator",

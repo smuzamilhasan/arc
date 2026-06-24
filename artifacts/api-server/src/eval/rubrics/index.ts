@@ -276,6 +276,11 @@ export const voiceExtractorRubric: Rubric = {
 // ---------- Registry ----------
 export const RUBRICS: Record<string, Rubric> = {
   ghostwriter: ghostwriterRubric,
+  // v1 baseline scored against the same rubric as v2 — that is the whole
+  // point: rubric dimensions like "voice_fidelity" and "story_anchored" will
+  // naturally penalize v1 (it can't cite samples or anchor stories), giving
+  // a clean numerical baseline to compare v2 against.
+  ghostwriter_v1: ghostwriterRubric,
   strategist: strategistRubric,
   narrative: narrativeRubric,
   planner: plannerRubric,

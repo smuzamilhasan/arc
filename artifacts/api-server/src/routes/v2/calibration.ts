@@ -28,7 +28,7 @@ const VALID_SOURCES = new Set([
 ]);
 
 router.post(
-  "/api/v2/calibration/preview-from-handle",
+  "/v2/calibration/preview-from-handle",
   async (req: Request, res: Response) => {
     const clientId = (req as Request & { activeClientId?: number }).activeClientId;
     if (!clientId) return res.status(400).json({ error: "No active client" });
@@ -63,7 +63,7 @@ router.post(
 );
 
 router.post(
-  "/api/v2/calibration/preview-from-json",
+  "/v2/calibration/preview-from-json",
   async (req: Request, res: Response) => {
     const clientId = (req as Request & { activeClientId?: number }).activeClientId;
     if (!clientId) return res.status(400).json({ error: "No active client" });
@@ -97,7 +97,7 @@ router.post(
   }
 );
 
-router.post("/api/v2/calibration/apply", async (req: Request, res: Response) => {
+router.post("/v2/calibration/apply", async (req: Request, res: Response) => {
   const clientId = (req as Request & { activeClientId?: number }).activeClientId;
   if (!clientId) return res.status(400).json({ error: "No active client" });
 

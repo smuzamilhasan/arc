@@ -13,7 +13,7 @@ import {
 
 const router: Router = Router();
 
-router.post("/api/v2/ghostwriter/draft", async (req: Request, res: Response) => {
+router.post("/v2/ghostwriter/draft", async (req: Request, res: Response) => {
   const clientId = (req as Request & { activeClientId?: number }).activeClientId;
   if (!clientId) return res.status(400).json({ error: "No active client" });
 

@@ -12,7 +12,7 @@ import {
   voiceV2Schema,
   worldviewV2Schema,
   negativeSpaceV2Schema,
-} from "../../../../../lib/db/src/schema/v2/profileLayers";
+} from "@workspace/db";
 
 // Each patch operation targets one layer. Partial-typed: agents emit only the
 // fields they intend to change; accessors merge with the existing layer.

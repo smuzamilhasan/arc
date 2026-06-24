@@ -11,7 +11,7 @@ import type {
   VoiceV2,
   WorldviewV2,
   NegativeSpaceV2,
-} from "../../../../../lib/db/src/schema/v2/profileLayers";
+} from "@workspace/db";
 
 export type FixtureVoiceSample = {
   id: number;

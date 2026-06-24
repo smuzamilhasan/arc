@@ -55,7 +55,7 @@ export function readLayer<K extends ProfileV2LayerKey>(
   raw: unknown
 ): LayerValueByKey[K] | null {
   if (raw === null || raw === undefined) return null;
-  const schema = SCHEMA_BY_KEY[key] as z.ZodSchema<LayerValueByKey[K]>;
+  const schema = SCHEMA_BY_KEY[key] as unknown as z.ZodSchema<LayerValueByKey[K]>;
   return schema.parse(raw);
 }
 
@@ -67,7 +67,7 @@ export function prepareLayerWrite<K extends ProfileV2LayerKey>(
   key: K,
   value: LayerValueByKey[K]
 ): LayerValueByKey[K] {
-  const schema = SCHEMA_BY_KEY[key] as z.ZodSchema<LayerValueByKey[K]>;
+  const schema = SCHEMA_BY_KEY[key] as unknown as z.ZodSchema<LayerValueByKey[K]>;
   const stamped = {
     ...value,
     last_updated: new Date().toISOString(),

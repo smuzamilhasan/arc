@@ -16,7 +16,7 @@ import type {
   VoiceV2,
   WorldviewV2,
   NegativeSpaceV2,
-} from "../../../../../lib/db/src/schema/v2/profileLayers";
+} from "@workspace/db";
 
 // Curated context — sparse shape. Only requested keys are present.
 export type CuratedContext = Partial<{

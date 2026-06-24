@@ -67,10 +67,29 @@ const DEFAULT_OPTIONS: Required<Omit<ApifyRunOptions, "traceId" | "maxCostUsd">>
 const APIFY_BASE = "https://api.apify.com/v2";
 
 function getToken(): string {
-  const token = process.env.APIFY_TOKEN;
+  // Accept several common env var names so the operator's choice of naming
+  // (APIFY_TOKEN, APIFY_API_TOKEN, APIFY_API) doesn't require a code change.
+  const token =
+    process.env.APIFY_TOKEN ??
+    process.env.APIFY_API_TOKEN ??
+    process.env.APIFY_API ??
+    process.env.Apify_API;
   if (!token) {
+    // Surface diagnostics so we can tell whether the variable simply isn't
+    // propagating to the container, vs is set under a name we don't recognize.
+    const totalEnvCount = Object.keys(process.env).length;
+    const apifyish = Object.keys(process.env)
+      .filter((k) => k.toLowerCase().includes("apify"))
+      .join(",") || "(none)";
+    const aPrefixed = Object.keys(process.env)
+      .filter((k) => k.startsWith("A"))
+      .slice(0, 20)
+      .join(",");
     throw new ApifyConfigError(
-      "APIFY_TOKEN is not set. Set it in Railway env (and locally in .env) before running ingest."
+      `Apify token not set. Tried APIFY_TOKEN, APIFY_API_TOKEN, APIFY_API, Apify_API. ` +
+        `process.env has ${totalEnvCount} keys. ` +
+        `Keys containing "apify": ${apifyish}. ` +
+        `A-prefixed keys: ${aPrefixed}.`
     );
   }
   return token;

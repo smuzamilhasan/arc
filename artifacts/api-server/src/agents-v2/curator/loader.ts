@@ -21,7 +21,7 @@ import {
   narrativeProfilesTable,
   postsTable,
 } from "@workspace/db";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { eq, desc, and, gte, lte, inArray } from "drizzle-orm";
 import { readLayer } from "@workspace/db";
 import type { CuratorLoader, CuratedContext } from "./contextCurator";
 
@@ -102,18 +102,32 @@ export const drizzleCuratorLoader: CuratorLoader = {
   },
 
   async stories(clientId, limit) {
+    // Load confirmed AND candidate stories. A freshly-ingested user has only
+    // candidates (the Onboarder promotes them to confirmed). The Ghostwriter
+    // should still be able to draft for them — confirmed-first ordering means
+    // user-vetted stories outrank raw extractor candidates when both exist.
     const rows = await db
       .select({
         id: storyBankTable.id,
         summary: storyBankTable.summary,
         themes: storyBankTable.themes,
+        status: storyBankTable.status,
         lastUsedAt: storyBankTable.lastUsedAt,
       })
       .from(storyBankTable)
-      .where(and(eq(storyBankTable.clientId, clientId), eq(storyBankTable.status, "confirmed")))
+      .where(
+        and(
+          eq(storyBankTable.clientId, clientId),
+          inArray(storyBankTable.status, ["confirmed", "candidate"])
+        )
+      )
       .orderBy(desc(storyBankTable.createdAt))
       .limit(limit);
-    return rows.map((r) => ({
+    // Sort confirmed ahead of candidate, then by recency (already desc).
+    const ordered = rows.sort((a, b) =>
+      a.status === b.status ? 0 : a.status === "confirmed" ? -1 : 1
+    );
+    return ordered.map((r) => ({
       story_id: r.id,
       summary: r.summary,
       themes: r.themes,
@@ -122,18 +136,28 @@ export const drizzleCuratorLoader: CuratorLoader = {
   },
 
   async references(clientId, limit) {
+    // Same confirmed+candidate policy as stories (see note above).
     const rows = await db
       .select({
         id: referenceLibraryTable.id,
         kind: referenceLibraryTable.kind,
         label: referenceLibraryTable.label,
+        status: referenceLibraryTable.status,
         citationCount: referenceLibraryTable.citationCount,
       })
       .from(referenceLibraryTable)
-      .where(and(eq(referenceLibraryTable.clientId, clientId), eq(referenceLibraryTable.status, "confirmed")))
+      .where(
+        and(
+          eq(referenceLibraryTable.clientId, clientId),
+          inArray(referenceLibraryTable.status, ["confirmed", "candidate"])
+        )
+      )
       .orderBy(desc(referenceLibraryTable.citationCount))
       .limit(limit);
-    return rows.map((r) => ({
+    const ordered = rows.sort((a, b) =>
+      a.status === b.status ? 0 : a.status === "confirmed" ? -1 : 1
+    );
+    return ordered.map((r) => ({
       reference_id: r.id,
       kind: r.kind,
       label: r.label,

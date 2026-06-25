@@ -81,9 +81,16 @@ export async function draftWithGhostwriterV2(req: DraftRequest): Promise<DraftRe
     anti_examples: ctx.anti_examples ?? [],
   };
 
-  // 4. Run.
+  // 4. Run, with up to 2 self-correction retries on contract violations.
+  //    LLMs occasionally slip a banned word or miss a citation despite the
+  //    prompt; rather than fail the whole draft, we feed the violation back and
+  //    let the model fix it. Refusals and persistent violations pass through.
   const runner = new AgentRunner(ghostwriterContract, { llm: openaiStructuredClient });
-  const result = await runner.run(input);
+  const MAX_ATTEMPTS = 3;
+  let result = await runner.run(input);
+  for (let attempt = 2; attempt <= MAX_ATTEMPTS && result.kind === "contract_violation"; attempt++) {
+    result = await runner.run({ ...input, retry_feedback: result.details });
+  }
 
   // 5. Translate AgentResult into DraftResult.
   return translate(result);

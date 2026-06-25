@@ -82,6 +82,11 @@ export class OpenAIStructuredClient implements StructuredLLMClient {
       raw = (raw as { response: unknown }).response;
     }
 
+    // OpenAI returns `null` for fields we made nullable to satisfy strict mode.
+    // Our Zod schemas express those as `.optional()` (absent), not `.nullable()`.
+    // Strip null-valued keys so null→absent and `.optional()`/`.default()` apply.
+    raw = stripNulls(raw);
+
     // Re-validate with Zod for defense in depth.
     const parsed = args.output_schema.safeParse(raw);
     if (!parsed.success) {
@@ -235,6 +240,29 @@ function stripUnsupportedFormats(node: unknown): void {
       stripUnsupportedFormats(obj[key]);
     }
   }
+}
+
+/**
+ * Recursively remove object keys whose value is null. OpenAI strict mode emits
+ * `null` for fields we made nullable (because Zod `.optional()` produces a
+ * not-required property, and strict mode forbids that). Converting null→absent
+ * lets `.optional()` and `.default()` apply as authored. Arrays are preserved
+ * as-is (their elements are recursed, but null elements are left intact — a
+ * null inside an array is meaningful, unlike an absent optional field).
+ */
+function stripNulls(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(stripNulls);
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v === null) continue;
+      out[k] = stripNulls(v);
+    }
+    return out;
+  }
+  return value;
 }
 
 export class OpenAIAdapterError extends Error {

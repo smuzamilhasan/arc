@@ -117,67 +117,74 @@ export async function submitAnswer(
     .update(onboardingSessionsTable)
     .set({ log, lastTurnAt: new Date(), turnCount: sessionRow.turnCount + 1 })
     .where(eq(onboardingSessionsTable.id, sessionId));
-  const sessionWithUser = { ...sessionRow, log, turnCount: sessionRow.turnCount + 1 };
+  let sessionWithUser = { ...sessionRow, log, turnCount: sessionRow.turnCount + 1 };
 
-  // 2. Run agent turn.
-  const turn = await runAgentTurn(sessionWithUser, answerText);
-
-  // 3. Apply side effects per turn kind.
-  if (turn.kind === "patch") {
-    try {
-      await applyProfilePatch(turn.patch);
-      // Bump confidence for the slot we're focused on, using the patch's
-      // self-reported confidence.
-      const focusSlot = pickFocusSlot(sessionWithUser);
-      if (focusSlot) {
+  // 2. CAPTURE pass — turn the user's answer into a patch for the focus slot.
+  const captureFocus = pickFocusSlot(sessionWithUser);
+  if (captureFocus) {
+    const captureTurn = await runAgentTurn(sessionWithUser, answerText, "capture");
+    if (captureTurn.kind === "patch") {
+      try {
+        await applyProfilePatch(captureTurn.patch);
         const newCoverage = bumpCoverage(
           sessionWithUser.slotCoverage,
-          focusSlot.slot,
-          turn.patch.confidence
+          captureFocus.slot,
+          captureTurn.patch.confidence,
+          { incrementTurns: true }
         );
         await persistCoverage(sessionId, newCoverage);
+        sessionWithUser = { ...sessionWithUser, slotCoverage: newCoverage };
+        await persistAgentTurn(sessionWithUser, captureTurn);
+      } catch (err) {
+        return {
+          kind: "violation",
+          sessionId,
+          details: `patch failed: ${err instanceof Error ? err.message : String(err)}`,
+        };
       }
-    } catch (err) {
-      return {
-        kind: "violation",
-        sessionId,
-        details: `patch failed: ${err instanceof Error ? err.message : String(err)}`,
-      };
-    }
-  } else if (turn.kind === "question") {
-    const focusSlot = pickFocusSlot(sessionWithUser);
-    if (focusSlot) {
+    } else {
+      // No usable signal — count the turn so we don't perseverate on this slot.
       const newCoverage = bumpCoverage(
         sessionWithUser.slotCoverage,
-        focusSlot.slot,
-        sessionWithUser.slotCoverage[focusSlot.slot]?.confidence ?? 0,
+        captureFocus.slot,
+        sessionWithUser.slotCoverage[captureFocus.slot]?.confidence ?? 0,
         { incrementTurns: true }
       );
       await persistCoverage(sessionId, newCoverage);
+      sessionWithUser = { ...sessionWithUser, slotCoverage: newCoverage };
     }
   }
 
-  // 4. Persist agent turn.
-  const updated = await persistAgentTurn(sessionWithUser, turn);
-
-  // 5. Check for natural wrap.
-  const coverage = (await loadSession(sessionId))?.slotCoverage ?? {};
-  if (turn.kind === "wrap" || isCoverageComplete(coverage)) {
-    const wrapReason = turn.kind === "wrap" ? turn.reason : "coverage_complete";
-    await wrapSession(sessionId, wrapReason as "coverage_complete" | "user_paused" | "perseveration");
+  // 3. Coverage check — wrap if everything required is now covered/saturated.
+  const coverageAfterCapture = sessionWithUser.slotCoverage;
+  if (isCoverageComplete(coverageAfterCapture)) {
+    await wrapSession(sessionId, "coverage_complete");
     return {
       kind: "wrapped",
       sessionId,
-      reason: wrapReason,
-      aggregateConfidence: aggregateConfidence(coverage),
+      reason: "coverage_complete",
+      aggregateConfidence: aggregateConfidence(coverageAfterCapture),
     };
   }
+
+  // 4. ASK pass — produce the next question for the (possibly new) focus slot.
+  const askTurn = await runAgentTurn(sessionWithUser, answerText, "ask");
+  if (askTurn.kind === "wrap") {
+    await wrapSession(sessionId, askTurn.reason as "coverage_complete" | "user_paused" | "perseveration");
+    return {
+      kind: "wrapped",
+      sessionId,
+      reason: askTurn.reason,
+      aggregateConfidence: aggregateConfidence(coverageAfterCapture),
+    };
+  }
+  await persistAgentTurn(sessionWithUser, askTurn);
 
   return {
     kind: "next",
     sessionId,
-    turn,
-    aggregateConfidence: aggregateConfidence(coverage),
+    turn: askTurn,
+    aggregateConfidence: aggregateConfidence(coverageAfterCapture),
   };
 }
 
@@ -218,7 +225,8 @@ async function loadSession(sessionId: number): Promise<OnboardingSession | null>
 
 async function runAgentTurn(
   session: OnboardingSession,
-  lastUserAnswer: string | null
+  lastUserAnswer: string | null,
+  mode: "ask" | "capture" = "ask"
 ): Promise<OnboarderTurn> {
   const focus = pickFocusSlot(session);
   if (!focus) {
@@ -245,6 +253,7 @@ async function runAgentTurn(
     extractor_snapshot: extractorSnapshot,
     conversation_log: session.log.slice(-12).map(stripTimestamps),
     last_user_answer: lastUserAnswer,
+    mode,
   };
 
   const runner = new AgentRunner(onboarderContract, { llm: openaiStructuredClient });

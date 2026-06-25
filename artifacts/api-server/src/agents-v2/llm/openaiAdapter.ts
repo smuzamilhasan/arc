@@ -108,7 +108,80 @@ function toJsonSchemaForOpenAI(schema: z.ZodSchema<unknown>): Record<string, unk
     reused: "inline",
   }) as Record<string, unknown>;
   stripUnsupportedFormats(json);
+  enforceOpenAIStrictObjects(json);
   return json;
+}
+
+/**
+ * OpenAI strict mode requires that EVERY object property appear in `required`,
+ * and that "optional" fields instead be expressed as a nullable union. Zod's
+ * `.optional()` produces properties that are simply absent from `required`,
+ * which OpenAI rejects ("'required' ... including every key in properties").
+ *
+ * This transform, for every object node:
+ *   - makes each property that was NOT required nullable (union with null), and
+ *   - sets `required` to the full key list,
+ *   - sets additionalProperties:false.
+ *
+ * Semantics are preserved: the field can still be null/omitted from the model's
+ * perspective, and we re-validate against the original Zod schema afterward.
+ */
+function enforceOpenAIStrictObjects(node: unknown): void {
+  if (Array.isArray(node)) {
+    for (const item of node) enforceOpenAIStrictObjects(item);
+    return;
+  }
+  if (!node || typeof node !== "object") return;
+  const obj = node as Record<string, unknown>;
+
+  // Recurse into known schema-bearing keys first.
+  for (const key of Object.keys(obj)) {
+    if (key === "required") continue;
+    enforceOpenAIStrictObjects(obj[key]);
+  }
+
+  const props = obj.properties as Record<string, unknown> | undefined;
+  if (props && typeof props === "object") {
+    const allKeys = Object.keys(props);
+    const currentRequired = Array.isArray(obj.required) ? (obj.required as string[]) : [];
+    const requiredSet = new Set(currentRequired);
+    for (const key of allKeys) {
+      if (!requiredSet.has(key)) {
+        makeNullable(props[key]);
+      }
+    }
+    obj.required = allKeys;
+    obj.additionalProperties = false;
+  }
+}
+
+/** Make a JSON-schema node accept null, preserving its existing constraints. */
+function makeNullable(schema: unknown): void {
+  if (!schema || typeof schema !== "object") return;
+  const s = schema as Record<string, unknown>;
+
+  if (typeof s.type === "string") {
+    if (s.type !== "null") s.type = [s.type, "null"];
+    return;
+  }
+  if (Array.isArray(s.type)) {
+    if (!s.type.includes("null")) s.type.push("null");
+    return;
+  }
+  if (Array.isArray(s.anyOf)) {
+    const hasNull = s.anyOf.some(
+      (v) => v && typeof v === "object" && (v as Record<string, unknown>).type === "null"
+    );
+    if (!hasNull) s.anyOf.push({ type: "null" });
+    return;
+  }
+  // Fallback: wrap whatever this is in anyOf with null.
+  const clone: Record<string, unknown> = {};
+  for (const k of Object.keys(s)) {
+    clone[k] = s[k];
+    delete s[k];
+  }
+  s.anyOf = [clone, { type: "null" }];
 }
 
 const OPENAI_SUPPORTED_FORMATS = new Set([

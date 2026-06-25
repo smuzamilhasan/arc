@@ -81,6 +81,14 @@ export const onboarderInputSchema = z.object({
 
   // The user's most recent answer, if any. May be empty on the opening turn.
   last_user_answer: z.string().nullable().optional(),
+
+  // Turn mode, set by the orchestrator:
+  //   "ask"     → produce the next QUESTION for current_slot (or wrap if done)
+  //   "capture" → the user just answered; produce a PATCH capturing it into
+  //               current_slot. Only re-ask (question) if the answer is truly
+  //               empty of signal. Never wrap in capture mode.
+  // Defaulting to "ask" preserves the opening-turn behavior.
+  mode: z.enum(["ask", "capture"]).default("ask"),
 });
 export type OnboarderInput = z.infer<typeof onboarderInputSchema>;
 
@@ -123,24 +131,59 @@ export const onboarderContract: RoleContract<OnboarderInput, OnboarderTurn> = {
   enforce_structured_output: true,
 
   system_prompt: (input) => {
-    return [
+    const header = [
       `You are filling slot \`${input.current_slot.slot}\` for client ${input.client_id}.`,
       `Slot rationale: ${input.current_slot.rationale}`,
       `Current confidence on this slot: ${input.current_slot.current_confidence.toFixed(2)}`,
       `Turns already spent on this slot: ${input.current_slot.turns_spent_on_this_slot}`,
+      input.last_user_answer ? `\nThe user just said:\n"${input.last_user_answer}"` : ``,
+    ];
+
+    if (input.mode === "capture") {
+      return [
+        ...header,
+        ``,
+        `MODE: CAPTURE. The user just answered. Your job is to turn their answer into a`,
+        `profile_patch for slot \`${input.current_slot.slot}\`.`,
+        ``,
+        `Rules:`,
+        `  - Emit kind="patch" with ops that write what the user actually said into the`,
+        `    correct profile layer for this slot. Map the slot to its layer:`,
+        `      positioning.* → positioning_patch`,
+        `      icp.*          → icp_patch`,
+        `      worldview.*    → worldview_patch`,
+        `      negative_space.* → negative_space_patch`,
+        `      voice.*        → voice_patch`,
+        `      anti_examples  → anti_example_append`,
+        `      story_bank.*   → story_append (confirm a candidate as status:"confirmed")`,
+        `      reference_library.* → reference_append (confirm a candidate as status:"confirmed")`,
+        `  - Set patch.client_id=${input.client_id} and patch.confidence honestly`,
+        `    (clear, specific answer → 0.7-0.9; vague → ≤0.5).`,
+        `  - Never invent. Patches reflect ONLY what the user said (plus extractor candidates they confirmed).`,
+        `  - ONLY if the answer is genuinely empty of usable signal (e.g. "idk", "skip"),`,
+        `    emit kind="question" re-probing this slot. NEVER emit kind="wrap" in capture mode.`,
+        ``,
+        `Voice (for any question text): calm, declarative, premium. Sentence case. No hype.`,
+      ].join("\n");
+    }
+
+    // mode === "ask"
+    return [
+      ...header,
       ``,
-      `Decision tree for THIS turn:`,
-      `  1. If the user just gave a vague or contradictory answer → emit a 'drill' question on the same slot.`,
-      `  2. If the user just gave a clear answer with enough signal → emit a 'patch' updating the slot, AND the next turn the orchestrator will move on.`,
-      `  3. If extractor_snapshot has a high-confidence pre-fill for this slot → emit a 'confirm' question ("I noticed X — is that right?").`,
-      `  4. Otherwise → emit a 'probe' question.`,
+      `MODE: ASK. Produce the NEXT question to fill slot \`${input.current_slot.slot}\`.`,
+      ``,
+      `Choose the question_type:`,
+      `  - "confirm" if extractor_snapshot has a high-confidence pre-fill for this slot`,
+      `    ("I picked up X from your posts — is that right?").`,
+      `  - "drill" if the last answer was vague and needs sharpening.`,
+      `  - "probe" otherwise (open question for a slot we have no signal on).`,
       ``,
       `Hard rules:`,
-      `  - One question per turn, max 2 sentences.`,
-      `  - Never include hype words, emoji, or filler.`,
+      `  - Emit kind="question". One question, max 2 sentences.`,
+      `  - target_slot MUST equal "${input.current_slot.slot}".`,
       `  - Reference what you already know (profile_snapshot, extractor_snapshot) so the user feels heard.`,
-      `  - If you patch, set the patch confidence honestly: vague answer → low confidence (≤0.5).`,
-      `  - Never invent claims. Patches must reflect what the user actually said.`,
+      `  - No hype words, emoji, or filler.`,
       ``,
       `Voice you write in: calm, declarative, premium. Sentence case. No hype.`,
     ].join("\n");

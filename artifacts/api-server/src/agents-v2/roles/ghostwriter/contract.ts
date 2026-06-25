@@ -117,6 +117,10 @@ export const ghostwriterInputSchema = z.object({
   references: z.array(referenceInputSchema).default([]),
   negative_space: negativeSpaceInputSchema,
   anti_examples: z.array(antiExampleInputSchema).default([]),
+
+  // Correction feedback injected by the service on a retry after a contract
+  // violation (e.g. "you used the banned word X — rewrite without it").
+  retry_feedback: z.string().nullable().optional(),
 });
 export type GhostwriterInput = z.infer<typeof ghostwriterInputSchema>;
 
@@ -347,6 +351,18 @@ function buildSystemPrompt(input: GhostwriterInput): string {
     ``,
     `Calibration check before output: would the user recognize this as their voice if you showed it to them blind?`,
     `If unsure → lower output.confidence. If clearly no → refuse.`,
+    ``,
+    `BANNED WORDS — these must NOT appear anywhere in the body (case-insensitive):`,
+    `  ${[...(input.negative_space?.refused_words ?? []), ...(input.voice?.lexicon?.banned_phrases ?? [])].join(", ") || "(none)"}`,
+    `  Before finalizing, scan your body word by word and remove any of the above.`,
+    ...(input.retry_feedback
+      ? [
+          ``,
+          `⚠️ CORRECTION REQUIRED — your previous attempt was rejected:`,
+          `  ${input.retry_feedback}`,
+          `  Produce a new draft that fixes this exactly. Do not repeat the mistake.`,
+        ]
+      : []),
   ].join("\n");
 }
 

@@ -47,6 +47,7 @@ import Assistant from "@/pages/assistant";
 import Planner from "@/pages/planner";
 import Account from "@/pages/account";
 import CalibratePage from "@/pages/calibrate";
+import GhostwriterTestPage from "@/pages/ghostwriter-test";
 import Admin from "@/pages/admin";
 import AgencyPage from "@/pages/agency";
 import Invite from "@/pages/invite";
@@ -245,6 +246,7 @@ function AppRoutes() {
               </Route>
               <Route path="/assistant" component={Assistant} />
               <Route path="/calibrate" component={CalibratePage} />
+              <Route path="/ghostwriter-test" component={GhostwriterTestPage} />
               <Route path="/account" component={Account} />
               <Route path="/admin" component={Admin} />
               <Route component={NotFound} />

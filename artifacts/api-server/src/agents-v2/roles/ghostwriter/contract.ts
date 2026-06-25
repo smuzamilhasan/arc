@@ -319,6 +319,20 @@ function buildSystemPrompt(input: GhostwriterInput): string {
     `  Signature words: ${sigWords}`,
     `  Signature moves: ${sigMoves}`,
     `  Confidence: ${voice?.confidence?.toFixed(2) ?? "0.00"}  Sample count: ${voice?.sample_count ?? 0}`,
+    ...(voice?.sentence_stats
+      ? [
+          `  Sentence rhythm to MATCH: avg ${voice.sentence_stats.avg_len?.toFixed(0)} words/sentence, `
+            + `${Math.round((voice.sentence_stats.declarative_ratio ?? 0) * 100)}% declarative statements, `
+            + `only ${Math.round((voice.sentence_stats.question_ratio ?? 0) * 100)}% questions.`,
+        ]
+      : []),
+    ``,
+    `VOICE DISCIPLINE (this is what separates "sounds like them" from generic):`,
+    `  - Write SHORT, declarative sentences. Match the rhythm above. No long hedging clauses.`,
+    `  - Open with a sharp, often contrarian line — NOT "When we talk about..." or "In today's world...".`,
+    `  - State things. Don't ask a string of rhetorical questions. At most one question, if any.`,
+    `  - Cut filler: no "Let's explore this", "Part of the problem lies in", "It's important to note".`,
+    `  - Every sentence earns its place. If a sentence could appear in anyone's post, rewrite or delete it.`,
     ``,
     `NEGATIVE SPACE (HARD CONSTRAINTS):`,
     `  Refused topics: ${refusedTopics}`,

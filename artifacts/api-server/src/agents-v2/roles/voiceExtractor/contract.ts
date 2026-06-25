@@ -21,6 +21,9 @@ import type { VoiceExtractorOutput } from "../../contracts/outputs";
 
 export const voiceExtractorInputSchema = z.object({
   client_id: z.number().int(),
+  // The user's own name, so the reference pass can exclude self-references
+  // (the extractor was picking up the user's own name as a "reference").
+  identity_full_name: z.string().nullable().optional(),
   samples: z
     .array(
       z.object({

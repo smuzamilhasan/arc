@@ -94,12 +94,50 @@ export class OpenAIStructuredClient implements StructuredLLMClient {
  * Build a JSON Schema acceptable to OpenAI's strict structured-output mode.
  * OpenAI's strict mode requires `additionalProperties: false` and `required`
  * on every object — `z.toJSONSchema` produces compatible output for `strict`.
+ *
+ * It also rejects string `format` values it doesn't recognize — notably "uri"
+ * (which Zod's `.url()` emits). OpenAI supports only: date-time, time, date,
+ * duration, email, hostname, ipv4, ipv6, uuid. We strip every other `format`
+ * keyword. This is safe: `format` is advisory for generation, and we
+ * re-validate the model output against the original Zod schema afterward, so
+ * the `.url()` constraint is still enforced.
  */
 function toJsonSchemaForOpenAI(schema: z.ZodSchema<unknown>): Record<string, unknown> {
-  return z.toJSONSchema(schema, {
+  const json = z.toJSONSchema(schema, {
     target: "draft-7",
     reused: "inline",
   }) as Record<string, unknown>;
+  stripUnsupportedFormats(json);
+  return json;
+}
+
+const OPENAI_SUPPORTED_FORMATS = new Set([
+  "date-time",
+  "time",
+  "date",
+  "duration",
+  "email",
+  "hostname",
+  "ipv4",
+  "ipv6",
+  "uuid",
+]);
+
+/** Recursively delete `format` keywords OpenAI strict mode rejects. */
+function stripUnsupportedFormats(node: unknown): void {
+  if (Array.isArray(node)) {
+    for (const item of node) stripUnsupportedFormats(item);
+    return;
+  }
+  if (node && typeof node === "object") {
+    const obj = node as Record<string, unknown>;
+    if (typeof obj.format === "string" && !OPENAI_SUPPORTED_FORMATS.has(obj.format)) {
+      delete obj.format;
+    }
+    for (const key of Object.keys(obj)) {
+      stripUnsupportedFormats(obj[key]);
+    }
+  }
 }
 
 export class OpenAIAdapterError extends Error {

@@ -33,8 +33,10 @@ export class OpenAIStructuredClient implements StructuredLLMClient {
   }): Promise<{ output: O; tokens_used: number; latency_ms: number }> {
     const t0 = Date.now();
 
-    // Zod 4 → JSON Schema (subset OpenAI accepts).
-    const jsonSchema = toJsonSchemaForOpenAI(args.output_schema);
+    // Zod 4 → JSON Schema (subset OpenAI accepts). `wrapped` is true when the
+    // root schema is not an object (e.g. a discriminated union) and had to be
+    // nested under a `response` key — OpenAI requires a root of type:object.
+    const { schema: jsonSchema, wrapped } = toJsonSchemaForOpenAI(args.output_schema);
 
     const model = args.model || this.options.defaultModel || DEFAULT_MODEL;
 
@@ -75,6 +77,11 @@ export class OpenAIStructuredClient implements StructuredLLMClient {
       );
     }
 
+    // Unwrap the `response` envelope if we had to wrap a non-object root.
+    if (wrapped && raw && typeof raw === "object" && "response" in (raw as object)) {
+      raw = (raw as { response: unknown }).response;
+    }
+
     // Re-validate with Zod for defense in depth.
     const parsed = args.output_schema.safeParse(raw);
     if (!parsed.success) {
@@ -102,14 +109,31 @@ export class OpenAIStructuredClient implements StructuredLLMClient {
  * re-validate the model output against the original Zod schema afterward, so
  * the `.url()` constraint is still enforced.
  */
-function toJsonSchemaForOpenAI(schema: z.ZodSchema<unknown>): Record<string, unknown> {
-  const json = z.toJSONSchema(schema, {
+function toJsonSchemaForOpenAI(
+  schema: z.ZodSchema<unknown>
+): { schema: Record<string, unknown>; wrapped: boolean } {
+  let json = z.toJSONSchema(schema, {
     target: "draft-7",
     reused: "inline",
   }) as Record<string, unknown>;
   stripUnsupportedFormats(json);
+
+  // OpenAI requires the ROOT schema to be type:"object". Discriminated unions
+  // (e.g. ContentDraft = success | refusal) render as a root `anyOf` with no
+  // type. Wrap those under a `response` key; the caller unwraps after parsing.
+  let wrapped = false;
+  if (json.type !== "object") {
+    json = {
+      type: "object",
+      properties: { response: json },
+      required: ["response"],
+      additionalProperties: false,
+    };
+    wrapped = true;
+  }
+
   enforceOpenAIStrictObjects(json);
-  return json;
+  return { schema: json, wrapped };
 }
 
 /**

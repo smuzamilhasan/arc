@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Sparkles, AlertTriangle, Loader2, Quote, BookOpen, FileText, Copy, Check } from "lucide-react";
+import { Sparkles, AlertTriangle, Loader2, Quote, BookOpen, FileText, Copy, Check, CalendarPlus } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
 
 type EvidenceRef =
@@ -62,6 +62,7 @@ export default function GhostwriterTestPage() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setSaved(null);
     try {
       const clientId = getActiveClientId();
       const res = await fetch(`${import.meta.env.BASE_URL}api/v2/ghostwriter/draft`, {
@@ -86,6 +87,32 @@ export default function GhostwriterTestPage() {
       navigator.clipboard.writeText(result.draft.body);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
+    }
+  }
+
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<{ id: number } | null>(null);
+
+  async function saveToContent() {
+    if (!(result && "status" in result && result.status === "ok")) return;
+    setSaving(true);
+    try {
+      const clientId = getActiveClientId();
+      const res = await fetch(`${import.meta.env.BASE_URL}api/v2/ghostwriter/save`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(clientId != null ? { "x-arc-client-id": String(clientId) } : {}),
+        },
+        body: JSON.stringify({ body: result.draft.body, platform: result.draft.platform }),
+      });
+      const data = (await res.json()) as { status?: string; post?: { id: number }; error?: string };
+      if (data.status === "ok" && data.post) setSaved({ id: data.post.id });
+      else setError(data.error ?? "save failed");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "save failed");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -201,7 +228,15 @@ export default function GhostwriterTestPage() {
       )}
 
       {result && "status" in result && result.status === "ok" && (
-        <DraftView draft={result.draft} latencyMs={result.latency_ms} onCopy={copyBody} copied={copied} />
+        <DraftView
+          draft={result.draft}
+          latencyMs={result.latency_ms}
+          onCopy={copyBody}
+          copied={copied}
+          onSave={saveToContent}
+          saving={saving}
+          saved={saved}
+        />
       )}
     </div>
   );
@@ -212,11 +247,17 @@ function DraftView({
   latencyMs,
   onCopy,
   copied,
+  onSave,
+  saving,
+  saved,
 }: {
   draft: ContentDraft;
   latencyMs?: number;
   onCopy: () => void;
   copied: boolean;
+  onSave: () => void;
+  saving: boolean;
+  saved: { id: number } | null;
 }) {
   return (
     <div className="space-y-4">
@@ -239,6 +280,16 @@ function DraftView({
               <Button size="sm" variant="ghost" onClick={onCopy}>
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               </Button>
+              {saved ? (
+                <Badge variant="outline" className="text-xs">
+                  <Check className="w-3 h-3 mr-1" /> saved to calendar
+                </Badge>
+              ) : (
+                <Button size="sm" onClick={onSave} disabled={saving}>
+                  {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CalendarPlus className="w-4 h-4 mr-1" />}
+                  Save to calendar
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>

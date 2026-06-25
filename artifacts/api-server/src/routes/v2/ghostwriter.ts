@@ -8,10 +8,34 @@
 import { Router, type Request, type Response } from "express";
 import {
   draftWithGhostwriterV2,
+  saveDraftAsPost,
   type DraftRequest,
 } from "../../services/ghostwriterV2Service";
 
 const router: Router = Router();
+
+const SAVE_VALID_PLATFORMS = new Set(["linkedin", "x", "newsletter", "youtube_caption", "blog"]);
+
+router.post("/v2/ghostwriter/save", async (req: Request, res: Response) => {
+  const clientId = (req as Request & { activeClientId?: number }).activeClientId;
+  if (!clientId) return res.status(400).json({ error: "No active client" });
+
+  const body = typeof req.body?.body === "string" ? req.body.body.trim() : "";
+  const platform = req.body?.platform;
+  const title = typeof req.body?.title === "string" ? req.body.title : undefined;
+
+  if (!body) return res.status(400).json({ error: "body required" });
+  if (!platform || !SAVE_VALID_PLATFORMS.has(platform)) {
+    return res.status(400).json({ error: `platform must be one of: ${[...SAVE_VALID_PLATFORMS].join(", ")}` });
+  }
+
+  try {
+    const saved = await saveDraftAsPost({ clientId, platform, body, title });
+    return res.json({ status: "ok", post: saved });
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : "save failed" });
+  }
+});
 
 router.post("/v2/ghostwriter/draft", async (req: Request, res: Response) => {
   const clientId = (req as Request & { activeClientId?: number }).activeClientId;

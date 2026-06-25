@@ -96,6 +96,50 @@ export async function draftWithGhostwriterV2(req: DraftRequest): Promise<DraftRe
   return translate(result);
 }
 
+// ---------- Save a draft into the v1 content workflow ----------
+
+// Ghostwriter platform → v1 posts platform enum (linkedin/twitter/instagram/blog/other).
+const PLATFORM_TO_V1_POST: Record<GhostwriterInput["platform"], string> = {
+  linkedin: "linkedin",
+  x: "twitter",
+  newsletter: "blog",
+  youtube_caption: "other",
+  blog: "blog",
+};
+
+export type SaveDraftArgs = {
+  clientId: number;
+  platform: GhostwriterInput["platform"];
+  body: string;
+  /** Optional title; derived from the first line if omitted. */
+  title?: string;
+};
+
+export type SaveDraftResult = { id: number; title: string; platform: string; status: string };
+
+export async function saveDraftAsPost(args: SaveDraftArgs): Promise<SaveDraftResult> {
+  const { db, postsTable } = await import("@workspace/db");
+  const title = (args.title?.trim() || deriveTitle(args.body)).slice(0, 120);
+  const [post] = await db
+    .insert(postsTable)
+    .values({
+      clientId: args.clientId,
+      title,
+      content: args.body,
+      platform: PLATFORM_TO_V1_POST[args.platform] ?? "other",
+      status: "draft",
+      tags: ["ghostwriter-v2"],
+    })
+    .returning();
+  return { id: post!.id, title: post!.title, platform: post!.platform, status: post!.status };
+}
+
+function deriveTitle(body: string): string {
+  const firstLine = body.split("\n").map((l) => l.trim()).find(Boolean) ?? "Untitled draft";
+  // Trim to a sentence-ish length so the calendar card title stays readable.
+  return firstLine.length > 80 ? firstLine.slice(0, 77) + "…" : firstLine;
+}
+
 export function translate(result: AgentResult<ContentDraft>): DraftResult {
   if (result.kind === "ok") {
     if (result.output.refuses) {

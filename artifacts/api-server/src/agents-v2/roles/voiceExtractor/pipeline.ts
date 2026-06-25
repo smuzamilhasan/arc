@@ -205,7 +205,7 @@ export async function runVoiceExtractor(
       client_id: input.client_id,
       ops,
       confidence: aggregate,
-      produced_by: "voice_extractor@0.1.0",
+      produced_by: "voice_extractor@0.2.0",
     },
     sample_count: input.samples.length,
     confidence: aggregate,
@@ -245,15 +245,31 @@ function renderVoiceFeaturesPrompt(
 }
 
 const STORY_PASS_SYSTEM =
-  "Extract anecdotes the user has actually told in their samples. Each story must cite ≥1 source_sample_id. Never invent. If no real stories surface, return an empty array.";
+  "Extract FIRST-PERSON anecdotes where the USER is the protagonist — things that happened TO THEM or that THEY did. " +
+  "CRITICAL: do NOT extract stories about other people the user is featuring, interviewing, or profiling. " +
+  "Many users (especially podcasters, interviewers, community builders) write posts ABOUT other people — those guests' " +
+  "stories are NOT the user's story bank. A story qualifies only if the user could retell it as 'something that happened " +
+  "to me' or 'something I did/built/decided/learned'. Each story must cite ≥1 source_sample_id. Never invent. " +
+  "If no genuine first-person stories surface, return an empty array — that is the correct answer for a user who mostly " +
+  "writes about others.";
 
 function renderStoryPrompt(input: VoiceExtractorInput): string {
-  const stratified = stratifySamples(input.samples, 20);
+  const stratified = stratifySamples(input.samples, 24);
   return [
-    `Find redeployable anecdotes the user has told in these samples. Look for:`,
-    `  - "I once..." / "When I was at X..." / "A founder told me..."`,
-    `  - Concrete numbers, places, people, moments`,
-    `  - Things you can imagine the user telling again in a different post`,
+    `Find redeployable FIRST-PERSON anecdotes where the user is the protagonist.`,
+    ``,
+    `INCLUDE (the user is the subject):`,
+    `  - "I built / I launched / I decided / I learned / I failed at / when I was at X..."`,
+    `  - A turning point, a hard call, a lesson the user personally lived`,
+    `  - The user's own origin, struggle, or milestone`,
+    ``,
+    `EXCLUDE (someone else is the subject):`,
+    `  - "A founder overcame X" / "Wali transitioned to Y" / "my guest did Z"`,
+    `  - Anything where the user is the narrator/host but NOT the protagonist`,
+    `  - Profiles, features, interview recaps, congratulations to others`,
+    ``,
+    `Decision test: would the user say "this is MY story" or "this is THEIR story I shared"?`,
+    `Only the former belongs in the story bank.`,
     ``,
     `Samples:`,
     ...stratified.map((s) => `[sample ${s.id}]\n${truncate(s.content, 800)}`),
@@ -261,12 +277,31 @@ function renderStoryPrompt(input: VoiceExtractorInput): string {
 }
 
 const REFERENCE_PASS_SYSTEM =
-  "Extract people, books, frameworks, events, companies, and concepts the user has cited. Each must cite ≥1 source_sample_id. Never invent references.";
+  "Extract the user's RECURRING INTELLECTUAL ANCHORS — people, books, frameworks, events, companies, and concepts the " +
+  "user cites REPEATEDLY as part of how they think. Quality over quantity. " +
+  "CRITICAL EXCLUSIONS: (1) never include the user's OWN name or company; (2) exclude one-off name-drops, congratulations, " +
+  "tags, and people merely featured/interviewed once — a reference qualifies only if it appears across MULTIPLE samples OR " +
+  "is clearly a load-bearing influence on the user's thinking; (3) exclude generic company mentions that are just part of a " +
+  "person's bio. Each reference must cite ≥1 source_sample_id. Prefer 5-12 high-signal references over 30 noisy ones. " +
+  "Never invent.";
 
 function renderReferencePrompt(input: VoiceExtractorInput): string {
   const stratified = stratifySamples(input.samples, 30);
+  const selfName = input.identity_full_name ?? null;
   return [
-    `Find named references the user actually cites in their samples (people, books, frameworks, events, companies, concepts).`,
+    `Find the user's RECURRING intellectual anchors — references they return to as part of how they think.`,
+    ``,
+    `INCLUDE only references that are EITHER:`,
+    `  - cited across 2+ different samples, OR`,
+    `  - a clearly load-bearing influence (a framework/thinker the user builds arguments on)`,
+    ``,
+    `EXCLUDE:`,
+    selfName ? `  - the user themselves ("${selfName}") and their own companies` : `  - the user's own name and companies`,
+    `  - one-off name-drops, tags, congratulations, "great chat with X" mentions`,
+    `  - guests featured once with no recurring intellectual role`,
+    `  - companies named only as part of someone's job title/bio`,
+    ``,
+    `Aim for 5-12 high-signal references, not an exhaustive roster. If a name appears once in passing, leave it out.`,
     ``,
     `Samples:`,
     ...stratified.map((s) => `[sample ${s.id}]\n${truncate(s.content, 500)}`),
@@ -274,18 +309,40 @@ function renderReferencePrompt(input: VoiceExtractorInput): string {
 }
 
 const WORLDVIEW_PASS_SYSTEM =
-  "Identify the 3-7 non-negotiable beliefs visible across the samples. Beliefs are claims about how the world works that recur. Each belief MUST cite evidence_sample_ids. If fewer than 3 strong beliefs surface, return an empty array.";
+  "Identify the user's DEEP, non-negotiable beliefs — the convictions that sit UNDERNEATH their posts and explain WHY they " +
+  "keep returning to certain topics. Go past the surface subject matter to the underlying thesis. " +
+  "A worldview belief is NOT a topic the user posts about ('sales is hard in Pakistan'). It is a load-bearing conviction " +
+  "about how the world works that would still be true even if they changed industries ('narrative and distribution are the " +
+  "real moat as execution gets commoditized'; 'talent is everywhere, opportunity is not'; 'you earn the right to be loud by " +
+  "building in silence first'). " +
+  "Look for the belief BEHIND the topic: if they post repeatedly about Pakistani talent, the belief might be 'world-class " +
+  "talent is mislocated, not absent.' Extract 3-7 of these. Each MUST cite evidence_sample_ids spanning MULTIPLE samples. " +
+  "If a 'belief' only shows up in one post, it is a topic, not a worldview — drop it.";
 
 function renderWorldviewPrompt(input: VoiceExtractorInput): string {
-  const stratified = stratifySamples(input.samples, 25);
+  // Wider stratified pull so beliefs are validated across the whole corpus,
+  // not just recent posts (which skew topical).
+  const stratified = stratifySamples(input.samples, 32);
   return [
-    `Identify the non-negotiable beliefs the user holds — claims about how their world works that recur across samples.`,
+    `Identify the user's DEEP worldview — the convictions underneath their posts, not the topics on the surface.`,
+    ``,
+    `Method:`,
+    `  1. Notice which topics recur across many samples.`,
+    `  2. For each cluster, ask: what does the user BELIEVE that makes them keep returning to this?`,
+    `  3. State that underlying belief — the one that would survive even if they changed fields.`,
+    ``,
+    `Surface topic → underlying belief (examples of the depth required):`,
+    `  "posts about local talent" → "world-class talent is mislocated, not absent"`,
+    `  "posts about consistency/showing up" → "compounding in public beats sporadic brilliance"`,
+    `  "posts about AI tools" → "as software commoditizes, narrative and taste become the moat"`,
     ``,
     `For each belief:`,
-    `  claim: short statement`,
-    `  why_held: 1 sentence on the reasoning visible in the samples`,
-    `  where_it_shows_up: topics/contexts this belief appears in`,
-    `  evidence_sample_ids: which samples support this`,
+    `  claim: the deep conviction (not the topic)`,
+    `  why_held: the reasoning visible across the samples`,
+    `  where_it_shows_up: the topics/contexts this belief surfaces in`,
+    `  evidence_sample_ids: MULTIPLE samples — a real belief recurs; a one-post idea is a topic, not a worldview`,
+    ``,
+    `Drop anything that appears in only one sample. Extract 3-7 deep beliefs.`,
     ``,
     `Samples:`,
     ...stratified.map((s) => `[sample ${s.id}]\n${truncate(s.content, 500)}`),

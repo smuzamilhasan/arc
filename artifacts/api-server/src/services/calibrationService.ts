@@ -106,6 +106,7 @@ async function previewViaFullIngest(
   const result = await runVoiceExtractor(
     {
       client_id: args.clientId,
+      identity_full_name: await loadClientName(args.clientId),
       samples: samples.map((s) => ({
         id: s.id,
         platform: s.platform,
@@ -174,6 +175,7 @@ export async function previewFromJson(
   const result = await runVoiceExtractor(
     {
       client_id: args.clientId,
+      identity_full_name: await loadClientName(args.clientId),
       samples: samples.map((s) => ({
         id: s.id,
         platform: s.platform,
@@ -205,6 +207,17 @@ export async function applyReviewedPatch(
 }
 
 // ---------- Internal ----------
+
+async function loadClientName(clientId: number): Promise<string | null> {
+  const { db, clientProfileTable } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+  const rows = await db
+    .select({ fullName: clientProfileTable.fullName })
+    .from(clientProfileTable)
+    .where(eq(clientProfileTable.id, clientId))
+    .limit(1);
+  return rows[0]?.fullName ?? null;
+}
 
 async function loadAllSamplesForClient(
   clientId: number

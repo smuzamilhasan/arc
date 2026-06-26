@@ -239,6 +239,7 @@ export default function MarketingLanding() {
               <a href="#how">How it works</a>
               <a href="#features">Features</a>
               <a href="#why">Why</a>
+              <a href="#pricing">Pricing</a>
               <a href="#faq">FAQ</a>
             </nav>
             <div className="nav-cta">
@@ -818,6 +819,106 @@ export default function MarketingLanding() {
                 </a>
               </p>
             </div>
+          </div>
+        </section>
+
+        {/* ============ PRICING ============ */}
+        <section id="pricing">
+          <div className="wrap">
+            <div className="reveal" style={{ maxWidth: "58ch" }}>
+              <span className="eyebrow">Pricing</span>
+              <h2>Founding pricing. Locked for life.</h2>
+              <p className="lead">
+                BuildMyArc is opening to Premium Community members first - as an
+                add-on, at a founding rate that never goes up while you're in.
+              </p>
+            </div>
+
+            <div className="price-grid reveal">
+              {/* Spark - free */}
+              <article className="tier">
+                <div className="tier__head">
+                  <h3 className="tier__name">Spark</h3>
+                  <p className="tier__tag">Try it - see your voice captured.</p>
+                </div>
+                <div className="tier__price">Free</div>
+                <div className="tier__cap">3 drafts / month</div>
+                <ul className="tier__feats">
+                  <li>One voice calibration from LinkedIn</li>
+                  <li>See your operating profile</li>
+                  <li>Drafts for LinkedIn</li>
+                  <li>One brand</li>
+                </ul>
+                <a href="#waitlist" className="btn btn-ghost tier__cta">Start free</a>
+              </article>
+
+              {/* Signal */}
+              <article className="tier">
+                <div className="tier__head">
+                  <h3 className="tier__name">Signal</h3>
+                  <p className="tier__tag">Capture your voice, publish steadily on one channel.</p>
+                </div>
+                <div className="tier__price">
+                  <span className="tier__cur">$</span>19.99<span className="tier__per">/mo</span>
+                </div>
+                <div className="tier__cap">25 drafts / month</div>
+                <ul className="tier__feats">
+                  <li>Voice captured from LinkedIn</li>
+                  <li>Your full operating profile</li>
+                  <li>Drafts for LinkedIn + X</li>
+                  <li>One brand</li>
+                  <li>Community support</li>
+                </ul>
+                <a href="#waitlist" className="btn btn-ghost tier__cta">Get early access</a>
+              </article>
+
+              {/* Cadence - featured */}
+              <article className="tier featured">
+                <span className="tier__badge">Most popular</span>
+                <div className="tier__head">
+                  <h3 className="tier__name">Cadence</h3>
+                  <p className="tier__tag">Show up consistently across every channel.</p>
+                </div>
+                <div className="tier__price">
+                  <span className="tier__cur">$</span>49.99<span className="tier__per">/mo</span>
+                </div>
+                <div className="tier__cap">100 drafts / month</div>
+                <ul className="tier__feats">
+                  <li className="tier__more">Everything in Signal, plus</li>
+                  <li>Voice from LinkedIn, YouTube + X</li>
+                  <li>Content pillars &amp; recurring series</li>
+                  <li>Drafts for newsletter + blog too</li>
+                  <li>Weekly proactive proposals <span className="soon">soon</span></li>
+                  <li>Early access to the WhatsApp assistant</li>
+                </ul>
+                <a href="#waitlist" className="btn btn-primary tier__cta">Get early access</a>
+              </article>
+
+              {/* Studio */}
+              <article className="tier">
+                <div className="tier__head">
+                  <h3 className="tier__name">Studio</h3>
+                  <p className="tier__tag">Run a real content operation.</p>
+                </div>
+                <div className="tier__price">
+                  <span className="tier__cur">$</span>99.99<span className="tier__per">/mo</span>
+                </div>
+                <div className="tier__cap">300 drafts / month</div>
+                <ul className="tier__feats">
+                  <li className="tier__more">Everything in Cadence, plus</li>
+                  <li>Up to 3 brands</li>
+                  <li>Market &amp; competitor research</li>
+                  <li>A 1:1 strategy session</li>
+                  <li>First in line for the WhatsApp assistant</li>
+                </ul>
+                <a href="#waitlist" className="btn btn-ghost tier__cta">Get early access</a>
+              </article>
+            </div>
+
+            <p className="price-note reveal">
+              An add-on for Premium Community members. Annual plans save about two
+              months.
+            </p>
           </div>
         </section>
 

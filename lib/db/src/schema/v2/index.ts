@@ -4,6 +4,7 @@
 // See docs/v2/prds/profile-schema-v2.md for the design.
 
 export * from "./profileLayers";
+export * from "./profileLayersExt";
 export * from "./voiceSamples";
 export * from "./voiceFeatures";
 export * from "./storyBank";

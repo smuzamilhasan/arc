@@ -27,15 +27,23 @@ import type { VoiceExtractorOutput } from "../agents-v2/contracts/outputs";
 import type { VoiceSampleSource } from "@workspace/db";
 import type { ProfilePatch } from "../agents-v2/contracts/profilePatch";
 
+export type YouTubeIngestSummary = {
+  videosResolved: number;
+  transcriptsOk: number;
+  samplesIngested: number;
+  perVideo: Array<{ videoUrl: string; title: string | null; method: string; words: number; reason?: string }>;
+};
+
 export type CalibrationPreviewResult =
   | {
       kind: "ok";
       sample_count: number;
       dropped: number;
       extractor: VoiceExtractorOutput;
+      youtube?: YouTubeIngestSummary;
     }
-  | { kind: "refused"; reason: string }
-  | { kind: "error"; error: string };
+  | { kind: "refused"; reason: string; youtube?: YouTubeIngestSummary }
+  | { kind: "error"; error: string; youtube?: YouTubeIngestSummary };
 
 export type PreviewFromHandleArgs = {
   clientId: number;
@@ -71,6 +79,7 @@ async function previewViaFullIngest(
   // (captions + Deepgram fallback), so it has its own dispatch rather than the
   // single-actor LinkedIn/X path.
   if (args.source === "youtube_transcript") {
+    let ytSummary: YouTubeIngestSummary | undefined;
     try {
       const yt = await dispatchYouTubeChannel(
         {
@@ -80,17 +89,23 @@ async function previewViaFullIngest(
         },
         { repo: drizzleIngestRepo }
       );
+      ytSummary = {
+        videosResolved: yt.videosResolved,
+        transcriptsOk: yt.transcriptsOk,
+        samplesIngested: yt.samplesIngested,
+        perVideo: yt.perVideo,
+      };
       if (yt.status === "failed") {
-        return { kind: "error", error: yt.errorMessage ?? "youtube ingest failed" };
+        return { kind: "error", error: yt.errorMessage ?? "youtube ingest failed", youtube: ytSummary };
       }
-      // fall through to the shared extract-from-stored-samples path below.
     } catch (err) {
       return {
         kind: "error",
         error: `youtube ingest failed: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
-    return extractFromStoredSamples(args.clientId, 0);
+    const result = await extractFromStoredSamples(args.clientId, 0);
+    return { ...result, youtube: ytSummary };
   }
 
   const ingestReq: IngestRequest = {

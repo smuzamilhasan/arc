@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import "./marketing.css";
 import founderImg from "@/assets/images/founder.jpg";
 import signalImg from "@/assets/images/signal.jpg";
+import profileImg from "@/assets/images/bma-profile.jpg";
+import distributeImg from "@/assets/images/bma-distribute.jpg";
+import growImg from "@/assets/images/bma-grow.jpg";
 
 // Public "Get early access" intake - posts { email } to our own API (stored in
 // the Postgres `waitlist` table). Same-origin, so a relative path is enough.
@@ -407,28 +410,56 @@ export default function MarketingLanding() {
             </div>
             <div className="triad">
               <div className="tcard reveal">
-                <div className="n">01 - Profile</div>
-                <h3>It learns who you are</h3>
-                <p>
-                  A guided interview maps your positioning, ICP, audience
-                  sentiment, goals and geography into a living operating profile.
-                </p>
+                <div className="tcard__media">
+                  <img
+                    src={profileImg}
+                    alt="Scattered points of light converging into one bright core."
+                    loading="lazy"
+                  />
+                </div>
+                <div className="tcard__body">
+                  <div className="n">01 - Profile</div>
+                  <h3>It learns who you are</h3>
+                  <p>
+                    A guided interview maps your positioning, ICP, audience
+                    sentiment, goals and geography into a living operating
+                    profile.
+                  </p>
+                </div>
               </div>
               <div className="tcard reveal">
-                <div className="n">02 - Distribute</div>
-                <h3>It runs your output</h3>
-                <p>
-                  A content calendar wired to your channels, drafting in your
-                  voice - so showing up stops depending on willpower.
-                </p>
+                <div className="tcard__media">
+                  <img
+                    src={distributeImg}
+                    alt="One signal fanning out into an ordered row of channels."
+                    loading="lazy"
+                  />
+                </div>
+                <div className="tcard__body">
+                  <div className="n">02 - Distribute</div>
+                  <h3>It runs your output</h3>
+                  <p>
+                    A content calendar wired to your channels, drafting in your
+                    voice - so showing up stops depending on willpower.
+                  </p>
+                </div>
               </div>
               <div className="tcard reveal">
-                <div className="n">03 - Grow</div>
-                <h3>It shows your next move</h3>
-                <p>
-                  Field insights tell you what to build, say, and ship next to
-                  move forward in your space - not just post more.
-                </p>
+                <div className="tcard__media">
+                  <img
+                    src={growImg}
+                    alt="A jade arc rising toward a single bright point ahead."
+                    loading="lazy"
+                  />
+                </div>
+                <div className="tcard__body">
+                  <div className="n">03 - Grow</div>
+                  <h3>It shows your next move</h3>
+                  <p>
+                    Field insights tell you what to build, say, and ship next to
+                    move forward in your space - not just post more.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

@@ -19,14 +19,19 @@ v2 fixes each at the substrate level, in dependency order. WhatsApp is explicitl
 
 ## Documents
 
-- [`architecture.md`](./architecture.md) — system architecture, dataflow, agent topology
+- **[`STATUS.md`](./STATUS.md) — as-built ledger: what is live, partial, or stubbed right now. Start here.**
+- **[`roadmap.md`](./roadmap.md) — the plan from here to the WhatsApp employee (v3).**
+- [`architecture.md`](./architecture.md) — intended system architecture, dataflow, agent topology
 - [`diagnosis.md`](./diagnosis.md) — full diagnostic of v1 engine
 - [`prds/profile-schema-v2.md`](./prds/profile-schema-v2.md) — structured profile substrate
+- [`prds/comprehensive-profile.md`](./prds/comprehensive-profile.md) — 15-section profile + progressive profiling
 - [`prds/agent-contracts.md`](./prds/agent-contracts.md) — typed I/O, role locks, context curator
 - [`prds/eval-harness.md`](./prds/eval-harness.md) — fixtures, rubrics, runner, CI gate
 - [`prds/apify-ingestion.md`](./prds/apify-ingestion.md) — public footprint ingestion pipeline
 - [`prds/voice-extraction.md`](./prds/voice-extraction.md) — structured voice features from real artifacts
 - [`prds/conversational-onboarding.md`](./prds/conversational-onboarding.md) — adaptive profile-filling agent
+
+> **Note on progress:** the sequence and stacked-PR tables below are the *original* foundation plan. Steps 1–6 of the substrate are now built and live (see [`STATUS.md`](./STATUS.md)); the document is kept for the rationale and dependency ordering.
 
 ## Sequence
 

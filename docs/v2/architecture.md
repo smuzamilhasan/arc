@@ -1,5 +1,7 @@
 # v2 architecture
 
+> This document describes the **intended design** and remains the reference for principles and topology. For *what is actually built and live right now*, see [`STATUS.md`](./STATUS.md).
+
 ## Principles
 
 1. **Substrate first.** Schema before prompts, prompts before UI.

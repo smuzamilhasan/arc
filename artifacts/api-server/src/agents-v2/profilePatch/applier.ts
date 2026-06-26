@@ -133,59 +133,113 @@ export async function applyProfilePatch(patch: ProfilePatch): Promise<ApplyProfi
 
     // 2. Story bank appends.
     if (storyOps.length > 0) {
-      const values = storyOps.map((s) => ({
-        clientId: patch.client_id,
-        summary: s.summary,
-        body: s.body,
-        themes: s.themes,
-        sourceSampleIds: s.source_sample_ids,
-        status: s.status,
-      }));
-      const inserted = await tx
-        .insert(storyBankTable)
-        .values(values)
-        .returning({ id: storyBankTable.id });
-      result.new_story_ids = inserted.map((r) => r.id);
+      // Dedup against existing stories (re-running calibration shouldn't pile up
+      // duplicate stories). Key on normalized summary.
+      const existing = await tx
+        .select({ summary: storyBankTable.summary })
+        .from(storyBankTable)
+        .where(eq(storyBankTable.clientId, patch.client_id));
+      const seen = new Set(existing.map((e) => norm(e.summary)));
+      const fresh = storyOps.filter((s) => {
+        const k = norm(s.summary);
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
       for (const s of storyOps) {
-        result.per_op.push({ op: `story_append:${s.summary.slice(0, 40)}`, status: "applied" });
+        if (!fresh.includes(s)) {
+          result.per_op.push({ op: `story_append:${s.summary.slice(0, 40)}`, status: "skipped", reason: "duplicate" });
+        }
+      }
+      if (fresh.length > 0) {
+        const inserted = await tx
+          .insert(storyBankTable)
+          .values(
+            fresh.map((s) => ({
+              clientId: patch.client_id,
+              summary: s.summary,
+              body: s.body,
+              themes: s.themes,
+              sourceSampleIds: s.source_sample_ids,
+              status: s.status,
+            }))
+          )
+          .returning({ id: storyBankTable.id });
+        result.new_story_ids = inserted.map((r) => r.id);
+        for (const s of fresh) {
+          result.per_op.push({ op: `story_append:${s.summary.slice(0, 40)}`, status: "applied" });
+        }
       }
     }
 
-    // 3. Reference appends.
+    // 3. Reference appends (dedup on kind + normalized label).
     if (refOps.length > 0) {
-      const values = refOps.map((r) => ({
-        clientId: patch.client_id,
-        kind: r.kind,
-        label: r.label,
-        context: r.context,
-        sourceSampleIds: r.source_sample_ids,
-        status: r.status,
-      }));
-      const inserted = await tx
-        .insert(referenceLibraryTable)
-        .values(values)
-        .returning({ id: referenceLibraryTable.id });
-      result.new_reference_ids = inserted.map((r) => r.id);
+      const existing = await tx
+        .select({ kind: referenceLibraryTable.kind, label: referenceLibraryTable.label })
+        .from(referenceLibraryTable)
+        .where(eq(referenceLibraryTable.clientId, patch.client_id));
+      const seen = new Set(existing.map((e) => `${e.kind}|${norm(e.label)}`));
+      const fresh = refOps.filter((r) => {
+        const k = `${r.kind}|${norm(r.label)}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
       for (const r of refOps) {
-        result.per_op.push({ op: `reference_append:${r.label}`, status: "applied" });
+        if (!fresh.includes(r)) {
+          result.per_op.push({ op: `reference_append:${r.label}`, status: "skipped", reason: "duplicate" });
+        }
+      }
+      if (fresh.length > 0) {
+        const inserted = await tx
+          .insert(referenceLibraryTable)
+          .values(
+            fresh.map((r) => ({
+              clientId: patch.client_id,
+              kind: r.kind,
+              label: r.label,
+              context: r.context,
+              sourceSampleIds: r.source_sample_ids,
+              status: r.status,
+            }))
+          )
+          .returning({ id: referenceLibraryTable.id });
+        result.new_reference_ids = inserted.map((r) => r.id);
+        for (const r of fresh) {
+          result.per_op.push({ op: `reference_append:${r.label}`, status: "applied" });
+        }
       }
     }
 
-    // 4. Anti-example appends.
+    // 4. Anti-example appends (dedup on normalized sample text).
     if (antiOps.length > 0) {
-      const values = antiOps.map((a) => ({
-        clientId: patch.client_id,
-        sampleText: a.sample_text,
-        whyNotThisVoice: a.why_not_this_voice,
-        sourceUrl: a.source_url ?? null,
-      }));
-      const inserted = await tx
-        .insert(antiExamplesTable)
-        .values(values)
-        .returning({ id: antiExamplesTable.id });
-      result.new_anti_example_ids = inserted.map((r) => r.id);
-      for (const a of antiOps) {
-        result.per_op.push({ op: `anti_example_append`, status: "applied" });
+      const existing = await tx
+        .select({ sampleText: antiExamplesTable.sampleText })
+        .from(antiExamplesTable)
+        .where(eq(antiExamplesTable.clientId, patch.client_id));
+      const seen = new Set(existing.map((e) => norm(e.sampleText)));
+      const fresh = antiOps.filter((a) => {
+        const k = norm(a.sample_text);
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+      if (fresh.length > 0) {
+        const inserted = await tx
+          .insert(antiExamplesTable)
+          .values(
+            fresh.map((a) => ({
+              clientId: patch.client_id,
+              sampleText: a.sample_text,
+              whyNotThisVoice: a.why_not_this_voice,
+              sourceUrl: a.source_url ?? null,
+            }))
+          )
+          .returning({ id: antiExamplesTable.id });
+        result.new_anti_example_ids = inserted.map((r) => r.id);
+        for (const _a of fresh) {
+          result.per_op.push({ op: `anti_example_append`, status: "applied" });
+        }
       }
     }
 
@@ -231,6 +285,11 @@ function camel(key: ProfileV2LayerKey): string {
     case "negative_space_v2":
       return "negativeSpaceV2";
   }
+}
+
+// Normalize a string for dedup comparison: lowercase, collapse whitespace, trim.
+function norm(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 export class ProfilePatchApplyError extends Error {

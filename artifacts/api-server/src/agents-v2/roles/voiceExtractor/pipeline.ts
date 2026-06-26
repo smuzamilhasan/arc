@@ -39,6 +39,9 @@ const voiceFeaturesPassSchema = z.object({
   formality: z.number().min(0).max(1),
   description: z.string(),
   confidence: z.number().min(0).max(1),
+  // For non-Latin sources (e.g. Urdu in Devanagari): the provided signature
+  // words transliterated to ROMAN URDU. Empty when the source is already Latin.
+  signature_words_roman: z.array(z.string()).default([]),
 });
 
 // ---------- Pass 2 schema: story candidates ----------
@@ -116,7 +119,7 @@ export async function runVoiceExtractor(
 
   // Pass 2: stories.
   const stories = await deps.llm.generate({
-    system_prompt: STORY_PASS_SYSTEM,
+    system_prompt: STORY_PASS_SYSTEM + ROMANIZE_RULE,
     user_prompt: renderStoryPrompt(input),
     output_schema: storyCandidatesPassSchema,
     model: DEFAULT_MODEL,
@@ -125,7 +128,7 @@ export async function runVoiceExtractor(
 
   // Pass 3: references.
   const references = await deps.llm.generate({
-    system_prompt: REFERENCE_PASS_SYSTEM,
+    system_prompt: REFERENCE_PASS_SYSTEM + ROMANIZE_RULE,
     user_prompt: renderReferencePrompt(input),
     output_schema: referenceCandidatesPassSchema,
     model: DEFAULT_MODEL,
@@ -134,7 +137,7 @@ export async function runVoiceExtractor(
 
   // Pass 4: worldview.
   const worldview = await deps.llm.generate({
-    system_prompt: WORLDVIEW_PASS_SYSTEM,
+    system_prompt: WORLDVIEW_PASS_SYSTEM + ROMANIZE_RULE,
     user_prompt: renderWorldviewPrompt(input),
     output_schema: worldviewHypothesesPassSchema,
     model: DEFAULT_MODEL,
@@ -150,7 +153,12 @@ export async function runVoiceExtractor(
     patch: {
       sentence_stats: det.sentence_stats,
       lexicon: {
-        signature_words: det.lexicon.signature_words,
+        // Prefer the LLM's Roman-Urdu transliteration for non-Latin sources;
+        // fall back to the deterministic (in-script) words for Latin sources.
+        signature_words:
+          voiceFeatures.output.signature_words_roman.length > 0
+            ? voiceFeatures.output.signature_words_roman
+            : det.lexicon.signature_words,
         avoided_words: det.lexicon.avoided_words,
         banned_phrases: [],
       },
@@ -241,8 +249,34 @@ function renderVoiceFeaturesPrompt(
     `  formality (0..1): 0=raw conversational, 1=published essay`,
     `  description: 2-3 sentences describing the voice using observable patterns only`,
     `  confidence: your aggregate confidence in these extractions`,
+    `  signature_words_roman: see SCRIPT rule below`,
+    ``,
+    `SCRIPT — IMPORTANT:`,
+    `  The source may be a non-Latin script (e.g. Urdu/Hindi written in Devanagari).`,
+    `  If the samples or the "signature words" above are in a non-Latin script:`,
+    `    - Write description and every signature_moves.pattern in ROMAN URDU`,
+    `      (Latin-script transliteration). NEVER output native script (no`,
+    `      Devanagari / Arabic characters anywhere in your response).`,
+    `    - When you quote a recurring word inside a signature move, quote its`,
+    `      Roman-Urdu form (e.g. "aap", "nahi", "karna"), not the native script.`,
+    `    - Set signature_words_roman to the provided signature words transliterated`,
+    `      to Roman Urdu, SKIPPING common function/filler words (aap, aur, ek, hum,`,
+    `      nahi, yeh, hai, ka, ki, ke, ko, mein, se, par, kar, raha, tha, ab, jab).`,
+    `      Keep only distinctive, content-bearing words.`,
+    `  If the source is already Latin script, set signature_words_roman to [].`,
   ].join("\n");
 }
+
+// Appended to every text-producing pass: if the source is non-Latin (e.g. Urdu
+// in Devanagari), output in Roman Urdu (Latin transliteration), never native
+// script. The analysis framing stays in English; only quoted terms / names get
+// romanized.
+const ROMANIZE_RULE =
+  "\n\nSCRIPT: If the source content is in a non-Latin script (e.g. Urdu/Hindi in " +
+  "Devanagari or Arabic script), do NOT output any native-script characters. " +
+  "Transliterate any quoted words, names, or phrases into ROMAN URDU (Latin " +
+  "script). Keep your analytical sentences in English; only the quoted terms are " +
+  "romanized.";
 
 const STORY_PASS_SYSTEM =
   "Extract FIRST-PERSON anecdotes where the USER is the protagonist — things that happened TO THEM or that THEY did. " +

@@ -111,10 +111,28 @@ function extractLexicon(text: string): Pick<Lexicon, "signature_words" | "avoide
   // Tokenize, count, drop stopwords, return top by frequency. Real IDF requires
   // a corpus to compare against; we approximate "distinctive" with "frequent
   // non-stopword content tokens" and let the LLM pass refine.
-  const tokens = text
-    .toLowerCase()
-    .split(/[^a-z'-]+/)
-    .filter((t) => t.length >= 4 && !STOPWORDS.has(t));
+  //
+  // Script-aware: the STOPWORDS list is English. On predominantly non-Latin
+  // text (e.g. Urdu/Hindi YouTube transcripts) we tokenize with a Unicode
+  // letter class and SKIP the English stopword filter (it doesn't apply and we
+  // have no per-language list), so signature words still surface in-script.
+  const latinChars = (text.match(/[a-z]/gi) ?? []).length;
+  const letterChars = (text.match(/\p{L}/gu) ?? []).length;
+  const mostlyLatin = letterChars === 0 || latinChars / letterChars > 0.5;
+
+  let tokens: string[];
+  if (mostlyLatin) {
+    tokens = text
+      .toLowerCase()
+      .split(/[^a-z'-]+/)
+      .filter((t) => t.length >= 4 && !STOPWORDS.has(t));
+  } else {
+    // Unicode word tokenization; keep tokens of 2+ letters (CJK/Indic words are
+    // shorter). No English stopword filter on non-Latin scripts.
+    tokens = (text.toLowerCase().match(/\p{L}[\p{L}'-]+/gu) ?? []).filter(
+      (t) => t.length >= 2
+    );
+  }
 
   const freq = new Map<string, number>();
   for (const t of tokens) freq.set(t, (freq.get(t) ?? 0) + 1);

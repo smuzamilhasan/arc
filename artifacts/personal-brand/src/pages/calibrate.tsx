@@ -151,7 +151,12 @@ export default function CalibratePage() {
     try {
       const data = await fetchJson<PreviewResult>(
         "api/v2/calibration/preview-from-handle",
-        { source, handle: handle.trim(), maxItems: 100 }
+        {
+          source,
+          handle: handle.trim(),
+          // YouTube fans out across videos (≈30); LinkedIn/X pull ~100 posts.
+          maxItems: source === "youtube_transcript" ? 30 : 100,
+        }
       );
       setPreview(data);
     } catch (err) {
@@ -243,17 +248,54 @@ export default function CalibratePage() {
             </TabsList>
 
             <TabsContent value="handle" className="space-y-4 mt-6">
+              {/* Source picker */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-muted-foreground mr-1">Source:</span>
+                {([
+                  { v: "linkedin", label: "LinkedIn" },
+                  { v: "youtube_transcript", label: "YouTube" },
+                  { v: "x", label: "X / Twitter" },
+                ] as const).map((s) => (
+                  <button
+                    key={s.v}
+                    onClick={() => setSource(s.v)}
+                    disabled={loading || applying}
+                    className={
+                      "px-3 py-1 rounded-full text-sm border transition-colors " +
+                      (source === s.v
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-input hover:bg-accent")
+                    }
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="space-y-2">
-                <label className="text-sm font-medium">LinkedIn handle or URL</label>
+                <label className="text-sm font-medium">
+                  {source === "youtube_transcript"
+                    ? "YouTube channel URL"
+                    : source === "x"
+                    ? "X handle or URL"
+                    : "LinkedIn handle or URL"}
+                </label>
                 <Input
-                  placeholder="muzamilhasan or https://linkedin.com/in/muzamilhasan"
+                  placeholder={
+                    source === "youtube_transcript"
+                      ? "https://www.youtube.com/@channelname"
+                      : source === "x"
+                      ? "username or https://x.com/username"
+                      : "muzamilhasan or https://linkedin.com/in/muzamilhasan"
+                  }
                   value={handle}
                   onChange={(e) => setHandle(e.target.value)}
                   disabled={loading || applying}
                 />
                 <p className="text-xs text-muted-foreground">
-                  We pull your last ~100 posts via Apify (~$0.10), drop reposts, run
-                  the voice extractor. Takes 30-60 seconds.
+                  {source === "youtube_transcript"
+                    ? "We pull the last ~30 videos, transcribe each (captions, with a speech-to-text fallback), and extract your voice. Works for non-English channels. This takes a few minutes."
+                    : "We pull your last ~100 posts via Apify, drop reposts, run the voice extractor. Takes 30-60 seconds."}
                 </p>
               </div>
               <Button onClick={runFromHandle} disabled={loading || applying}>

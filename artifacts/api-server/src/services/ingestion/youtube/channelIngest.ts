@@ -216,10 +216,12 @@ async function fetchVideoTranscriptDebug(
 function joinTranscriptItems(items: Array<Record<string, unknown>>): string {
   if (items.length === 0) return "";
 
-  // Case A: one item carrying the whole transcript.
+  // Case A: one item carrying the whole transcript. `data` is the shape
+  // pintostudio/youtube-transcript-scraper returns: { data: [{start,dur,text}] }.
   if (items.length === 1) {
     const only = items[0]!;
-    const t = only.transcript ?? only.text ?? only.captions ?? only.content;
+    const t =
+      only.transcript ?? only.text ?? only.captions ?? only.content ?? only.data ?? only.segments;
     if (typeof t === "string") return t.trim();
     if (Array.isArray(t)) return joinFragments(t);
   }

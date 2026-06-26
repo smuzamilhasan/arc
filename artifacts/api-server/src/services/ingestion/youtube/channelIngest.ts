@@ -29,6 +29,8 @@ export type PerVideoOutcome = {
   method: "captions" | "deepgram" | "none";
   words: number;
   reason?: string;
+  /** Diagnostic: shape of the transcript-actor output (temporary, for tuning). */
+  debug?: string;
 };
 
 export type ChannelIngestResult = {
@@ -67,7 +69,12 @@ async function transcribeOneVideo(
   runId: string
 ): Promise<{ outcome: PerVideoOutcome; samples: NormalizedSample[] }> {
   // 1. Try captions via Apify.
-  let transcript = await fetchVideoTranscript(video.videoUrl).catch(() => "");
+  const fetched = await fetchVideoTranscriptDebug(video.videoUrl).catch((e) => ({
+    text: "",
+    debug: `threw: ${e instanceof Error ? e.message : String(e)}`,
+  }));
+  let transcript = fetched.text;
+  const debug = fetched.debug;
   let method: PerVideoOutcome["method"] = transcript ? "captions" : "none";
   let reason: string | undefined;
 
@@ -86,7 +93,7 @@ async function transcribeOneVideo(
 
   if (!transcript || transcript.length < 200) {
     return {
-      outcome: { videoUrl: video.videoUrl, title: video.title, method: "none", words: 0, reason },
+      outcome: { videoUrl: video.videoUrl, title: video.title, method: "none", words: 0, reason, debug },
       samples: [],
     };
   }
@@ -168,18 +175,39 @@ function parseVideoEntry(raw: Record<string, unknown>): ResolvedVideo | null {
 // ---------- Transcript fetch ----------
 
 export async function fetchVideoTranscript(videoUrl: string): Promise<string> {
-  const run = await runActor(
-    YOUTUBE_CONFIG.transcriptActorId,
-    {
-      // Defensive across transcript-actor variants.
-      videoUrl,
-      startUrls: [{ url: videoUrl }],
-      urls: [videoUrl],
-    },
-    { maxCostUsd: YOUTUBE_CONFIG.costCeilingUsd }
-  );
+  return (await fetchVideoTranscriptDebug(videoUrl)).text;
+}
+
+// Returns the transcript text plus a compact diagnostic of the actor's raw
+// output shape, so we can tune parsing/actor choice against a live run.
+async function fetchVideoTranscriptDebug(
+  videoUrl: string
+): Promise<{ text: string; debug: string }> {
+  let run;
+  try {
+    run = await runActor(
+      YOUTUBE_CONFIG.transcriptActorId,
+      {
+        // Defensive across transcript-actor variants.
+        videoUrl,
+        startUrls: [{ url: videoUrl }],
+        urls: [videoUrl],
+        videoUrls: [videoUrl],
+      },
+      { maxCostUsd: YOUTUBE_CONFIG.costCeilingUsd }
+    );
+  } catch (e) {
+    return { text: "", debug: `actor-run-error: ${e instanceof Error ? e.message : String(e)}` };
+  }
   const items = await getDatasetItems<Record<string, unknown>>(run.defaultDatasetId);
-  return joinTranscriptItems(items);
+  const text = joinTranscriptItems(items);
+  let debug = `items=${items.length}`;
+  if (items.length > 0 && !text) {
+    const first = items[0]!;
+    debug += ` keys=[${Object.keys(first).slice(0, 12).join(",")}]`;
+    debug += ` sample=${JSON.stringify(first).slice(0, 300)}`;
+  }
+  return { text, debug };
 }
 
 // Transcript actors return one of: a single item with a `transcript` string;

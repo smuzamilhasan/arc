@@ -28,6 +28,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
+import { usePersistentRun, useUnloadGuard } from "@/lib/persistent-run";
 import { toast } from "sonner";
 
 // ---------- Types matching the backend response ----------
@@ -118,11 +119,18 @@ export default function CalibratePage() {
   const [handle, setHandle] = useState("");
   const [source, setSource] = useState<"linkedin" | "x" | "youtube_transcript">("linkedin");
   const [jsonText, setJsonText] = useState("");
-  const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<PreviewResult | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [forceRefetch, setForceRefetch] = useState(false);
+
+  // Run state lives in a module-level store so it SURVIVES in-app navigation —
+  // leave the page mid-extraction and the result is still here when you return.
+  const calRun = usePersistentRun<PreviewResult>("calibration");
+  useUnloadGuard();
+  const loading = calRun.status === "running";
+  const preview = calRun.data;
+  const error = validationError ?? calRun.error;
+  const setError = setValidationError;
 
   async function fetchJson<T>(url: string, body: unknown): Promise<T> {
     const clientId = getActiveClientId();
@@ -141,34 +149,26 @@ export default function CalibratePage() {
     return data;
   }
 
-  async function runFromHandle() {
+  function runFromHandle() {
     if (!handle.trim()) {
       setError("Paste a LinkedIn handle or URL.");
       return;
     }
-    setLoading(true);
     setError(null);
-    setPreview(null);
-    try {
-      const data = await fetchJson<PreviewResult>(
-        "api/v2/calibration/preview-from-handle",
-        {
-          source,
-          handle: handle.trim(),
-          // YouTube fans out across videos (≈30); LinkedIn/X capped at 50 posts.
-          maxItems: source === "youtube_transcript" ? 30 : 50,
-          force: forceRefetch,
-        }
-      );
-      setPreview(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "preview failed");
-    } finally {
-      setLoading(false);
-    }
+    // start() persists status+result in the module store; navigating away no
+    // longer cancels the run or loses the result.
+    void calRun.start(
+      fetchJson<PreviewResult>("api/v2/calibration/preview-from-handle", {
+        source,
+        handle: handle.trim(),
+        // YouTube fans out across videos (≈30); LinkedIn/X capped at 50 posts.
+        maxItems: source === "youtube_transcript" ? 30 : 50,
+        force: forceRefetch,
+      })
+    );
   }
 
-  async function runFromJson() {
+  function runFromJson() {
     if (!jsonText.trim()) {
       setError("Paste the JSON array from your Apify export.");
       return;
@@ -184,20 +184,13 @@ export default function CalibratePage() {
       setError("Expected a JSON array. Apify exports the dataset as an array at the top level.");
       return;
     }
-    setLoading(true);
     setError(null);
-    setPreview(null);
-    try {
-      const data = await fetchJson<PreviewResult>(
-        "api/v2/calibration/preview-from-json",
-        { source, rawItems: parsed }
-      );
-      setPreview(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "preview failed");
-    } finally {
-      setLoading(false);
-    }
+    void calRun.start(
+      fetchJson<PreviewResult>("api/v2/calibration/preview-from-json", {
+        source,
+        rawItems: parsed,
+      })
+    );
   }
 
   async function applyPatch() {
@@ -209,7 +202,7 @@ export default function CalibratePage() {
         { patch: preview.extractor.profile_patch }
       );
       toast.success("Profile updated. The extracted features are now in your operating profile.");
-      setPreview(null);
+      calRun.reset();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "apply failed");
     } finally {

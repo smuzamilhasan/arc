@@ -21,6 +21,21 @@ const STOPWORDS = new Set([
   "should","could","may","might","must","shall",
 ]);
 
+// Common Hindi/Urdu function & filler words in Devanagari (YouTube Urdu
+// auto-captions often come out in Devanagari). Filtered so the deterministic
+// signature words are distinctive content, not pronouns/postpositions. The LLM
+// pass re-romanizes + re-filters, but a clean input improves its output.
+const DEVANAGARI_STOPWORDS = new Set([
+  "आप", "आपको", "आपकी", "आपका", "आपके", "और", "एक", "हम", "हमें", "हमारा",
+  "नहीं", "नही", "यह", "ये", "वह", "वो", "है", "हैं", "था", "थी", "थे",
+  "का", "की", "के", "को", "में", "से", "पर", "कि", "तो", "भी", "ही", "जो",
+  "कर", "करना", "करने", "करता", "करती", "करते", "रहा", "रही", "रहे", "रहना",
+  "अब", "जब", "अगर", "इस", "उस", "इन", "उन", "इसको", "उसको", "उसका", "उसकी",
+  "उसके", "क्या", "कैसे", "सकता", "सकती", "सकते", "मैं", "मेरा", "मेरे", "हो",
+  "गया", "गई", "गए", "साथ", "लिए", "कुछ", "बहुत", "यहाँ", "वहाँ", "अपना",
+  "अपने", "अपनी", "होता", "होती", "होते", "लेकिन", "फिर", "जैसे", "तरह",
+]);
+
 export type DeterministicVoiceOutput = {
   sentence_stats: SentenceStats;
   lexicon: Pick<Lexicon, "signature_words" | "avoided_words">;
@@ -127,10 +142,12 @@ function extractLexicon(text: string): Pick<Lexicon, "signature_words" | "avoide
       .split(/[^a-z'-]+/)
       .filter((t) => t.length >= 4 && !STOPWORDS.has(t));
   } else {
-    // Unicode word tokenization; keep tokens of 2+ letters (CJK/Indic words are
-    // shorter). No English stopword filter on non-Latin scripts.
-    tokens = (text.toLowerCase().match(/\p{L}[\p{L}'-]+/gu) ?? []).filter(
-      (t) => t.length >= 2
+    // Unicode word tokenization. Indic scripts attach vowel signs as combining
+    // MARKS (\p{M}), not letters — include them or words get chopped
+    // (आपको → आपक). Filter common Hindi/Urdu (Devanagari) function words so the
+    // top tokens are distinctive, not filler.
+    tokens = (text.match(/[\p{L}\p{M}][\p{L}\p{M}'-]*/gu) ?? []).filter(
+      (t) => t.length >= 2 && !DEVANAGARI_STOPWORDS.has(t)
     );
   }
 

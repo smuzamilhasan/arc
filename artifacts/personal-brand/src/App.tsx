@@ -50,6 +50,7 @@ import CalibratePage from "@/pages/calibrate";
 import GhostwriterTestPage from "@/pages/ghostwriter-test";
 import OnboardV2Page from "@/pages/onboard-v2";
 import ProfileV2Page from "@/pages/profile-v2";
+import StudioPage from "@/pages/studio";
 import Admin from "@/pages/admin";
 import AgencyPage from "@/pages/agency";
 import Invite from "@/pages/invite";
@@ -251,6 +252,7 @@ function AppRoutes() {
               <Route path="/ghostwriter-test" component={GhostwriterTestPage} />
               <Route path="/onboard-v2" component={OnboardV2Page} />
               <Route path="/profile-v2" component={ProfileV2Page} />
+              <Route path="/studio" component={StudioPage} />
               <Route path="/account" component={Account} />
               <Route path="/admin" component={Admin} />
               <Route component={NotFound} />

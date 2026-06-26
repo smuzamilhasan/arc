@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   Menu, 
@@ -24,6 +25,8 @@ import {
   ChevronsUpDown,
   Check,
   PenLine,
+  Mic,
+  UserCircle,
   GraduationCap
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
@@ -268,10 +271,18 @@ type NavItem = {
   icon: typeof LayoutDashboard;
   label: string;
   gate?: PanelGateId;
+  section?: string;
 };
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
+  // ---- Studio (v2 content engine) ----
+  { href: "/studio", icon: Sparkles, label: "Studio", section: "Studio" },
+  { href: "/calibrate", icon: Mic, label: "Calibrate voice", section: "Studio" },
+  { href: "/onboard-v2", icon: MessagesSquare, label: "Build profile", section: "Studio" },
+  { href: "/ghostwriter-test", icon: PenLine, label: "Write", section: "Studio" },
+  { href: "/profile-v2", icon: UserCircle, label: "My profile", section: "Studio" },
+  // ---- Workspace (v1) ----
+  { href: "/dashboard", icon: LayoutDashboard, label: "Overview", section: "Workspace" },
   { href: "/blueprint", icon: Compass, label: "Blueprint" },
   { href: "/audit", icon: Search, label: "Audit" },
   { href: "/dossier", icon: Telescope, label: "Investigator", gate: "agents" },
@@ -505,8 +516,11 @@ export function Layout({ children }: LayoutProps) {
 
   const NavLinks = () => (
     <div className="flex flex-col gap-1">
-      {items.map((item) => {
+      {items.map((item, idx) => {
         const locked = item.gate ? !isPanelUnlocked(item.gate, gateCtx) : false;
+        // Render a small section header when the section changes.
+        const prevSection = idx > 0 ? items[idx - 1]!.section : undefined;
+        const showSectionHeader = item.section && item.section !== prevSection;
         // Keep the Blueprint nav highlighted across Edit, View, and pillar
         // pages (its href can point at either /blueprint or /blueprint/view),
         // and the Content nav highlighted across the Create + Strategy sub-routes.
@@ -526,12 +540,20 @@ export function Layout({ children }: LayoutProps) {
             ? location.startsWith("/content")
             : location === item.href;
 
+        const sectionHeader = showSectionHeader ? (
+          <div className="px-4 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            {item.section}
+          </div>
+        ) : null;
+
         // Locked items stay clickable: they navigate to the panel, which now
         // explains why it's locked and exactly what's left to unlock it. We keep
         // the lock icon and a dimmed treatment so it still reads as locked.
         if (locked) {
           return (
-            <Link key={item.href} href={item.href}>
+            <Fragment key={item.href}>
+              {sectionHeader}
+              <Link href={item.href}>
               <div
                 title="Locked — open to see what's needed to unlock it"
                 className={cn(
@@ -548,12 +570,15 @@ export function Layout({ children }: LayoutProps) {
                 </span>
                 <Lock className="w-3.5 h-3.5 stroke-[1.5]" />
               </div>
-            </Link>
+              </Link>
+            </Fragment>
           );
         }
 
         return (
-          <Link key={item.href} href={item.href}>
+          <Fragment key={item.href}>
+            {sectionHeader}
+            <Link href={item.href}>
             <div
               className={cn(
                 "flex items-center gap-3 px-4 py-2.5 rounded-none transition-all duration-300 cursor-pointer text-sm font-medium",
@@ -572,7 +597,8 @@ export function Layout({ children }: LayoutProps) {
                 <span className="ml-auto h-2 w-2 rounded-full bg-destructive" aria-hidden />
               )}
             </div>
-          </Link>
+            </Link>
+          </Fragment>
         );
       })}
     </div>

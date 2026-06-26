@@ -108,8 +108,8 @@ type ExtractorOutput = {
 };
 
 type PreviewResult =
-  | { kind: "ok"; sample_count: number; dropped: number; extractor: ExtractorOutput }
-  | { kind: "refused"; reason: string }
+  | { kind: "ok"; sample_count: number; dropped: number; extractor: ExtractorOutput; usedCache?: boolean; cachedSampleCount?: number }
+  | { kind: "refused"; reason: string; usedCache?: boolean; cachedSampleCount?: number }
   | { kind: "error"; error: string };
 
 // ---------- Page ----------
@@ -122,6 +122,7 @@ export default function CalibratePage() {
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
+  const [forceRefetch, setForceRefetch] = useState(false);
 
   async function fetchJson<T>(url: string, body: unknown): Promise<T> {
     const clientId = getActiveClientId();
@@ -154,8 +155,9 @@ export default function CalibratePage() {
         {
           source,
           handle: handle.trim(),
-          // YouTube fans out across videos (≈30); LinkedIn/X pull ~100 posts.
-          maxItems: source === "youtube_transcript" ? 30 : 100,
+          // YouTube fans out across videos (≈30); LinkedIn/X capped at 50 posts.
+          maxItems: source === "youtube_transcript" ? 30 : 50,
+          force: forceRefetch,
         }
       );
       setPreview(data);
@@ -295,8 +297,19 @@ export default function CalibratePage() {
                 <p className="text-xs text-muted-foreground">
                   {source === "youtube_transcript"
                     ? "We pull the last ~30 videos, transcribe each (captions, with a speech-to-text fallback), and extract your voice. Works for non-English channels. This takes a few minutes."
-                    : "We pull your last ~100 posts via Apify, drop reposts, run the voice extractor. Takes 30-60 seconds."}
+                    : "We pull your last ~50 posts, drop reposts, run the voice extractor. Takes 30-60 seconds."}
                 </p>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={forceRefetch}
+                    onChange={(e) => setForceRefetch(e.target.checked)}
+                    disabled={loading || applying}
+                    className="accent-primary"
+                  />
+                  Re-fetch fresh from source (uses credits). Leave off to re-use already-saved
+                  content for free.
+                </label>
               </div>
               <Button onClick={runFromHandle} disabled={loading || applying}>
                 {loading ? (
@@ -412,7 +425,7 @@ function PreviewView({
   onApply,
   applying,
 }: {
-  preview: { kind: "ok"; sample_count: number; dropped: number; extractor: ExtractorOutput };
+  preview: { kind: "ok"; sample_count: number; dropped: number; extractor: ExtractorOutput; usedCache?: boolean; cachedSampleCount?: number };
   onApply: () => void;
   applying: boolean;
 }) {
@@ -457,6 +470,12 @@ function PreviewView({
                   </span>
                 )}
               </p>
+              {preview.usedCache && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Re-used your {preview.cachedSampleCount ?? preview.sample_count} already-saved
+                  samples — no fetch, no credits spent. Tick “Re-fetch fresh” to pull new content.
+                </p>
+              )}
               <p className="text-sm text-muted-foreground mt-1">
                 Aggregate confidence:{" "}
                 <strong>{(preview.extractor.confidence * 100).toFixed(0)}%</strong>

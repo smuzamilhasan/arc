@@ -46,12 +46,25 @@ router.post(
       return res.status(400).json({ error: "handle required" });
     }
 
+    // Per-source hard caps — protects against an oversized (expensive) fetch
+    // regardless of what the client requests. LinkedIn/X are paid per-post;
+    // YouTube is paid per-video.
+    const SOURCE_MAX: Record<string, number> = {
+      linkedin: 50,
+      x: 50,
+      youtube_transcript: 30,
+    };
+    const requested = typeof maxItems === "number" && maxItems > 0 ? maxItems : 50;
+    const capped = Math.min(requested, SOURCE_MAX[source] ?? 50);
+    const force = req.body?.force === true;
+
     try {
       const result = await previewFromHandle({
         clientId,
         source,
         handle: handle.trim(),
-        maxItems: typeof maxItems === "number" ? maxItems : 100,
+        maxItems: capped,
+        force,
       });
       return res.json(result);
     } catch (err) {

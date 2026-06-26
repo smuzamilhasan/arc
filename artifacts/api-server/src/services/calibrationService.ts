@@ -19,6 +19,7 @@ import {
 } from "./ingestion";
 import { NORMALIZERS, type Normalizer } from "./ingestion/normalizers";
 import { DEFAULT_ACTORS } from "./ingestion/actors";
+import { dispatchYouTubeChannel } from "./ingestion/youtube/dispatchYouTubeChannel";
 import { runVoiceExtractor } from "../agents-v2/roles/voiceExtractor/pipeline";
 import { openaiStructuredClient } from "../agents-v2/llm";
 import { applyProfilePatch, type ApplyProfilePatchResult } from "../agents-v2/profilePatch";
@@ -66,6 +67,32 @@ export async function previewFromHandle(
 async function previewViaFullIngest(
   args: PreviewFromHandleArgs
 ): Promise<CalibrationPreviewResult> {
+  // YouTube takes a CHANNEL url and fans out across its recent videos
+  // (captions + Deepgram fallback), so it has its own dispatch rather than the
+  // single-actor LinkedIn/X path.
+  if (args.source === "youtube_transcript") {
+    try {
+      const yt = await dispatchYouTubeChannel(
+        {
+          clientId: args.clientId,
+          channelUrl: args.handle,
+          maxVideos: args.maxItems ?? 30,
+        },
+        { repo: drizzleIngestRepo }
+      );
+      if (yt.status === "failed") {
+        return { kind: "error", error: yt.errorMessage ?? "youtube ingest failed" };
+      }
+      // fall through to the shared extract-from-stored-samples path below.
+    } catch (err) {
+      return {
+        kind: "error",
+        error: `youtube ingest failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+    return extractFromStoredSamples(args.clientId, 0);
+  }
+
   const ingestReq: IngestRequest = {
     clientId: args.clientId,
     source: args.source,
@@ -94,7 +121,18 @@ async function previewViaFullIngest(
   // production) starts the worker. The preview flow should run extraction
   // synchronously and return the patch unapplied. We re-load samples for this
   // client (including any prior ingests) and run the extractor here.
-  const samples = await loadAllSamplesForClient(args.clientId);
+  return extractFromStoredSamples(args.clientId, ingestResult.samplesDeduped ?? 0);
+}
+
+/**
+ * Load all stored voice_samples for a client and run the voice extractor over
+ * them (no apply). Shared by the LinkedIn/X path and the YouTube channel path.
+ */
+async function extractFromStoredSamples(
+  clientId: number,
+  dropped: number
+): Promise<CalibrationPreviewResult> {
+  const samples = await loadAllSamplesForClient(clientId);
 
   if (samples.length < 10) {
     return {
@@ -105,8 +143,8 @@ async function previewViaFullIngest(
 
   const result = await runVoiceExtractor(
     {
-      client_id: args.clientId,
-      identity_full_name: await loadClientName(args.clientId),
+      client_id: clientId,
+      identity_full_name: await loadClientName(clientId),
       samples: samples.map((s) => ({
         id: s.id,
         platform: s.platform,
@@ -127,7 +165,7 @@ async function previewViaFullIngest(
   return {
     kind: "ok",
     sample_count: result.sample_count,
-    dropped: ingestResult.samplesDeduped ?? 0,
+    dropped,
     extractor: result,
   };
 }

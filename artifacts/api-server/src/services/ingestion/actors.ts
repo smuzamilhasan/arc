@@ -40,16 +40,26 @@ export type ActorNormalizerKey =
 export const DEFAULT_ACTORS: Record<VoiceSampleSource, ActorConfig | null> = {
   linkedin: {
     source: "linkedin",
-    actorId: "apimaestro/linkedin-profile-posts",
+    // harvestapi is ~$2/1000 posts vs apimaestro's ~$5/1000. Override via
+    // LINKEDIN_ACTOR_ID env if needed.
+    actorId: process.env.LINKEDIN_ACTOR_ID || "harvestapi/linkedin-profile-posts",
     label: "LinkedIn profile posts",
-    costCeilingUsd: 1.0,
-    buildInput: (handle, maxItems) => ({
-      username: stripLinkedInPrefix(handle),
-      limit: maxItems,
-      // Some actor variants expect `profileUrls`; include both shapes
-      // defensively so swapping actor ids doesn't require touching dispatch.
-      profileUrls: [`https://www.linkedin.com/in/${stripLinkedInPrefix(handle)}/`],
-    }),
+    costCeilingUsd: Number(process.env.LINKEDIN_COST_CEILING_USD || "0.5"),
+    buildInput: (handle, maxItems) => {
+      const username = stripLinkedInPrefix(handle);
+      const profileUrl = `https://www.linkedin.com/in/${username}/`;
+      // Defensive across actor input shapes (harvestapi uses profiles/maxPosts;
+      // others use profileUrls/username/limit). Unknown fields are ignored.
+      return {
+        profiles: [profileUrl],
+        profileUrls: [profileUrl],
+        usernames: [username],
+        username,
+        maxPosts: maxItems,
+        limit: maxItems,
+        postLimit: maxItems,
+      };
+    },
     normalizer: "linkedin_posts_v1",
   },
   x: {

@@ -41,8 +41,11 @@ export type CalibrationPreviewResult =
       dropped: number;
       extractor: VoiceExtractorOutput;
       youtube?: YouTubeIngestSummary;
+      /** True when we re-extracted from stored samples without re-fetching (no scraper cost). */
+      usedCache?: boolean;
+      cachedSampleCount?: number;
     }
-  | { kind: "refused"; reason: string; youtube?: YouTubeIngestSummary }
+  | { kind: "refused"; reason: string; youtube?: YouTubeIngestSummary; usedCache?: boolean; cachedSampleCount?: number }
   | { kind: "error"; error: string; youtube?: YouTubeIngestSummary };
 
 export type PreviewFromHandleArgs = {
@@ -56,19 +59,32 @@ export type PreviewFromHandleArgs = {
    * memory only. Default: true.
    */
   persistSamples?: boolean;
+  /**
+   * Force a fresh (paid) fetch from the source even if we already have stored
+   * samples for this client+source. Default false → reuse stored samples and
+   * just re-extract, so repeated calibrations don't repeatedly pay the scraper.
+   */
+  force?: boolean;
 };
 
 export async function previewFromHandle(
   args: PreviewFromHandleArgs
 ): Promise<CalibrationPreviewResult> {
-  const persistSamples = args.persistSamples !== false;
-
-  if (persistSamples) {
-    return previewViaFullIngest(args);
+  // FAILSAFE: don't pay the scraper again if we already have samples for this
+  // client+source. The scraper (Apify) charges per run REGARDLESS of our
+  // content-hash dedup (which only prevents duplicate DB rows, after the paid
+  // fetch). So unless the caller forces a refresh, re-extract from what we
+  // already stored — zero scraping cost.
+  if (!args.force) {
+    const existing = await countSamplesForSource(args.clientId, args.source);
+    if (existing > 0) {
+      const result = await extractFromStoredSamples(args.clientId, 0);
+      if (result.kind === "ok" || result.kind === "refused") {
+        return { ...result, usedCache: true, cachedSampleCount: existing };
+      }
+      return result;
+    }
   }
-  // In-memory path — useful when the caller wants to preview WITHOUT writing
-  // voice_samples first. Today we route everything through the persistence
-  // path because the extractor and downstream agents reference sample_ids.
   return previewViaFullIngest(args);
 }
 
@@ -260,6 +276,19 @@ export async function applyReviewedPatch(
 }
 
 // ---------- Internal ----------
+
+async function countSamplesForSource(
+  clientId: number,
+  source: VoiceSampleSource
+): Promise<number> {
+  const { db, voiceSamplesTable } = await import("@workspace/db");
+  const { eq, and, sql } = await import("drizzle-orm");
+  const rows = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(voiceSamplesTable)
+    .where(and(eq(voiceSamplesTable.clientId, clientId), eq(voiceSamplesTable.source, source)));
+  return rows[0]?.n ?? 0;
+}
 
 async function loadClientName(clientId: number): Promise<string | null> {
   const { db, clientProfileTable } = await import("@workspace/db");

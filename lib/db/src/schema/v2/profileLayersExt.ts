@@ -78,6 +78,8 @@ export type ContentPillar = z.infer<typeof contentPillarSchema>;
 export const contentStrategyV2Schema = z.object({
   pillars: z.array(contentPillarSchema).default([]), // 3-5 themes
   formats: z.array(z.string()).default([]), // "long-form post", "thread", "video", "carousel"
+  hooks: z.array(z.string()).default([]), // angles/openers that land
+  repurposing_rules: z.array(z.string()).default([]),
   recurring_series: z.array(z.string()).default([]),
   content_mix: z
     .object({
@@ -158,6 +160,12 @@ export type ReputationV2 = z.infer<typeof reputationV2Schema>;
 // ---------- Identity (structured) ----------
 
 export const identityV2Schema = z.object({
+  role: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
+  company: z.string().nullable().optional(),
+  industry: z.string().nullable().optional(),
+  seniority: z.string().nullable().optional(),
+  education: z.array(z.string()).default([]),
   geography_base: z.string().nullable().optional(), // where they live
   geography_market: z.array(z.string()).default([]), // where their audience/market is
   languages: z.array(z.string()).default([]), // content languages

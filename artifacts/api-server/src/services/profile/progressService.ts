@@ -245,17 +245,19 @@ function describeLayer(key: ProfileV2LayerKey): string {
     case "channels_v2":
       return "channels[{platform,handle,url,is_primary,audience_size,cadence}], confidence";
     case "identity_v2":
-      return "geography_base, geography_market[], languages[], content_script, credentials[], career_arc, confidence";
+      return "role, title, company, industry, seniority, education[], geography_base, geography_market[], languages[], content_script, credentials[], career_arc, confidence";
     case "reputation_v2":
-      return "current_perception, desired_perception, perception_gap, confidence";
+      return "current_perception, desired_perception, perception_gap, followings[{platform,count}], confidence";
     case "icp_v2":
-      return "archetypes[{label,jobs_to_be_done[],watering_holes[],where_they_get_stuck[]}], disqualifications[], confidence";
+      return "archetypes[{label,jobs_to_be_done[],watering_holes[],where_they_get_stuck[],pains[],desires[],objections[],buying_triggers[]}], secondary_audiences[], estimated_tam, disqualifications[], confidence";
     case "positioning_v2":
-      return "claim, defensibility, adjacent_claims_rejected[], proof_points[], confidence";
+      return "claim, category, unique_mechanism, wedge, defensibility, adjacent_claims_rejected[], proof_points[], confidence";
     case "negative_space_v2":
       return "refused_topics[], refused_words[], refused_takes[], refused_formats[]";
     case "worldview_v2":
-      return "beliefs[{claim,why_held,confidence}]";
+      return "beliefs[{claim,why_held,confidence}], thesis, contrarian_takes[], values[], mission";
+    case "voice_v2":
+      return "tone_descriptors[], humor_style, emotional_register, pov, reading_level, language, script";
     default:
       return "(see schema)";
   }

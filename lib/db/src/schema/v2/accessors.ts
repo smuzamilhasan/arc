@@ -21,13 +21,39 @@ import {
   type WorldviewV2,
   type NegativeSpaceV2,
 } from "./profileLayers";
+import {
+  goalsV2Schema,
+  offersV2Schema,
+  operatingPrefsV2Schema,
+  contentStrategyV2Schema,
+  channelsV2Schema,
+  marketContextV2Schema,
+  reputationV2Schema,
+  identityV2Schema,
+  type GoalsV2,
+  type OffersV2,
+  type OperatingPrefsV2,
+  type ContentStrategyV2,
+  type ChannelsV2,
+  type MarketContextV2,
+  type ReputationV2,
+  type IdentityV2,
+} from "./profileLayersExt";
 
 export type ProfileV2LayerKey =
   | "positioning_v2"
   | "icp_v2"
   | "voice_v2"
   | "worldview_v2"
-  | "negative_space_v2";
+  | "negative_space_v2"
+  | "goals_v2"
+  | "offers_v2"
+  | "operating_prefs_v2"
+  | "content_strategy_v2"
+  | "channels_v2"
+  | "market_context_v2"
+  | "reputation_v2"
+  | "identity_v2";
 
 const SCHEMA_BY_KEY = {
   positioning_v2: positioningV2Schema,
@@ -35,6 +61,14 @@ const SCHEMA_BY_KEY = {
   voice_v2: voiceV2Schema,
   worldview_v2: worldviewV2Schema,
   negative_space_v2: negativeSpaceV2Schema,
+  goals_v2: goalsV2Schema,
+  offers_v2: offersV2Schema,
+  operating_prefs_v2: operatingPrefsV2Schema,
+  content_strategy_v2: contentStrategyV2Schema,
+  channels_v2: channelsV2Schema,
+  market_context_v2: marketContextV2Schema,
+  reputation_v2: reputationV2Schema,
+  identity_v2: identityV2Schema,
 } as const;
 
 export type LayerValueByKey = {
@@ -43,6 +77,14 @@ export type LayerValueByKey = {
   voice_v2: VoiceV2;
   worldview_v2: WorldviewV2;
   negative_space_v2: NegativeSpaceV2;
+  goals_v2: GoalsV2;
+  offers_v2: OffersV2;
+  operating_prefs_v2: OperatingPrefsV2;
+  content_strategy_v2: ContentStrategyV2;
+  channels_v2: ChannelsV2;
+  market_context_v2: MarketContextV2;
+  reputation_v2: ReputationV2;
+  identity_v2: IdentityV2;
 };
 
 /**
@@ -100,5 +142,21 @@ function defaultLayer(key: ProfileV2LayerKey): unknown {
       return { beliefs: [] };
     case "negative_space_v2":
       return { refused_topics: [], refused_words: [], refused_takes: [], refused_formats: [] };
+    case "goals_v2":
+      return { brand_goals: [], business_goals: [], success_metrics: [], confidence: 0 };
+    case "offers_v2":
+      return { offerings: [], lead_magnets: [], preferred_ctas: [], confidence: 0 };
+    case "operating_prefs_v2":
+      return { confidence: 0 };
+    case "content_strategy_v2":
+      return { pillars: [], formats: [], recurring_series: [], confidence: 0 };
+    case "channels_v2":
+      return { channels: [], confidence: 0 };
+    case "market_context_v2":
+      return { competitors: [], trends: [], white_space: [], confidence: 0 };
+    case "reputation_v2":
+      return { followings: [], confidence: 0 };
+    case "identity_v2":
+      return { geography_market: [], languages: [], credentials: [], confidence: 0 };
   }
 }

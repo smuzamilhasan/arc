@@ -8,6 +8,16 @@ import type {
   WorldviewV2,
   NegativeSpaceV2,
 } from "./v2/profileLayers";
+import type {
+  GoalsV2,
+  OffersV2,
+  OperatingPrefsV2,
+  ContentStrategyV2,
+  ChannelsV2,
+  MarketContextV2,
+  ReputationV2,
+  IdentityV2,
+} from "./v2/profileLayersExt";
 
 export const clientProfileTable = pgTable("client_profile", {
   id: serial("id").primaryKey(),
@@ -95,6 +105,15 @@ export const clientProfileTable = pgTable("client_profile", {
   voiceV2: jsonb("voice_v2").$type<VoiceV2>(),
   worldviewV2: jsonb("worldview_v2").$type<WorldviewV2>(),
   negativeSpaceV2: jsonb("negative_space_v2").$type<NegativeSpaceV2>(),
+  // Extended comprehensive-profile layers (intent + strategy + context).
+  goalsV2: jsonb("goals_v2").$type<GoalsV2>(),
+  offersV2: jsonb("offers_v2").$type<OffersV2>(),
+  operatingPrefsV2: jsonb("operating_prefs_v2").$type<OperatingPrefsV2>(),
+  contentStrategyV2: jsonb("content_strategy_v2").$type<ContentStrategyV2>(),
+  channelsV2: jsonb("channels_v2").$type<ChannelsV2>(),
+  marketContextV2: jsonb("market_context_v2").$type<MarketContextV2>(),
+  reputationV2: jsonb("reputation_v2").$type<ReputationV2>(),
+  identityV2: jsonb("identity_v2").$type<IdentityV2>(),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

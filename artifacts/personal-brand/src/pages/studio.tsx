@@ -22,6 +22,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
+import { ProfileSharpenCard } from "@/components/profile-sharpen-card";
 
 type ProfileV2 = {
   identity?: { full_name?: string } | null;
@@ -128,6 +129,9 @@ export default function StudioPage() {
           <Badge variant="secondary">Setup in progress</Badge>
         )}
       </div>
+
+      {/* Progressive profiling — one question at a time */}
+      <ProfileSharpenCard />
 
       {/* Flow steps */}
       <div className="grid gap-4 md:grid-cols-3">

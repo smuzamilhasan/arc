@@ -154,9 +154,10 @@ function safeFilled(f: ProfileField, snapshot: ProfileSnapshot): boolean {
 // ---------- Capture: freeform answer → structured layer write ----------
 
 const captureOutputSchema = z.object({
-  // The model returns a flat JSON patch for the field's layer. We validate
-  // loosely here (record) and let patchLayer's Zod do strict validation on write.
-  patch: z.record(z.string(), z.unknown()),
+  // The model returns the layer patch as a JSON STRING (object literal). A
+  // free-form record can't be expressed in OpenAI strict mode (it emits
+  // `propertyNames`, which strict mode rejects), so we take a string and parse.
+  patch_json: z.string(),
   // If the answer carried no usable signal for this field.
   empty: z.boolean().default(false),
 });
@@ -184,11 +185,11 @@ export async function captureAnswer(
     `Field being filled: "${field.label}" (layer ${layerKey}).`,
     `The user was asked: "${field.question}"`,
     ``,
-    `Return { patch: {...}, empty: bool }. The patch object updates ONLY the`,
-    `keys you can fill from the answer, using the layer's shape. Examples of the`,
-    `layer's keys: ${describeLayer(layerKey)}.`,
+    `Return { patch_json, empty }. patch_json is a JSON object literal (as a`,
+    `string) updating ONLY the keys you can fill from the answer, using the`,
+    `layer's shape. Layer keys: ${describeLayer(layerKey)}.`,
     `Use arrays where the layer expects arrays. Set a sensible confidence (0-1).`,
-    `If the answer has no usable signal, return empty=true with patch={}.`,
+    `If the answer has no usable signal, return empty=true with patch_json="{}".`,
     `Never invent facts the user didn't say.`,
   ].join("\n");
 
@@ -205,7 +206,13 @@ export async function captureAnswer(
     return { ok: false, reason: `capture LLM failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 
-  if (result.output.empty || Object.keys(result.output.patch).length === 0) {
+  let patchObj: Record<string, unknown>;
+  try {
+    patchObj = JSON.parse(result.output.patch_json) as Record<string, unknown>;
+  } catch {
+    return { ok: false, reason: "model returned invalid patch JSON" };
+  }
+  if (result.output.empty || Object.keys(patchObj).length === 0) {
     return { ok: false, reason: "no usable signal in answer" };
   }
 
@@ -214,7 +221,7 @@ export async function captureAnswer(
     const column = LAYER_COLUMN[layerKey]!;
     const [existing] = await db.select().from(clientProfileTable).where(eq(clientProfileTable.id, clientId)).limit(1);
     const current = existing ? readLayer(layerKey, (existing as Record<string, unknown>)[column as string]) : null;
-    const merged = patchLayer(layerKey, current as never, result.output.patch as never);
+    const merged = patchLayer(layerKey, current as never, patchObj as never);
     await db
       .update(clientProfileTable)
       .set({ [column]: merged, updatedAt: new Date() } as Record<string, unknown>)

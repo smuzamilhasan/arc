@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Send, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
+import { usePersistentRun, usePersistentState, useUnloadGuard } from "@/lib/persistent-run";
 
 type Turn = {
   kind: "question" | "patch" | "wrap";
@@ -50,14 +51,19 @@ function slotLabel(slot?: string): string | undefined {
   return SLOT_LABELS[slot] ?? slot;
 }
 
+// The whole conversation lives in the persistent store, so switching pages
+// mid-onboarding doesn't reset the chat — it's restored on return.
+type OnboarderSnap = { sessionId: number | null; messages: ChatMsg[]; confidence: number; done: string | null };
+const ONBOARD_INIT: OnboarderSnap = { sessionId: null, messages: [], confidence: 0, done: null };
+
 export default function OnboardV2Page() {
-  const [sessionId, setSessionId] = useState<number | null>(null);
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [snap, setSnap] = usePersistentState<OnboarderSnap>("onboarder", ONBOARD_INIT);
+  const { sessionId, messages, confidence, done } = snap;
+  const turnRun = usePersistentRun<AnswerResp>("onboarder-turn");
+  useUnloadGuard();
+  const sending = turnRun.status === "running";
   const [input, setInput] = useState("");
-  const [starting, setStarting] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [confidence, setConfidence] = useState(0);
-  const [done, setDone] = useState<string | null>(null);
+  const [starting, setStarting] = useState(snap.sessionId == null);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -74,8 +80,14 @@ export default function OnboardV2Page() {
     return (await res.json()) as T;
   }
 
-  // Start (or resume) the session on mount.
+  // Start (or resume) on mount — but only the first time. If a session already
+  // sits in the persistent snapshot (navigated away and back), restore it
+  // instead of re-fetching, so the conversation isn't lost.
   useEffect(() => {
+    if (snap.sessionId != null) {
+      setStarting(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -85,14 +97,17 @@ export default function OnboardV2Page() {
           setError(start.error);
           return;
         }
-        setSessionId(start.sessionId);
-        if (start.firstTurn?.prompt_text) {
-          setMessages([
-            { from: "agent", text: start.firstTurn.prompt_text, slot: start.firstTurn.target_slot },
-          ]);
-        } else if (start.firstTurn?.kind === "wrap") {
-          setDone(start.firstTurn.summary ?? "Your profile is already complete.");
-        }
+        setSnap({
+          sessionId: start.sessionId,
+          messages: start.firstTurn?.prompt_text
+            ? [{ from: "agent", text: start.firstTurn.prompt_text, slot: start.firstTurn.target_slot }]
+            : [],
+          confidence: 0,
+          done:
+            start.firstTurn?.kind === "wrap"
+              ? start.firstTurn.summary ?? "Your profile is already complete."
+              : null,
+        });
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "failed to start");
       } finally {
@@ -102,6 +117,7 @@ export default function OnboardV2Page() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -110,41 +126,42 @@ export default function OnboardV2Page() {
 
   async function send() {
     const answer = input.trim();
-    if (!answer || !sessionId || sending) return;
+    if (!answer || sessionId == null || sending) return;
     setInput("");
-    setMessages((m) => [...m, { from: "you", text: answer }]);
-    setSending(true);
+    setSnap((s) => ({ ...s, messages: [...s.messages, { from: "you", text: answer }] }));
     setError(null);
     try {
-      const resp = await api<AnswerResp>("api/v2/onboarder/answer", { sessionId, answer });
+      // The turn runs through the persistent store, so the in-flight question
+      // survives navigation and a hard refresh mid-turn is guarded.
+      const resp = await turnRun.start(api<AnswerResp>("api/v2/onboarder/answer", { sessionId, answer }));
       if ("error" in resp) {
         setError(resp.error);
         return;
       }
       if (resp.kind === "next") {
-        setConfidence(resp.aggregateConfidence ?? 0);
-        if (resp.turn?.prompt_text) {
-          setMessages((m) => [
-            ...m,
-            { from: "agent", text: resp.turn.prompt_text!, slot: resp.turn.target_slot },
-          ]);
-        }
+        setSnap((s) => ({
+          ...s,
+          confidence: resp.aggregateConfidence ?? s.confidence,
+          messages: resp.turn?.prompt_text
+            ? [...s.messages, { from: "agent", text: resp.turn.prompt_text!, slot: resp.turn.target_slot }]
+            : s.messages,
+        }));
       } else if (resp.kind === "wrapped") {
-        setConfidence(resp.aggregateConfidence ?? confidence);
-        setDone(
-          resp.reason === "coverage_complete"
-            ? "Your operating profile is complete. The ghostwriter is ready."
-            : "Session paused — pick up anytime."
-        );
+        setSnap((s) => ({
+          ...s,
+          confidence: resp.aggregateConfidence ?? s.confidence,
+          done:
+            resp.reason === "coverage_complete"
+              ? "Your operating profile is complete. The ghostwriter is ready."
+              : "Session paused — pick up anytime.",
+        }));
       } else if (resp.kind === "refused") {
-        setMessages((m) => [...m, { from: "agent", text: resp.reason }]);
+        setSnap((s) => ({ ...s, messages: [...s.messages, { from: "agent", text: resp.reason }] }));
       } else if (resp.kind === "violation") {
         setError(`Something went wrong: ${resp.details}`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "failed to send");
-    } finally {
-      setSending(false);
     }
   }
 

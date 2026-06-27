@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Sparkles, AlertTriangle, Loader2, Quote, BookOpen, FileText, Copy, Check, CalendarPlus } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
+import { usePersistentRun, useUnloadGuard } from "@/lib/persistent-run";
 
 type EvidenceRef =
   | { kind: "voice_sample"; sample_id: number }
@@ -49,37 +50,34 @@ const PLATFORMS = [
 export default function GhostwriterTestPage() {
   const [brief, setBrief] = useState("");
   const [platform, setPlatform] = useState<string>("linkedin");
-  const [loading, setLoading] = useState(false);
+  // The draft runs through the persistent store, so navigating to another page
+  // mid-draft keeps it alive and the result is waiting when you come back.
+  const draftRun = usePersistentRun<DraftResponse>("ghostwriter-draft");
+  useUnloadGuard();
+  const loading = draftRun.status === "running";
+  const result = draftRun.data;
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<DraftResponse | null>(null);
+  const shownError = error ?? draftRun.error;
   const [copied, setCopied] = useState(false);
 
-  async function runDraft() {
+  function runDraft() {
     if (!brief.trim()) {
       setError("Type a brief — a topic, angle, or instruction for the draft.");
       return;
     }
-    setLoading(true);
     setError(null);
-    setResult(null);
     setSaved(null);
-    try {
-      const clientId = getActiveClientId();
-      const res = await fetch(`${import.meta.env.BASE_URL}api/v2/ghostwriter/draft`, {
+    const clientId = getActiveClientId();
+    draftRun.start(
+      fetch(`${import.meta.env.BASE_URL}api/v2/ghostwriter/draft`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(clientId != null ? { "x-arc-client-id": String(clientId) } : {}),
         },
         body: JSON.stringify({ brief: brief.trim(), platform, format: "post" }),
-      });
-      const data = (await res.json()) as DraftResponse;
-      setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "draft failed");
-    } finally {
-      setLoading(false);
-    }
+      }).then((res) => res.json() as Promise<DraftResponse>)
+    );
   }
 
   function copyBody() {
@@ -174,11 +172,11 @@ export default function GhostwriterTestPage() {
         </CardContent>
       </Card>
 
-      {error && (
+      {shownError && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Could not draft</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{shownError}</AlertDescription>
         </Alert>
       )}
 

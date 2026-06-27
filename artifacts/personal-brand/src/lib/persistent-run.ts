@@ -99,6 +99,41 @@ export function usePersistentRun<T>(key: string) {
 }
 
 /**
+ * Persisted useState — the value lives in the module store, so it survives
+ * in-app navigation (unmount/remount) just like a run. Does NOT count as an
+ * active run (status stays "done"), so it never trips the unload guard on its
+ * own. `initial` must be a stable reference (a module-level constant).
+ */
+export function usePersistentState<T>(key: string, initial: T) {
+  const subscribe = useCallback(
+    (cb: () => void) => {
+      let set = listeners.get(key);
+      if (!set) {
+        set = new Set();
+        listeners.set(key, set);
+      }
+      set.add(cb);
+      return () => set!.delete(cb);
+    },
+    [key]
+  );
+  const snapshot = useCallback((): T => {
+    const s = store.get(key);
+    return s ? (s.data as T) : initial;
+  }, [key, initial]);
+  const value = useSyncExternalStore(subscribe, snapshot, snapshot);
+  const setValue = useCallback(
+    (next: T | ((prev: T) => T)) => {
+      const prev = (store.get(key)?.data as T | undefined) ?? initial;
+      const resolved = typeof next === "function" ? (next as (p: T) => T)(prev) : next;
+      setState(key, { status: "done", data: resolved as unknown, error: null });
+    },
+    [key, initial]
+  );
+  return [value, setValue] as const;
+}
+
+/**
  * Warn the user before unloading the browser tab while any run is active.
  * (In-app navigation is already safe — the run state persists. This only fires
  * on real browser unload: close, refresh, or external navigation.)

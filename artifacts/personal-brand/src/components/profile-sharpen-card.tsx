@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sparkles, Check, Loader2, ArrowRight } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
+import { usePersistentRun, useUnloadGuard } from "@/lib/persistent-run";
 
+type CaptureResp = { status: string; completeness?: Completeness };
 type NextQuestion = { key: string; label: string; section: string; question: string; why?: string };
 type Completeness = { overall_pct: number; core_pct: number };
 
@@ -19,7 +21,11 @@ export function ProfileSharpenCard() {
   const [completeness, setCompleteness] = useState<Completeness | null>(null);
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  // The capture writes server-side; routing it through the persistent run gives
+  // unload-guard coverage (warn on hard refresh mid-save) and survives nav.
+  const saveRun = usePersistentRun<CaptureResp>("profile-sharpen");
+  useUnloadGuard();
+  const saving = saveRun.status === "running";
   const [justSaved, setJustSaved] = useState(false);
 
   function headers() {
@@ -55,14 +61,14 @@ export function ProfileSharpenCard() {
 
   async function submit() {
     if (!question || !answer.trim()) return;
-    setSaving(true);
     try {
-      const res = await fetch(`${import.meta.env.BASE_URL}api/v2/profile/answer`, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ fieldKey: question.key, answer: answer.trim() }),
-      });
-      const data = (await res.json()) as { status: string; completeness?: Completeness };
+      const data = await saveRun.start(
+        fetch(`${import.meta.env.BASE_URL}api/v2/profile/answer`, {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify({ fieldKey: question.key, answer: answer.trim() }),
+        }).then((r) => r.json() as Promise<CaptureResp>)
+      );
       if (data.status === "ok") {
         if (data.completeness) setCompleteness(data.completeness);
         setJustSaved(true);
@@ -74,9 +80,7 @@ export function ProfileSharpenCard() {
         setAnswer("");
       }
     } catch {
-      /* keep state */
-    } finally {
-      setSaving(false);
+      /* keep state; saveRun.error holds the message */
     }
   }
 

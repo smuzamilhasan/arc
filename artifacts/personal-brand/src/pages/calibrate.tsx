@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
 import { usePersistentRun, useUnloadGuard } from "@/lib/persistent-run";
+import { WorkingIndicator, WORK_MESSAGES } from "@/components/working-indicator";
 import { toast } from "sonner";
 
 // ---------- Types matching the backend response ----------
@@ -394,8 +395,7 @@ function LoadingState() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          Reading your voice…
+          <WorkingIndicator variant="inline" messages={WORK_MESSAGES.calibration} />
         </CardTitle>
         <CardDescription>
           5 passes: sentence stats + lexicon + punctuation, then 4 LLM passes for

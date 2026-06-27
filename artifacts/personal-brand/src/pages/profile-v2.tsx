@@ -9,8 +9,9 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertTriangle, Mic, Target, Brain, BookOpen, Quote, Ban, Users, Briefcase, Flag, Tag, SlidersHorizontal, Layers, Share2, Globe, Star } from "lucide-react";
+import { AlertTriangle, Mic, Target, Brain, BookOpen, Quote, Ban, Users, Briefcase, Flag, Tag, SlidersHorizontal, Layers, Share2, Globe, Star } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
+import { WorkingIndicator, WORK_MESSAGES } from "@/components/working-indicator";
 
 type ProfileV2 = {
   identity: { full_name: string; headline: string };
@@ -79,8 +80,8 @@ export default function ProfileV2Page() {
 
   if (loading) {
     return (
-      <div className="container mx-auto max-w-4xl py-8 flex items-center gap-2 text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin" /> Loading your operating profile…
+      <div className="container mx-auto max-w-4xl py-8">
+        <WorkingIndicator messages={WORK_MESSAGES.profile} />
       </div>
     );
   }

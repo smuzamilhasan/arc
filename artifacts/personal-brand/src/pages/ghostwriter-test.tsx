@@ -14,6 +14,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Sparkles, AlertTriangle, Loader2, Quote, BookOpen, FileText, Copy, Check, CalendarPlus } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
 import { usePersistentRun, useUnloadGuard } from "@/lib/persistent-run";
+import { WorkingIndicator, WORK_MESSAGES } from "@/components/working-indicator";
 
 type EvidenceRef =
   | { kind: "voice_sample"; sample_id: number }
@@ -180,14 +181,7 @@ export default function GhostwriterTestPage() {
         </Alert>
       )}
 
-      {loading && (
-        <Card>
-          <CardContent className="pt-6 flex items-center gap-3 text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Curating your profile, drafting, and self-checking against your banned words…
-          </CardContent>
-        </Card>
-      )}
+      {loading && <WorkingIndicator messages={WORK_MESSAGES.draft} />}
 
       {result && "error" in result && (
         <Alert variant="destructive">

@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Send, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Send, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
 import { usePersistentRun, usePersistentState, useUnloadGuard } from "@/lib/persistent-run";
+import { WorkingIndicator, WORK_MESSAGES } from "@/components/working-indicator";
 
 type Turn = {
   kind: "question" | "patch" | "wrap";
@@ -205,11 +206,7 @@ export default function OnboardV2Page() {
       <Card className="min-h-[420px] flex flex-col">
         <CardContent className="flex-1 flex flex-col p-0">
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 max-h-[55vh]">
-            {starting && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" /> Reading your profile…
-              </div>
-            )}
+            {starting && <WorkingIndicator variant="inline" messages={WORK_MESSAGES.starting} />}
             {messages.map((m, i) => (
               <div key={i} className={m.from === "you" ? "flex justify-end" : "flex justify-start"}>
                 <div
@@ -231,8 +228,8 @@ export default function OnboardV2Page() {
             ))}
             {sending && (
               <div className="flex justify-start">
-                <div className="bg-muted rounded-2xl px-4 py-2.5 text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                <div className="bg-muted rounded-2xl px-4 py-2.5">
+                  <WorkingIndicator variant="inline" messages={WORK_MESSAGES.onboarder} />
                 </div>
               </div>
             )}

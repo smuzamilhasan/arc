@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Sparkles, Check, Loader2, ArrowRight } from "lucide-react";
 import { getActiveClientId } from "@/lib/active-client";
 import { usePersistentRun, useUnloadGuard } from "@/lib/persistent-run";
+import { WorkingIndicator, WORK_MESSAGES } from "@/components/working-indicator";
 
 type CaptureResp = { status: string; completeness?: Completeness };
 type NextQuestion = { key: string; label: string; section: string; question: string; why?: string };
@@ -126,9 +127,7 @@ export function ProfileSharpenCard() {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Loader2 className="w-4 h-4 animate-spin" /> finding the next question…
-          </div>
+          <WorkingIndicator variant="inline" messages={WORK_MESSAGES.capture} />
         ) : justSaved ? (
           <div className="flex items-center gap-2 text-primary text-sm">
             <Check className="w-4 h-4" /> saved

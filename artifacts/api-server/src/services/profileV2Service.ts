@@ -22,6 +22,14 @@ export type ProfileV2View = {
   voice: unknown | null;
   worldview: unknown | null;
   negative_space: unknown | null;
+  identity_v2: unknown | null;
+  goals: unknown | null;
+  offers: unknown | null;
+  operating_prefs: unknown | null;
+  content_strategy: unknown | null;
+  channels: unknown | null;
+  market_context: unknown | null;
+  reputation: unknown | null;
   stories: Array<{ id: number; summary: string; themes: string[]; status: string }>;
   references: Array<{ id: number; kind: string; label: string; status: string }>;
   anti_examples: Array<{ sample_text: string; why_not_this_voice: string }>;
@@ -79,6 +87,14 @@ export async function getProfileV2(clientId: number): Promise<ProfileV2View | nu
     voice: safeLayer("voice_v2", profile.voiceV2),
     worldview: safeLayer("worldview_v2", profile.worldviewV2),
     negative_space: safeLayer("negative_space_v2", profile.negativeSpaceV2),
+    identity_v2: safeLayer("identity_v2", profile.identityV2),
+    goals: safeLayer("goals_v2", profile.goalsV2),
+    offers: safeLayer("offers_v2", profile.offersV2),
+    operating_prefs: safeLayer("operating_prefs_v2", profile.operatingPrefsV2),
+    content_strategy: safeLayer("content_strategy_v2", profile.contentStrategyV2),
+    channels: safeLayer("channels_v2", profile.channelsV2),
+    market_context: safeLayer("market_context_v2", profile.marketContextV2),
+    reputation: safeLayer("reputation_v2", profile.reputationV2),
     stories,
     references,
     anti_examples: antiExamples,

@@ -5,6 +5,10 @@ import signalImg from "@/assets/images/signal.jpg";
 import profileImg from "@/assets/images/bma-profile.jpg";
 import distributeImg from "@/assets/images/bma-distribute.jpg";
 import growImg from "@/assets/images/bma-grow.jpg";
+import whoFounders from "@/assets/images/who-founders.jpg";
+import whoOperators from "@/assets/images/who-operators.jpg";
+import whoExperts from "@/assets/images/who-experts.jpg";
+import whoCreators from "@/assets/images/who-creators.jpg";
 
 // Public "Get early access" intake - posts { email } to our own API (stored in
 // the Postgres `waitlist` table). Same-origin, so a relative path is enough.
@@ -531,41 +535,25 @@ export default function MarketingLanding() {
         <section className="feature">
           <div className="wrap split rev">
             <div className="visual reveal">
-              <div className="ui" aria-label="A content calendar with scheduled posts, connected to LinkedIn, X, YouTube and a newsletter.">
+              <div className="ui" aria-label="A weekly content calendar: seven posts queued across LinkedIn, X and a newsletter, each tagged by channel; YouTube is available but not yet connected.">
                 <div className="ui-head">
                   <span>This week</span>
                   <span className="accent">7 posts queued</span>
                 </div>
                 <div className="cal">
-                  <div className="d has" />
+                  <div className="d"><span className="post li">in</span></div>
                   <div className="d" />
-                  <div className="d has two" />
-                  <div className="d has" />
+                  <div className="d"><span className="post li">in</span><span className="post x">X</span></div>
+                  <div className="d"><span className="post nl">news</span></div>
                   <div className="d" />
-                  <div className="d has" />
-                  <div className="d has" />
+                  <div className="d"><span className="post x">X</span></div>
+                  <div className="d"><span className="post li">in</span><span className="post nl">news</span></div>
                 </div>
                 <div className="nets">
-                  <span className="net">
-                    <span className="on" /> LinkedIn
-                  </span>
-                  <span className="net">
-                    <span
-                      className="on"
-                      style={{ background: "var(--accent-soft)", boxShadow: "0 0 8px var(--accent-soft)" }}
-                    />{" "}
-                    X
-                  </span>
-                  <span className="net">
-                    <span
-                      className="on"
-                      style={{ background: "var(--accent-deep)", boxShadow: "0 0 8px var(--accent-deep)" }}
-                    />{" "}
-                    Newsletter
-                  </span>
-                  <span className="net off">
-                    <span className="on" /> YouTube
-                  </span>
+                  <span className="net"><span className="on li" /> LinkedIn</span>
+                  <span className="net"><span className="on x" /> X</span>
+                  <span className="net"><span className="on nl" /> Newsletter</span>
+                  <span className="net off"><span className="on" /> YouTube <em>soon</em></span>
                 </div>
               </div>
             </div>
@@ -769,20 +757,32 @@ export default function MarketingLanding() {
             </div>
             <div className="who-grid">
               <div className="pcard reveal">
-                <h3>Founders</h3>
-                <p>Turn your conviction into the brand that pulls in talent, capital, and customers.</p>
+                <div className="pcard__media"><img src={whoFounders} alt="A founder" loading="lazy" /></div>
+                <div className="pcard__body">
+                  <h3>Founders</h3>
+                  <p>Turn your conviction into the brand that pulls in talent, capital, and customers.</p>
+                </div>
               </div>
               <div className="pcard reveal">
-                <h3>Operators</h3>
-                <p>Make the expertise you've earned visible - without it eating your week.</p>
+                <div className="pcard__media"><img src={whoOperators} alt="An operator" loading="lazy" /></div>
+                <div className="pcard__body">
+                  <h3>Operators</h3>
+                  <p>Make the expertise you've earned visible - without it eating your week.</p>
+                </div>
               </div>
               <div className="pcard reveal">
-                <h3>Experts &amp; consultants</h3>
-                <p>Become the name in your niche, so the right work finds you.</p>
+                <div className="pcard__media"><img src={whoExperts} alt="An expert or consultant" loading="lazy" /></div>
+                <div className="pcard__body">
+                  <h3>Experts &amp; consultants</h3>
+                  <p>Become the name in your niche, so the right work finds you.</p>
+                </div>
               </div>
               <div className="pcard reveal">
-                <h3>Creators</h3>
-                <p>Trade the content treadmill for a system that compounds what you make.</p>
+                <div className="pcard__media"><img src={whoCreators} alt="A creator" loading="lazy" /></div>
+                <div className="pcard__body">
+                  <h3>Creators</h3>
+                  <p>Trade the content treadmill for a system that compounds what you make.</p>
+                </div>
               </div>
             </div>
           </div>

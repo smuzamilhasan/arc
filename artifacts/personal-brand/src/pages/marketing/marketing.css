@@ -186,14 +186,19 @@
 
 /* calendar */
 .mkt .cal{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:.4rem }
-.mkt .cal .d{ aspect-ratio:1; border-radius:8px; background:var(--surface-2); border:1px solid var(--line); position:relative }
-.mkt .cal .d.has::after{ content:""; position:absolute; inset:auto 6px 6px 6px; height:5px; border-radius:3px; background:var(--accent) }
-.mkt .cal .d.has.two::before{ content:""; position:absolute; inset:auto 6px 14px 6px; height:5px; border-radius:3px; background:var(--accent-deep) }
+.mkt .cal .d{ aspect-ratio:1; border-radius:8px; background:var(--surface-2); border:1px solid var(--line); position:relative; display:flex; flex-direction:column; justify-content:flex-end; gap:3px; padding:5px }
+.mkt .cal .post{ height:13px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:var(--body); font-size:8.5px; font-weight:600; letter-spacing:.02em; line-height:1 }
+.mkt .cal .post.li{ background:var(--accent); color:#04130D }
+.mkt .cal .post.x{ background:var(--accent-soft); color:#04130D }
+.mkt .cal .post.nl{ background:var(--accent-deep); color:var(--text) }
 .mkt .nets{ display:flex; gap:.5rem; flex-wrap:wrap; margin-top:1rem }
 .mkt .net{ display:flex; align-items:center; gap:.45rem; font-size:.78rem; color:var(--pewter); border:1px solid var(--line); border-radius:999px; padding:.35rem .75rem; background:var(--surface) }
 .mkt .net .on{ width:7px;height:7px;border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent) }
-.mkt .net.off{ color:var(--muted) }
-.mkt .net.off .on{ background:transparent; border:1.5px solid var(--muted); box-shadow:none; box-sizing:border-box }
+.mkt .net .on.x{ background:var(--accent-soft); box-shadow:0 0 8px var(--accent-soft) }
+.mkt .net .on.nl{ background:var(--accent-deep); box-shadow:0 0 8px var(--accent-deep) }
+.mkt .net.off{ color:var(--pewter) }
+.mkt .net.off .on{ background:transparent; border:1.5px solid var(--pewter); box-shadow:none; box-sizing:border-box }
+.mkt .net.off em{ font-style:normal; font-size:.58rem; letter-spacing:.05em; text-transform:uppercase; color:var(--bg); background:var(--pewter); padding:.08rem .32rem; border-radius:4px; margin-left:.1rem }
 
 /* chart */
 .mkt .chart{ height:170px; margin:.5rem 0 1rem }
@@ -227,7 +232,13 @@
 .mkt .who-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-top:2.5rem }
 @media(max-width:900px){ .mkt .who-grid{grid-template-columns:repeat(2,1fr)} }
 @media(max-width:520px){ .mkt .who-grid{grid-template-columns:1fr} }
-.mkt .pcard{ border:1px solid var(--line); border-radius:var(--r); padding:1.3rem; background:var(--surface) }
+.mkt .pcard{ border:1px solid var(--line); border-radius:var(--r); background:var(--surface); padding:0; overflow:hidden; display:flex; flex-direction:column }
+.mkt .pcard__media{ position:relative; aspect-ratio:4/5; overflow:hidden; background:var(--bg) }
+.mkt .pcard__media img{ width:100%; height:100%; object-fit:cover; object-position:center top; display:block; transition:transform .6s cubic-bezier(.2,.7,.2,1) }
+.mkt .pcard:hover .pcard__media img{ transform:scale(1.04) }
+.mkt .pcard__media::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg, transparent 58%, var(--surface)); pointer-events:none }
+.mkt .pcard__body{ padding:1.1rem 1.25rem 1.35rem }
+@media(prefers-reduced-motion:reduce){ .mkt .pcard:hover .pcard__media img{ transform:none } }
 .mkt .pcard h3{ font-size:1.05rem; margin-bottom:.35rem }
 .mkt .pcard p{ font-size:.86rem; color:var(--muted) }
 

@@ -28,7 +28,8 @@ import {
   Mic,
   UserCircle,
   GraduationCap,
-  Map
+  Map,
+  ListChecks
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import { useActiveClient } from "@/lib/active-client";
@@ -277,7 +278,9 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   // ---- Your engagement (Executive Consultation client portal) ----
-  { href: "/journey", icon: Map, label: "Your engagement", section: "Your engagement" },
+  // Console is admin-only (the non-admin filter keeps only /journey).
+  { href: "/console", icon: ListChecks, label: "Client console", section: "Your engagement" },
+  { href: "/journey", icon: Map, label: "Your engagement" },
   // ---- Studio (v2 content engine) ----
   { href: "/studio", icon: Sparkles, label: "Studio", section: "Studio" },
   { href: "/calibrate", icon: Mic, label: "Calibrate voice", section: "Studio" },

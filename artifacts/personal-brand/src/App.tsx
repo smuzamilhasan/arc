@@ -52,6 +52,7 @@ import OnboardV2Page from "@/pages/onboard-v2";
 import ProfileV2Page from "@/pages/profile-v2";
 import StudioPage from "@/pages/studio";
 import Journey from "@/pages/journey";
+import Console from "@/pages/console";
 import Admin from "@/pages/admin";
 import AgencyPage from "@/pages/agency";
 import Invite from "@/pages/invite";
@@ -293,6 +294,7 @@ function PlatformGate() {
               <Route path="/profile-v2" component={ProfileV2Page} />
               <Route path="/studio" component={StudioPage} />
               <Route path="/journey" component={Journey} />
+              <Route path="/console" component={Console} />
               <Route path="/account" component={Account} />
               <Route path="/admin" component={Admin} />
               <Route component={NotFound} />

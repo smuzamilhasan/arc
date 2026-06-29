@@ -60,7 +60,15 @@ replit.nix
 .env.local
 .env.*.local
 
+# Root secret files (Cloudflare token, Clerk secret, DB URL) — never commit
+.cf-token
+.clerk-secret
+.db-url
+
 # Clerk user exports (PII) — never commit
 clerk-users*.json
 clerk-id-map.json
 arc_backup*
+
+# One-off cleanup-script backups (contain prod row snapshots) — never commit
+scripts/v2/backups/

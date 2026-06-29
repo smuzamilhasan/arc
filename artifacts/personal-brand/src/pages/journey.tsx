@@ -15,12 +15,10 @@
 // feed for real week-of-13 + Friday digest, and the Approve/Deliverables screens.
 
 import { useEffect, useState } from "react";
-import { Link, Redirect } from "wouter";
-import { useUser } from "@clerk/react";
+import { Link } from "wouter";
 import {
   useGetDashboard,
   getGetDashboardQueryKey,
-  useGetAdminAccess,
 } from "@workspace/api-client-react";
 import { getActiveClientId } from "@/lib/active-client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,13 +48,6 @@ type Phase = {
 };
 
 export default function Journey() {
-  // Portal access: consultation clients (Clerk publicMetadata) + admins only.
-  // A non-client landing on /app/journey directly is bounced to the Studio.
-  const { user, isLoaded: userLoaded } = useUser();
-  const { data: access, isLoading: accessLoading } = useGetAdminAccess();
-  const allowed =
-    user?.publicMetadata?.consultationClient === true || Boolean(access?.isAdmin);
-
   const { data: dashboard, isLoading } = useGetDashboard({
     query: { queryKey: getGetDashboardQueryKey(), retry: false },
   });
@@ -159,16 +150,6 @@ export default function Journey() {
   const dotX = 130 + 95 * Math.cos(theta);
   const dotY = 130 - 95 * Math.sin(theta);
 
-  if (!userLoaded || accessLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center text-muted-foreground">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading
-      </div>
-    );
-  }
-  if (!allowed) {
-    return <Redirect to="/studio" />;
-  }
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center text-muted-foreground">

@@ -403,7 +403,6 @@ export function Layout({ children }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { hasAgency } = useActiveClient();
-  const { user } = useUser();
   const { data: access } = useGetAdminAccess();
   const { data: client } = useGetClient({
     query: { queryKey: getGetClientQueryKey(), retry: false },
@@ -514,17 +513,15 @@ export function Layout({ children }: LayoutProps) {
   const withAgency: NavItem[] = hasAgency
     ? [...baseItems, { href: "/agency", icon: Building2, label: "Agency" }]
     : baseItems;
-  const adminItems: NavItem[] = access?.isAdmin
+  const isAdmin = Boolean(access?.isAdmin);
+  const adminItems: NavItem[] = isAdmin
     ? [...withAgency, { href: "/admin", icon: Shield, label: "Admin" }]
     : withAgency;
-  // The Executive Consultation portal entry is visible only to consultation
-  // clients (Clerk publicMetadata.consultationClient === true) and admins, so
-  // it never appears for ordinary self-serve users.
-  const canSeePortal =
-    user?.publicMetadata?.consultationClient === true || Boolean(access?.isAdmin);
-  const items: NavItem[] = canSeePortal
+  // BuildMyArc is in development: only admins get the full toolset. Everyone
+  // else (incl. agency-invited clients) sees only the engagement Journey.
+  const items: NavItem[] = isAdmin
     ? adminItems
-    : adminItems.filter((item) => item.href !== "/journey");
+    : adminItems.filter((item) => item.href === "/journey");
 
   const NavLinks = () => (
     <div className="flex flex-col gap-1">
@@ -629,9 +626,11 @@ export function Layout({ children }: LayoutProps) {
         </div>
         <div className="px-4 mt-4">
           <NavLinks />
-          <div className="mt-6 pt-4 border-t border-border/50">
-            <StartOver />
-          </div>
+          {isAdmin && (
+            <div className="mt-6 pt-4 border-t border-border/50">
+              <StartOver />
+            </div>
+          )}
         </div>
         <div className="mt-auto px-4 py-6 border-t border-border/50">
           <UserMenu />
@@ -658,9 +657,11 @@ export function Layout({ children }: LayoutProps) {
             <div className="px-4 mt-4">
               <NavLinks />
             </div>
-            <div className="px-4 mt-6 pt-4 border-t border-border/50">
-              <StartOver />
-            </div>
+            {isAdmin && (
+              <div className="px-4 mt-6 pt-4 border-t border-border/50">
+                <StartOver />
+              </div>
+            )}
             <div className="px-4 mt-6 pt-4 border-t border-border/50">
               <UserMenu />
             </div>
@@ -675,7 +676,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </main>
 
-      {location !== "/assistant" && isPanelUnlocked("agents", gateCtx) && (
+      {isAdmin && location !== "/assistant" && isPanelUnlocked("agents", gateCtx) && (
         <AssistantPanel unreadCount={unreadCount} />
       )}
 

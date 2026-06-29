@@ -17,7 +17,7 @@ import {
 } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { setAuthTokenGetter, useGetAdminAccess } from "@workspace/api-client-react";
 import {
   ActiveClientProvider,
   setPendingInvite,
@@ -216,9 +216,47 @@ function ClerkQueryClientCacheInvalidator() {
 // existing page keeps its own path (/dashboard, /blueprint, …) and resolves
 // under /app/* automatically. Auth is enforced here (client) and by the
 // server-side /app/* gate in the API (app.ts) — defense in depth.
+//
+// BuildMyArc is in development: only admins (ADMIN_EMAILS) get the full
+// product. Every other signed-in user — including anyone who joins via an
+// agency invite, now or in future — is locked to the engagement Journey and
+// nothing else. The gate is client-side; see notes for server-side hardening.
 function AppRoutes() {
   return (
     <RequireAuth>
+      <PlatformGate />
+    </RequireAuth>
+  );
+}
+
+function PlatformGate() {
+  const { data: access, isLoading } = useGetAdminAccess();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
+
+  // Non-admins: the engagement Journey is the only surface. Every other path
+  // bounces back to it.
+  if (!access?.isAdmin) {
+    return (
+      <Layout>
+        <Switch>
+          <Route path="/journey" component={Journey} />
+          <Route>
+            <Redirect to="/journey" />
+          </Route>
+        </Switch>
+      </Layout>
+    );
+  }
+
+  // Admins: the full platform.
+  return (
       <Switch>
         <Route path="/" component={Entry} />
         <Route path="/onboard">
@@ -262,7 +300,6 @@ function AppRoutes() {
           </Layout>
         </Route>
       </Switch>
-    </RequireAuth>
   );
 }
 

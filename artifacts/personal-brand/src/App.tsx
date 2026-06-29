@@ -17,7 +17,11 @@ import {
 } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { setAuthTokenGetter, useGetAdminAccess } from "@workspace/api-client-react";
+import {
+  setAuthTokenGetter,
+  useGetAdminAccess,
+  getGetAdminAccessQueryKey,
+} from "@workspace/api-client-react";
 import {
   ActiveClientProvider,
   setPendingInvite,
@@ -231,12 +235,39 @@ function AppRoutes() {
 }
 
 function PlatformGate() {
-  const { data: access, isLoading } = useGetAdminAccess();
+  // Right after sign-in the Clerk session token can lag the first API request,
+  // so the admin check 401s; because the whole app blocks on it, that surfaced
+  // as a loader stuck until a manual refresh. Fix (mirrors Entry's handling):
+  // wait for Clerk to finish loading, retry transient failures so the token
+  // race self-heals, and never decide "non-admin" until we have a definitive
+  // successful answer.
+  const { isLoaded } = useAuth();
+  const { data: access, isLoading, isError, refetch } = useGetAdminAccess({
+    query: {
+      queryKey: getGetAdminAccessQueryKey(),
+      enabled: isLoaded,
+      retry: (failureCount) => failureCount < 3,
+    },
+  });
 
-  if (isLoading) {
+  if (!isLoaded || isLoading) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-background text-muted-foreground">
         Loading…
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 bg-background text-muted-foreground">
+        <span>Couldn’t load your workspace.</span>
+        <button
+          onClick={() => refetch()}
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-secondary/30"
+        >
+          Retry
+        </button>
       </div>
     );
   }
